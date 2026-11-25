@@ -6,7 +6,8 @@
   "scripts": {
     "aplicar-adaptador": "python3 tools/aplicar-adaptador.py index.html",
     "test:e2e": "node tests/e2e.cjs",
-    "test:rls": "node tests/rls.mjs"
+    "test:rls": "node tests/rls.mjs",
+    "test:ambientes": "node tests/ambientes.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.6.0",

@@ -16,3 +16,17 @@ Sistema de gestão da Durant Alfaiataria. É uma página única (`index.html`), 
 
 ## Colocar no ar (Vercel)
 Projeto estático: *Framework Preset = Other*, sem comando de build, diretório raiz. Domínio: `sistema.henriquedurant.com` (CNAME no DNS).
+
+## Ambientes (produção × homologação)
+
+| | Produção | Homologação |
+|---|---|---|
+| Branch | `main` | `homologacao` |
+| Endereço | `sistema.henriquedurant.com` (e `durant-atelie.vercel.app`) | qualquer outro (prévia da Vercel da branch, localhost) |
+| Banco | Supabase `jkhjixfdlpucaebulpdh` (dados reais) | Supabase `azkvclwozhneyougtcbn` (só dados de teste) |
+
+- `config.js` escolhe o banco **pelo endereço**: só os endereços listados em `HOSTS_PRODUCAO` usam o banco real; qualquer outro usa a homologação. `tests/ambientes.cjs` garante isso.
+- Na homologação aparece uma faixa vermelha "HOMOLOGAÇÃO" e o título da aba ganha o prefixo `[HOMOLOGAÇÃO]`.
+- Fluxo: desenvolver e testar na branch `homologacao` → validar com dados de exemplo → só então fazer merge na `main` (vai para produção).
+- Mudanças de banco: aplicar a migration primeiro no banco de homologação, testar, e só depois no de produção.
+- **Nunca** importar backup real (dados de clientes) na homologação.

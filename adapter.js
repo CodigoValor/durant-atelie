@@ -14,6 +14,17 @@
   var SB = (window.SB = { email: '', empresa: null, papel: null, client: sb });
   var vemDeRecuperacao = /type=recovery/.test(location.hash);
 
+  /* faixa fixa avisando que NÃO é o sistema real (impossível confundir homologação com produção) */
+  if (cfg.ambiente === 'homologacao') {
+    document.title = '[HOMOLOGAÇÃO] ' + document.title;
+    var faixa = document.createElement('div');
+    faixa.textContent = 'HOMOLOGAÇÃO — ambiente de testes, não é o sistema real';
+    faixa.setAttribute('style', 'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#b3261e;color:#fff;' +
+      'font:600 12px/1 system-ui,sans-serif;letter-spacing:.06em;text-align:center;padding:7px 8px;pointer-events:none');
+    (document.body ? Promise.resolve() : new Promise(function (r) { document.addEventListener('DOMContentLoaded', r); }))
+      .then(function () { document.body.appendChild(faixa); });
+  }
+
   /* erros no formato que o protótipo espera (code === 'unavailable' dispara nova tentativa) */
   function erro(e) {
     var msg = (e && e.message) || 'erro';

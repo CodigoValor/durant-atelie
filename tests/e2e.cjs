@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const SUPA = 'https://jkhjixfdlpucaebulpdh.supabase.co';
+const SUPA = 'https://azkvclwozhneyougtcbn.supabase.co'; // localhost usa o banco de homologação (config.js escolhe pelo endereço)
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json' };
 const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ') + m); if (!c) falhas.push(m); };
 
