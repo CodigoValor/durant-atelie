@@ -3698,6 +3698,17 @@ const PREP=[['ficha','Lançar e enviar a ficha'],['metr','Confirmar a metragem']
 const prepKeys=pc=>PREP.filter(([k])=>aplica(pc,k));
 const prepProg=(p,pc)=>{const ks=prepKeys(pc);return [ks.filter(([k])=>feita(p,pc,k)).length,ks.length]};
 const PREP_KEYS=new Set(PREP.map(([k])=>k));
+/* Peça para prova: quando um pedido tem mais de uma peça do mesmo tipo (ex.: 3 camisas), o Luiz pode marcar
+   uma delas como a peça-piloto (pc.provaPeca) — é nela que a prova é feita primeiro. As demais peças do MESMO
+   TIPO no mesmo pedido podem seguir normalmente todo o checklist de preparação (ficha, metragem, tecido, forro,
+   pedido confirmado/enviado, tecido recebido), só não podem ser enviadas para a produção ('env') antes da prova
+   da peça-piloto ser registrada — combinado com o Luiz em 25/11/2026. Depois que a prova da piloto é registrada
+   (mesmo que ainda vá precisar de ajuste), as demais já podem seguir. Não se aplica a OS avulsa (sem p.pecas).*/
+const pecaBloqueadaPorProva=(p,pc)=>{
+ if(pc.provaPeca||!p.pecas)return false;
+ const piloto=p.pecas.find(x=>x!==pc&&x.tipo===pc.tipo&&x.provaPeca);
+ return !!piloto&&!feita(p,piloto,'prova');
+};
 /* Zera o progresso depois da preparação (pronto p/ prova, ajuste, aprovada, entregue): usado sempre que um item
    do checklist de preparação é desmarcado, pra a peça não "pular" de volta pra uma etapa que não é mais válida
    enquanto a preparação não for refeita. */
@@ -3753,7 +3764,8 @@ function openCard(pid,uid,sy){
  const c=cli(p.cli),col=colDe(p,pc),i=itemNums(p.pecas)(pc),peers=pc.gid?p.pecas.filter(x=>x.gid===pc.gid):[pc],nomeGrupo=peers.map(pecaNome).join(' + '),[pa,pb]=prepProg(p,pc);
  const ordem=['prep','prod','prova','ajuste','pronto'],ix=ordem.indexOf(col);
  const dfmt=f=>typeof f==='string'&&/^\d{4}-/.test(f)?f:'';
- const chk=prepKeys(pc).map(([k,l])=>{const f=feita(p,pc,k);return `<div class="kchkrow"><button type="button" class="kchk ${f?'on':''}" data-kchk="${k}"><span>${f?'✓':''}</span>${l}</button>${f?`<input type="text" inputmode="numeric" autocomplete="off" class="dinp kchkdate" data-kchkdate="${k}" placeholder="dd/mm/aaaa" maxlength="10" value="${brDe(dfmt(f))}" aria-label="Data de ${l.toLowerCase()}">`:''}</div>`}).join('');
+ const bloqueada=pecaBloqueadaPorProva(p,pc),piloto=bloqueada?p.pecas.find(x=>x!==pc&&x.tipo===pc.tipo&&x.provaPeca):null;
+ const chk=prepKeys(pc).map(([k,l])=>{const f=feita(p,pc,k),trav=k==='env'&&bloqueada&&!f;return `<div class="kchkrow"><button type="button" class="kchk ${f?'on':''}" data-kchk="${k}" ${trav?'disabled title="Aguardando a prova da peça-piloto ser registrada"':''}><span>${f?'✓':trav?'🔒':''}</span>${l}</button>${f?`<input type="text" inputmode="numeric" autocomplete="off" class="dinp kchkdate" data-kchkdate="${k}" placeholder="dd/mm/aaaa" maxlength="10" value="${brDe(dfmt(f))}" aria-label="Data de ${l.toLowerCase()}">`:''}</div>`}).join('');
  const pp0=prevPronta(p,pc),pj0=prevAjuste(p,pc);
  const round2=ajOn(pc)&&feita(p,pc,'ajret');
  const agKey=round2?'agprova2':'agprova';
@@ -3764,7 +3776,11 @@ function openCard(pid,uid,sy){
  const body=`<div class="full"><div class="d" style="margin:0 0 6px">${esc(c.nome)} · <span class="mono">${esc(p.id)}</span> · Item ${i} · ${nomeGrupo}${pc.itemPl?` · item ${pc.itemPl}`:''}</div>
   <label class="kor" style="margin:0 0 8px">${pc.grupo&&pc.gid===pc.uid?'Prazo de entrega do '+pc.grupo:'Prazo de entrega'}${dinp("kc-prazo",pc.gid&&pc.gid!==pc.uid?(peers.find(x=>x.uid===pc.gid)||{}).prazo:pc.prazo,pc.gid&&pc.gid!==pc.uid?'disabled title="Mesma data do '+esc(pc.grupo||'')+'; altere na peça principal do conjunto."':'')}</label>
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="pill ${col==='entregue'?'ok':col==='ajuste'?'warn':'info'}">${colNome(col)}</span>
-  ${ix>1?`<button type="button" class="btn ghost sm" data-kmv="${ordem[ix-1]}">← ${colNome(ordem[ix-1])}</button>`:''}${ix>=1&&ix<ordem.length-1?`<button type="button" class="btn ghost sm" data-kmv="${ordem[ix+1]}">${colNome(ordem[ix+1])} →</button>`:''}</div></div>
+  ${pc.provaPeca?'<span class="pill info">Peça de prova</span>':''}${bloqueada?'<span class="pill warn">Aguardando prova da peça-piloto</span>':''}
+  ${ix>1?`<button type="button" class="btn ghost sm" data-kmv="${ordem[ix-1]}">← ${colNome(ordem[ix-1])}</button>`:''}${ix>=1&&ix<ordem.length-1?`<button type="button" class="btn ghost sm" data-kmv="${ordem[ix+1]}">${colNome(ordem[ix+1])} →</button>`:''}</div>
+  <label class="chk full" style="margin-top:8px"><input type="checkbox" id="kc-provapeca" ${pc.provaPeca?'checked':''}>Esta é a peça de prova (peça-piloto) deste modelo</label>
+  ${pc.provaPeca?'<p class="hint full" style="margin:2px 0 0">Enquanto a prova desta peça não for registrada, as outras peças do mesmo tipo neste pedido podem ser preparadas, mas não avançam para a produção.</p>':''}
+  ${bloqueada?`<p class="hint full" style="margin:2px 0 0;color:#8A5A00">Esta peça aguarda a prova de ${esc(pecaNome(piloto))} (peça-piloto) ser registrada para poder ir para a produção. Até lá, pode seguir normalmente com ficha, tecido e forro.</p>`:''}</div>
   <div class="full kbox"><b>Tecido e forro</b>
    <div class="pgrid4" style="margin-top:8px">
     <label class="tf">Fornecedor do tecido<select class="ctl" id="kc-forn"${naTit}><option value="">Selecionar</option>${fornOpts('Tecido').map(x=>`<option ${pc.forn===x?'selected':''}>${esc(x)}</option>`).join('')}<option value="__novo__">+ Adicionar fornecedor</option></select></label>
@@ -3826,10 +3842,12 @@ function openCard(pid,uid,sy){
  document.querySelectorAll('[data-kchk]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.kchk,A=ATV.find(x=>x.k===k);
   if(feita(p,pc,k)){setF(p,pc,k,null);if(PREP_KEYS.has(k))clearProgresso(p,pc);recalc(p,pc);return again()}
+  if(k==='env'&&pecaBloqueadaPorProva(p,pc)){toast('Esta peça aguarda a prova da peça-piloto ser registrada antes de ir para a produção.');return}
   if(A.modal){g('mdl').click();return actModal(p,k,uid)}
   setF(p,pc,k,hoje());recalc(p,pc);again();
  });
  document.querySelectorAll('[data-kmv]').forEach(b=>b.onclick=()=>{if(moveCard(p,pc,b.dataset.kmv))again()});
+ const kvp=g('kc-provapeca');if(kvp)kvp.onchange=()=>{pc.provaPeca=kvp.checked;again()};
  g('kc-orig').onchange=e=>{pc.tecOrig=e.target.value;recalc(p,pc);again()};
  const kf=g('kc-forn');if(kf)kf.onchange=()=>{if(kf.value==='__novo__'){kf.value=pc.forn||'';novoFornModal('Tecido',nome=>{pc.forn=nome;pc.tec='';recalc(p,pc);again()});return}pc.forn=kf.value;pc.tec='';recalc(p,pc);again()};
  const kt=g('kc-tec');if(kt)kt.onchange=()=>{pc.tec=kt.value.trim();recalc(p,pc);again()};
@@ -3996,6 +4014,8 @@ R.atividades=()=>{
   const cls=col!=='entregue'&&!avisado&&dl!=null&&dl<0?'late':col!=='entregue'&&!avisado&&dl!=null&&dl<=5?'soon':'';
   const [pa,pb]=prepProg(pd,pc),ag=feita(pd,pc,'agprova'),pv=(pc.provas||[]).length,pp=pc.isOS?null:prevPronta(pd,pc),pj=pc.isOS?null:prevAjuste(pd,pc);
   const bd=[];
+  if(!pc.isOS&&pc.provaPeca)bd.push('<span class="pill info">Peça de prova</span>');
+  if(!pc.isOS&&col==='prep'&&pecaBloqueadaPorProva(pd,pc))bd.push('<span class="pill warn">Aguardando prova da peça-piloto</span>');
   if(col==='prep')bd.push(`<span class="pill ${pa===pb?'ok':'warn'}">Checklist ${pa}/${pb}</span>`);
   if(col==='prod'&&pp)bd.push(`<span class="pill plain">Pronta até ${fd(pp)}</span>`);
   if(col==='prova'&&typeof ag==='string'&&!feita(pd,pc,'prova'))bd.push(`<span class="pill info">Prova ${fd(ag)}</span>`);
@@ -4031,7 +4051,10 @@ function acoesRapidasHTML(cards){
   const tecLbl=pc.isOS?'':[esc(pc.forn||''),esc(pc.tec||'')].filter(Boolean).join(' ');
   if(x.col==='prep'){
    const prox=prepKeys(pc).find(([k])=>!feita(pd,pc,k));
-   if(prox)rows.push({pd,pc,prz:pc.prazo,idLbl,titulo:pc.isOS?esc(pc.servico):esc(c.nome),sub:pc.isOS?`${esc(c.nome)} · ${esc(pc.peca)}`:`${nome} · item ${i}${tecLbl?` · ${tecLbl}`:''}`,acao:prox[1],k:prox[0]});
+   /* Se o próximo passo pendente é "enviar para a produção" mas a peça está travada esperando a prova
+      da peça-piloto, não entra nas Ações rápidas (não tem nada a fazer aqui ainda) — ela continua
+      aparecendo normalmente pelos passos anteriores do checklist. */
+   if(prox&&!(prox[0]==='env'&&pecaBloqueadaPorProva(pd,pc)))rows.push({pd,pc,prz:pc.prazo,idLbl,titulo:pc.isOS?esc(pc.servico):esc(c.nome),sub:pc.isOS?`${esc(c.nome)} · ${esc(pc.peca)}`:`${nome} · item ${i}${tecLbl?` · ${tecLbl}`:''}`,acao:prox[1],k:prox[0]});
   }else if(x.col==='pronto'&&!feita(pd,pc,'avisoPronto')){
    /* A partir daqui a peça já está pronta e só falta o cliente vir buscar — isso não depende mais do
       ateliê, então não tratamos como pendência/atraso nosso. O único passo que ainda é "tarefa do
@@ -4054,6 +4077,7 @@ bind.atividades=()=>{
   const [id,u,k]=cb.dataset.qa.split('|');let pd,pc;
   if(id.startsWith('OS-')){pd=pc=S.os.find(x=>x.id===id)}else{pd=S.pedidos.find(x=>x.id===id);pc=pd&&pd.pecas.find(x=>x.uid===+u)}
   if(!pc)return;
+  if(k==='env'&&pecaBloqueadaPorProva(pd,pc)){cb.checked=false;toast('Esta peça aguarda a prova da peça-piloto ser registrada antes de ir para a produção.');return}
   if(k==='__entregar__'){if(!moveCard(pd,pc,'entregue')){cb.checked=false;return}toast('Entregue ao cliente')}
   else{setF(pd,pc,k,hoje());if(pc.isOS)syncOSSt(pc);else recalc(pd,pc)}
   /* Marca a linha como feita na hora, sem redesenhar a tela toda: assim a tela não "pula" a cada
