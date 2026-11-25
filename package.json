@@ -1,0 +1,15 @@
+{
+  "name": "durant-atelie",
+  "private": true,
+  "type": "module",
+  "description": "Sistema de gestão da Durant Alfaiataria (arquivo único, sem build)",
+  "scripts": {
+    "aplicar-adaptador": "python3 tools/aplicar-adaptador.py index.html",
+    "test:e2e": "node tests/e2e.cjs",
+    "test:rls": "node tests/rls.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.6.0",
+    "playwright": "^1.63.0"
+  }
+}

@@ -1,5 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Durant Ateliê</title>
+<meta name="robots" content="noindex,nofollow">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -442,6 +443,9 @@ body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:h
 <nav class="tabbar" id="tabbar"></nav>
 <div id="modal-root"></div>
 
+<script src="vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="adapter.js"></script>
 <script>
 const VIEWS=[
  {id:'painel',label:'Painel',short:'Painel',icon:'i-home'},
@@ -4982,7 +4986,7 @@ function chipUser(){
  const b=document.getElementById('userchip');if(!b)return;
  b.hidden=!P.user;if(P.user)b.innerHTML=`<span class="ua" aria-hidden="true">${esc(initials(P.user.nome))}</span><span class="un">${esc(P.user.nome.split(' ')[0])}</span>`;
 }
-function sair(){sess.clr();P.user=null;chipUser();document.getElementById('modal-root').innerHTML='';gateLogin()}
+function sair(){if(window.SB)return window.SB.sair();sess.clr();P.user=null;chipUser();document.getElementById('modal-root').innerHTML='';gateLogin()}
 function contaModal(){
  const u=P.user;if(!u)return;
  modal('Sua conta',`<div class="full"><b>${esc(u.nome)}</b><div class="d" style="color:var(--ink-2);font-size:14px">${esc(u.email||'')} · ${esc(u.grupo||'')}</div></div>
@@ -4990,7 +4994,7 @@ function contaModal(){
  <div class="full"><button type="button" class="btn ghost" id="ac-out">Sair do sistema</button></div>`,()=>{
   const p=document.getElementById('ac-p').value;if(!p)return;
   const m=pwOk(p);if(m)return m;
-  setSenha(u,p).then(()=>{toast('Senha alterada');flush()});
+  if(window.SB)window.SB.client.auth.updateUser({password:p}).then(r=>{toast(r.error?'Não consegui alterar a senha':'Senha alterada')});else setSenha(u,p).then(()=>{toast('Senha alterada');flush()});
  },'Salvar');
  document.getElementById('ac-out').onclick=sair;
 }
@@ -5014,8 +5018,8 @@ async function boot(){
   }
  }catch(e){P.ready=false;return gateErro(e)}
  P.ready=true;setState('ok');
- const sid=sess.get(),u=sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo);
- if(u)entrar(u);else gateLogin();
+ const sid=sess.get(),u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));
+ if(u)entrar(u);else if(window.SB)window.SB.semUsuario();else gateLogin();
 }
 
 /* backup, restauração e limpeza */

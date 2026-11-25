@@ -1,9 +1,18 @@
 # Durant Ateliê
 
-Sistema de gestão da Durant Alfaiataria (arquivo único `index.html`).
+Sistema de gestão da Durant Alfaiataria. É uma página única (`index.html`), sem etapa de build.
 
-Origem: protótipo publicado como artefato no Claude (v179). Hoje ele grava no banco do artefato do Claude e só salva quando aberto por lá.
+## Como funciona hoje
+- `index.html`: o sistema (origem: protótipo do Claude, v179).
+- `adapter.js` + `config.js` + `vendor/supabase.js`: fora do Claude, o sistema grava no **Supabase** (login real e isolamento por empresa). Dentro do Claude, o adaptador não faz nada.
+- `supabase/migrations/`: SQL do banco. `0001_base.sql` cria tabelas, regras de segurança (RLS) e permissões; `0002_primeiro_admin.sql` liga o primeiro administrador.
+- `tools/aplicar-adaptador.py`: reaplica as poucas mudanças do `index.html` ao adaptador (pode ser rodado de novo numa versão mais nova do protótipo).
+- `tests/`: `e2e.cjs` (login, gravar, recarregar, apagar, sair, com Supabase simulado) e `rls.mjs` (isolamento entre empresas num Postgres real em memória).
 
-Próximo passo: trocar o salvamento para o Supabase (login real e isolamento por empresa) e publicar na Vercel.
+## Regras
+- Dados reais de clientes e backups **nunca** entram neste repositório (veja `.gitignore`).
+- A chave em `config.js` é a *publishable* (pública por desenho). A `service_role` nunca entra aqui.
+- Toda tabela nova nasce com RLS ligado e permissões explícitas (sem acesso anônimo).
 
-Dados reais de clientes e backups nunca entram neste repositório.
+## Colocar no ar (Vercel)
+Projeto estático: *Framework Preset = Other*, sem comando de build, diretório raiz. Domínio: `sistema.henriquedurant.com` (CNAME no DNS).
