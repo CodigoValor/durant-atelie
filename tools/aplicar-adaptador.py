@@ -23,6 +23,9 @@ TROCAS = [
     # 5) trocar senha na conta muda a senha do login do Supabase
     ("setSenha(u,p).then(()=>{toast('Senha alterada');flush()});",
      "if(window.SB)window.SB.client.auth.updateUser({password:p}).then(r=>{toast(r.error?'Não consegui alterar a senha':'Senha alterada')});else setSenha(u,p).then(()=>{toast('Senha alterada');flush()});"),
+    # 6) ícones do site (favicon): gerados por tools/gerar-favicon.py a partir do emblema
+    ("<meta name=\"robots\" content=\"noindex,nofollow\">",
+     "<meta name=\"robots\" content=\"noindex,nofollow\">\n<link rel=\"icon\" href=\"favicon.ico\" sizes=\"any\">\n<link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"favicon-32.png\">\n<link rel=\"apple-touch-icon\" href=\"apple-touch-icon.png\">\n<meta name=\"theme-color\" content=\"#243029\">"),
 ]
 
 for antigo, novo in TROCAS:
