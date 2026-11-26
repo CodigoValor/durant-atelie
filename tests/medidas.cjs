@@ -29,6 +29,12 @@ const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ')
     M.corpo[k] = 45; medAplicar(cid, s2, 'Correção de medida', '');
     out.ped1 = { aviso: !!medNovaVersao(p), val: medBase(p).corpo[k], atual: M.corpo[k] };
     p.medUsadas = medFoto(cid); out.ped2 = { aviso: !!medNovaVersao(p), val: medBase(p).corpo[k] };
+    /* prova que pediu ajuste liga com a nova versão das medidas */
+    const pe = { id: 'T-2', cli: cid, status: 'producao', pecas: [{ uid: 77, provas: [{ d: '2026-11-20', resultado: 'ajuste', ajustes: [{ pt: 'Ombro', cm: -1 }] }] }], log: [] };
+    S.pedidos.push(pe); ui.provaRef = { ped: 'T-2', uid: 77, idx: 0, cli: cid };
+    const s3 = { corpo: { ...M.corpo }, peca: JSON.parse(JSON.stringify(M.peca)), rev: M.rev };
+    M.corpo[k] = 44; medAplicar(cid, s3, 'Ajuste após prova', '');
+    const mv = pe.pecas[0].provas[0].medAjuste; out.prova = { v: mv && mv.vCorpo, igual: mv && mv.vCorpo === M.vCorpo, ref: ui.provaRef, log: pe.log.length };
     return out;
   });
   console.log(JSON.stringify(r));
@@ -40,6 +46,7 @@ const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ')
   ok(r.ped0.val === 40 && !r.ped0.aviso, 'pedido nasce com cópia das medidas e sem aviso');
   ok(r.ped1.aviso && r.ped1.val === 40 && r.ped1.atual === 45, 'cliente ganha medida nova: pedido avisa mas continua com a antiga (40)');
   ok(!r.ped2.aviso && r.ped2.val === 45, 'ao escolher "usar as atuais" o pedido passa a 45 e o aviso some');
+  ok(r.prova.igual && r.prova.ref === null && r.prova.log === 1, 'prova com ajuste guarda a versão nova das medidas, quem fez, e entra no histórico do pedido');
   ok(erros.length === 0, 'sem erros de JavaScript ' + erros.join('|'));
   await br.close(); srv.close();
   console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);

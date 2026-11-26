@@ -902,6 +902,12 @@ function novaVersaoPeca(cid){const M=mc(cid);M.versPeca=M.versPeca||[];
  M.vPeca=(M.vPeca||1)+1;M.vdataPeca=hoje();return M.vPeca}
 
 /* ===== Histórico de alterações das medidas (cada salvamento com mudança vira registro: quem, quando, motivo, de → para) ===== */
+/* Prova que pediu ajuste: quando as medidas do cliente são alteradas a partir dela, a prova guarda qual versão nasceu e quem fez */
+function medLigaProva(cid,M){const r=ui.provaRef;if(!r||r.cli!==cid)return;ui.provaRef=null;
+ const p=S.pedidos.find(x=>x.id===r.ped),pc=p&&p.pecas.find(x=>x.uid===r.uid),pv=pc&&(pc.provas||[])[r.idx];if(!pv)return;
+ const q=medQuem(),h=(M.hist||[]).slice(-1)[0]||{};
+ pv.medAjuste={em:new Date().toISOString(),por:q.por,org:q.org,vCorpo:M.vCorpo||1,vPeca:M.vPeca||1,mudou:(h.mudou||[]).length};
+ logEvt(p,`Prova de ${fd(pv.d)}: medidas do cliente ajustadas (corpo V${pv.medAjuste.vCorpo}, peça pronta V${pv.medAjuste.vPeca}) por ${q.por||q.org}`)}
 const medOrg=()=>PARC()?'ateliê':'fábrica';
 const medQuem=()=>({por:(P.user&&P.user.nome)||(window.SB&&window.SB.email)||'',org:medOrg()});
 const medFmt=v=>v==null||v===''?'—':fmtN(v);
@@ -934,7 +940,7 @@ function medAplicar(cid,snap,motivo,obs){   /* grava a alteração: versão nova
   if(mudouPeca){M.versPeca=M.versPeca||[];M.versPeca.push({v:M.vPeca||1,data:M.vdataPeca||'',peca:JSON.parse(JSON.stringify(snap.peca))});M.vPeca=(M.vPeca||1)+1;M.vdataPeca=hoje()}
  }
  (M.hist=M.hist||[]).push({n:M.hist.length+1,em:new Date().toISOString(),por:q.por,org:q.org,motivo,obs:obs||'',mudou:dif,vCorpo:M.vCorpo||1,vPeca:M.vPeca||1});
- M.rev=(M.rev||0)+1;return dif}
+ M.rev=(M.rev||0)+1;medLigaProva(cid,M);return dif}
 function medVoltar(cid,tipo,v){const M=mc(cid),q=medQuem();
  if(tipo==='corpo'){const x=(M.versCorpo||[]).find(z=>z.v===v);if(!x)return 'Versão não encontrada.';
   const antes={corpo:Object.assign({},M.corpo),peca:JSON.parse(JSON.stringify(M.peca))};
@@ -946,7 +952,7 @@ function medVoltar(cid,tipo,v){const M=mc(cid),q=medQuem();
   M.versPeca.push({v:M.vPeca||1,data:M.vdataPeca||'',peca:JSON.parse(JSON.stringify(M.peca))});M.vPeca=(M.vPeca||1)+1;M.vdataPeca=hoje();
   M.peca=JSON.parse(JSON.stringify(x.peca));Object.keys(TIPOS).forEach(t=>{M.peca[t]=M.peca[t]||{}});
   const dif=medDiff(antes,M);(M.hist=M.hist||[]).push({n:M.hist.length+1,em:new Date().toISOString(),por:q.por,org:q.org,motivo:'Voltou à V'+v+' (peça pronta)',obs:'',mudou:dif,vCorpo:M.vCorpo||1,vPeca:M.vPeca});}
- M.rev=(M.rev||0)+1;return ''}
+ M.rev=(M.rev||0)+1;medLigaProva(cid,M);return ''}
 function verHTMLCorpo(M){const v=M.vCorpo||1,vs=M.versCorpo||[];
  return `<div class="sum" style="gap:10px;flex-wrap:wrap"><div><b style="font-weight:600">Modelagem do corpo V${v}</b><div style="font-size:13px;color:var(--ink-2)">${M.vdataCorpo?'Medidas de '+fdFull(M.vdataCorpo):'Sem data ainda: passa a valer na primeira medida lançada'}. Versão independente da medida da peça pronta — veja a conversão da outra aba no rodapé, só como referência.</div></div><button type="button" class="btn ghost sm" id="nova-ver-corpo">${ic('i-plus')}Criar nova versão (V${v+1})</button></div>
  ${vs.length?`<details class="grp"><summary><span class="gt">Versões anteriores do corpo</span><span class="pill plain">${vs.length}</span></summary><div class="gb">${vs.slice().reverse().map(x=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>V${x.v}</b> <span class="d" style="color:var(--ink-3)">${x.data?fdFull(x.data):'sem data'}</span><button type="button" class="btn ghost sm" data-volta="corpo|${x.v}" style="margin-left:10px">Voltar a esta versão</button><div class="d" style="font-size:13px;margin-top:4px">${esc(Object.entries(x.corpo||{}).filter(([k,val])=>val!=null&&FLD[k]).map(([k,val])=>FLD[k].l+' '+val).join(' · ')||'—')}</div></div>`).join('')}</div></details>`:''}`}
@@ -1591,7 +1597,7 @@ bind.clientes=()=>{
  document.querySelectorAll('[data-volta]').forEach(b=>b.onclick=()=>{const [tp,v]=b.dataset.volta.split('|');
   modal('Voltar a uma versão anterior',`<p class="full" style="margin:0">Os valores da <b>V${v}</b> voltam a valer. Nada é apagado: a versão atual vai para o histórico e o sistema cria uma versão nova com esses valores.</p>`,()=>{const e=medVoltar(ui.cli,tp,+v);if(e)return e;toast('Voltou à V'+v+' · nova versão criada');return ''},'Voltar a esta versão')});
  if(ui.tab==='corpo'||ui.tab==='prontas')medMarcaVisto(ui.cli);
- const medCancelar=document.getElementById('med-cancelar');if(medCancelar)medCancelar.onclick=()=>{const M=mc(ui.cli);if(ui._medSnap){M.corpo=ui._medSnap.corpo;M.peca=ui._medSnap.peca}ui.medEdit=false;ui._medSnap=null;render();toast('Alterações descartadas')};
+ const medCancelar=document.getElementById('med-cancelar');if(medCancelar)medCancelar.onclick=()=>{const M=mc(ui.cli);if(ui._medSnap){M.corpo=ui._medSnap.corpo;M.peca=ui._medSnap.peca}ui.medEdit=false;ui._medSnap=null;ui.provaRef=null;render();toast('Alterações descartadas')};
  const cad=document.getElementById('cad');
  if(cad){
   const tel=document.getElementById('c-tel');tel.addEventListener('input',()=>{tel.value=telMask(tel.value)});
@@ -4187,7 +4193,7 @@ function openCard(pid,uid,sy){
   <div class="full kbox"><b>Checklist de preparação</b> <span class="pill ${pa===pb?'ok':'plain'}">${pa}/${pb}</span><div class="kchks">${chk||'<span class="d">Nada a preparar nesta peça.</span>'}</div>
    <label class="kor">Tecido <select id="kc-orig" class="ctl" data-nosearch><option value="comprar" ${o==='comprar'?'selected':''}>Comprar</option><option value="estoque" ${o==='estoque'?'selected':''}>Estoque (sem compra)</option><option value="cliente" ${o==='cliente'?'selected':''}>Cliente trouxe</option></select></label></div>
   <div class="full kbox"><b>Provas</b>${prv.length?` <span class="pill plain">${prv.length} realizada${prv.length>1?'s':''}</span>`:''}
-   ${prv.map((x,xi)=>`<div class="d" style="margin-bottom:6px">✓ ${fd(x.d)}${x.resultado==='ajuste'?' · <b style="color:#8A5A00">Precisou de ajuste</b>':x.resultado==='aprovada'?' · Aprovada sem ajuste':''}${x.obs?' · '+esc(x.obs):''}${(x.ajustes||[]).length?`<div style="margin:4px 0 2px 14px;color:var(--ink-2)">${x.ajustes.map(a=>`· ${a.pecaNome&&peers.length>1?esc(a.pecaNome)+' — ':''}${esc(a.pt)}: ${fmtCm(a.cm||0)}`).join('<br>')}</div><button type="button" class="btn ghost sm" data-ajpdf="${xi}">Ficha de ajuste (PDF)</button>`:''}</div>`).join('')}
+   ${prv.map((x,xi)=>`<div class="d" style="margin-bottom:6px">✓ ${fd(x.d)}${x.resultado==='ajuste'?' · <b style="color:#8A5A00">Precisou de ajuste</b>':x.resultado==='aprovada'?' · Aprovada sem ajuste':''}${x.obs?' · '+esc(x.obs):''}${(x.ajustes||[]).length?`<div style="margin:4px 0 2px 14px;color:var(--ink-2)">${x.ajustes.map(a=>`· ${a.pecaNome&&peers.length>1?esc(a.pecaNome)+' — ':''}${esc(a.pt)}: ${fmtCm(a.cm||0)}`).join('<br>')}</div><button type="button" class="btn ghost sm" data-ajpdf="${xi}">Ficha de ajuste (PDF)</button>${x.medAjuste?`<div class="d" style="margin:4px 0 0 14px;color:var(--ok,#2E7D4F)">✓ Medidas do cliente ajustadas em ${fdFull(x.medAjuste.em.slice(0,10))} por ${esc(x.medAjuste.por||x.medAjuste.org)} → corpo V${x.medAjuste.vCorpo}, peça pronta V${x.medAjuste.vPeca}</div>`:`<button type="button" class="btn ghost sm" data-medaj="${xi}" style="margin-left:6px">Ajustar medidas do cliente</button>`}`:`<div class="d" style="margin:2px 0 0 14px;color:var(--ink-3)">Sem ajuste · medidas do cliente mantidas${x.medV?' (corpo V'+x.medV.c+', peça pronta V'+x.medV.p+')':''}</div>`}</div>`).join('')}
    ${typeof ag==='string'?`<div class="d">${round2?'Nova prova agendada':'Agendada'} para <b>${fd(ag)}</b> <button type="button" class="btn ghost sm" id="kc-agx">cancelar</button></div>`:''}
    <div class="mrow"><label>${round2?'Agendar nova prova':'Agendar prova'}<input id="kc-pd" type="date" value="${(round2?pc.prazoAjusteCheg:pc.prazoCheg)||pc.prazo&&addDias(pc.prazo,-12)||hoje()}"></label><label>Hora<input id="kc-ph" type="time" value="10:00"></label><button type="button" class="btn ghost sm" id="kc-ag" style="align-self:end">Agendar</button></div>
    <button type="button" class="btn ghost sm" id="kc-rpshow" style="margin-top:10px">Registrar prova realizada</button>
@@ -4272,12 +4278,17 @@ function openCard(pid,uid,sy){
    moveCard(p,peer,ajs.length?'ajuste':'pronto');
   });
   recalc(p,pc);
-  pc.provas=pc.provas||[];pc.provas.push({d,obs:g('kc-ro').value.trim(),resultado:ajustesTodos.length?'ajuste':'aprovada',ajustes:ajustesTodos});
+  pc.provas=pc.provas||[];pc.provas.push({d,obs:g('kc-ro').value.trim(),resultado:ajustesTodos.length?'ajuste':'aprovada',ajustes:ajustesTodos,por:(P.user&&P.user.nome)||'',medV:{c:(p.medUsadas?p.medUsadas.vCorpo:mc(p.cli).vCorpo||1),p:(p.medUsadas?p.medUsadas.vPeca:mc(p.cli).vPeca||1)}});
   toast(ajustesTodos.length?'Prova registrada. Peças com ajuste foram enviadas pra etapa de ajuste.':'Prova registrada. Peças aprovadas.');
   if(ajustesTodos.length){const provaReg=pc.provas[pc.provas.length-1];again();abrirPreviewAjuste(p,pc,provaReg);return}
   again();
  };
  document.querySelectorAll('[data-ajpdf]').forEach(b=>b.onclick=()=>abrirPreviewAjuste(p,pc,(pc.provas||[])[+b.dataset.ajpdf]));
+ document.querySelectorAll('[data-medaj]').forEach(b=>b.onclick=()=>{g('mdl').click();
+  const M=mc(p.cli);ui.provaRef={ped:p.id,uid:pc.uid,idx:+b.dataset.medaj,cli:p.cli};
+  ui._medSnap={corpo:{...M.corpo},peca:JSON.parse(JSON.stringify(M.peca)),rev:M.rev||0};
+  ui.cli=p.cli;ui.det=null;ui.draft=null;ui.tab=(pc.modo==='peca'||pc.modo==='camisa')?'prontas':'corpo';ui._lockCli=p.cli;ui._lockTab=ui.tab;ui.medEdit=true;location.hash='clientes';render();window.scrollTo(0,0);
+  toast('Altere as medidas e salve: o ajuste fica ligado a esta prova')});
 g('kc-oc').onclick=()=>{g('mdl').click();ocorrenciaModal(p,pc)};
  const su=g('kc-subst');if(su)su.onclick=()=>{g('mdl').click();substituirTecido(p,pc)};
  const en=g('kc-ent');if(en)en.onclick=()=>{if(moveCard(p,pc,'entregue')){toast('Peça entregue ao cliente');again()}};
