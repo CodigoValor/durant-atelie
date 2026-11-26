@@ -58,10 +58,10 @@ var cnpjMask=function(v){var x=digs(v).slice(0,14);return x.replace(/^(\d{2})(\d
 var cpfMask=function(v){var x=digs(v).slice(0,11);return x.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')};
 var telMask=function(v){var x=digs(v).slice(0,11);if(!x)return'';if(x.length<=2)return'('+x;if(x.length<=6)return'('+x.slice(0,2)+') '+x.slice(2);if(x.length<=10)return'('+x.slice(0,2)+') '+x.slice(2,6)+'-'+x.slice(6);return'('+x.slice(0,2)+') '+x.slice(2,7)+'-'+x.slice(7)};
 function cnpjOk(c){c=digs(c);if(c.length!==14||/^(\d)\1+$/.test(c))return false;var f=function(n){var s=0,p=n-7;for(var i=0;i<n;i++){s+=c[i]*p--;if(p<2)p=9}var r=s%11;return r<2?0:11-r};return f(12)==c[12]&&f(13)==c[13]}
-var NOME={atelie:'Ateliê',alfaiataria:'Alfaiataria',fabrica:'Fábrica',loja:'Loja de tecido',cliente_loja:'Cliente da loja'};
+var NOME={atelie:'Ateliê',alfaiataria:'Alfaiataria',loja:'Loja de tecido',cliente_loja:'Cliente da loja'};
 function tipoChave(e){if(e.tipo)return e.tipo;if(e.fornece)return'loja';if(e.so_tecidos)return'cliente_loja';return null}
 function tipoDe(e){var k=tipoChave(e);return k?NOME[k]:'Tipo a definir'}
-var TIPOS=[['atelie','Ateliê','Atende o cliente final'],['alfaiataria','Alfaiataria','Ateliê e fábrica'],['fabrica','Fábrica','Produz para ateliês']];
+var TIPOS=[['atelie','Ateliê','Manda produzir com uma alfaiataria'],['alfaiataria','Alfaiataria','Atende consumidor e ateliê']];
 function msg(t,k){var m=$('msg');if(m){m.textContent=t||'';m.className='msg '+(k||'e')}}
 function dataBR(s){try{return new Date(s).toLocaleDateString('pt-BR')}catch(x){return''}}
 function erro(x){var t=(x&&x.message)||String(x);return t.replace(/^.*?: /,'')}
@@ -137,15 +137,15 @@ function detalheHTML(){
   '<div class="card"><div class="sec">CADASTRO</div><div class="g3">'+
   '<label>Tipo de documento<select id="c-tipo"><option value="PJ" '+(c.tipo!=='PF'?'selected':'')+'>CNPJ (empresa)</option><option value="PF" '+(c.tipo==='PF'?'selected':'')+'>CPF (pessoa física)</option></select></label>'+
   campo('c-doc','CNPJ ou CPF (obrigatório)',c.doc||(e.cnpj?(e.cnpj.length===14?cnpjMask(e.cnpj):cpfMask(e.cnpj)):''),'','maxlength="18" inputmode="numeric"')+
-  campo('c-resp','Responsável',c.resp,'','maxlength="80"')+
+  '<div style="display:flex;align-items:flex-end"><button type="button" class="btn o" id="c-carregar" style="width:100%">Carregar dados pelo documento</button></div>'+
   campo('c-razao','Razão social',c.razao,'s2','maxlength="100"')+campo('c-fantasia','Nome fantasia (nome da empresa no sistema)',e.nome,'','maxlength="100"')+
+  campo('c-resp','Responsável',c.resp,'','maxlength="80"')+
   campo('c-tel','WhatsApp',c.tel,'','maxlength="20" inputmode="tel"')+campo('c-email','E-mail',c.email,'','type="email" maxlength="80"')+campo('c-cidade','Cidade · UF',c.cidade,'','maxlength="60"')+
   campo('c-end','Endereço',c.end,'s2','maxlength="160"')+campo('c-obs','Observações',c.obs,'','maxlength="200"')+'</div></div>'+
   '<div class="card"><div class="sec">TIPO DA EMPRESA (só a plataforma altera)</div><div class="tipos">'+
   TIPOS.map(function(x){return'<button class="tp '+(x[0]===tk?'on':'')+'" data-tipo="'+x[0]+'" '+(dosTecidos?'disabled':'')+'><b>'+x[1]+'</b><span>'+x[2]+'</span></button>'}).join('')+
-  '<button class="tp '+(tk==='loja'?'on':'')+'" disabled><b>Loja de tecido</b><span>Módulo de tecidos</span></button><button class="tp '+(tk==='cliente_loja'?'on':'')+'" disabled><b>Cliente da loja</b><span>Pede tecido</span></button></div>'+
-  (dosTecidos?'<div class="sub" style="margin-top:8px">Empresa do módulo de tecidos: o tipo não muda por aqui.</div>':
-   '<div style="margin-top:12px;display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" id="m-area" style="width:auto;height:auto" '+(e.produz?'checked':'')+' '+(tk==='alfaiataria'?'':'disabled')+'><label for="m-area" style="font-size:13.5px;color:#243430;margin:0">Área para ateliês (a empresa recebe pedidos de outros ateliês e dá acesso a eles)'+(tk==='fabrica'?' — sempre ligada na fábrica':tk==='atelie'?' — só na alfaiataria ou fábrica':'')+'</label></div>')+'</div>'+
+  (tk==='loja'?'<button class="tp on" disabled><b>Loja de tecido</b><span>Módulo de tecidos</span></button>':tk==='cliente_loja'?'<button class="tp on" disabled><b>Cliente da loja</b><span>Cadastrado pela loja</span></button>':'')+'</div>'+
+  (dosTecidos?'<div class="sub" style="margin-top:8px">Empresa do módulo de tecidos: o tipo não muda por aqui.</div>':'<div class="sub" style="margin-top:8px">“Pedidos de produção” e “Ateliês” aparecem no menu da alfaiataria quando ela cadastra um ateliê como cliente.</div>')+'</div>'+
   '<div class="card"><div class="sec">USUÁRIOS ('+E.usuarios.length+')</div>'+
   (E.usuarios.length?E.usuarios.map(function(u){return'<div class="us"><span>'+esc(u.email)+'</span><span style="color:#8a6a26;font-weight:600">'+esc({admin:'Administrador',usuario:'Usuário',parceiro:'Ateliê parceiro'}[u.papel]||u.papel)+'</span></div>'}).join(''):'<div class="sub">Nenhum usuário ainda.</div>')+'</div>';
 }
@@ -155,7 +155,7 @@ function ligarDetalhe(){
   var t=$('c-tel');t.oninput=function(){t.value=telMask(t.value)};
   $('salvar').onclick=salvar;$('susp').onclick=suspender;
   Array.prototype.forEach.call(document.querySelectorAll('.tp[data-tipo]'),function(b){b.onclick=function(){mudarTipo(b.dataset.tipo)}});
-  var ma=$('m-area');if(ma)ma.onchange=function(){mudarTipo('alfaiataria',ma.checked)};
+  $('c-carregar').onclick=function(){msg('Carregar os dados pelo CNPJ ou CPF: em breve.','k')};
 }
 async function salvar(){
   var e=atual(),v=function(id){return $(id).value.trim()},dg=digs(v('c-doc')),tp=$('c-tipo').value;
@@ -168,14 +168,12 @@ async function salvar(){
   if(r.error){msg(erro(r.error));return}
   await carregar();desenhar();msg('Cadastro salvo.','k');
 }
-async function mudarTipo(chave,area){
-  var e=atual(),atualK=tipoChave(e);if(area===undefined&&chave===atualK)return;
-  var ar=area===undefined?(chave==='alfaiataria'&&atualK==='alfaiataria'?!!e.produz:false):area;
-  var txt=area===undefined?'Mudar o tipo de “'+e.nome+'” para '+NOME[chave]+'?':(ar?'Ligar':'Desligar')+' a área para ateliês de “'+e.nome+'”?';
-  if(!confirm(txt+' Isso pode mudar os menus dos usuários dessa empresa.')){desenhar();return}
-  var r=await sb.rpc('definir_tipo_empresa',{p_empresa:e.id,p_tipo:chave,p_area_atelies:ar});
-  if(r.error){msg(erro(r.error));desenhar();return}
-  await carregar();desenhar();msg(area===undefined?'Tipo alterado para '+NOME[chave]+'.':'Área para ateliês '+(ar?'ligada':'desligada')+'.','k');
+async function mudarTipo(chave){
+  var e=atual();if(chave===tipoChave(e))return;
+  if(!confirm('Mudar o tipo de “'+e.nome+'” para '+NOME[chave]+'?'))return;
+  var r=await sb.rpc('definir_tipo_empresa',{p_empresa:e.id,p_tipo:chave,p_area_atelies:null});
+  if(r.error){msg(erro(r.error));return}
+  await carregar();desenhar();msg('Tipo alterado para '+NOME[chave]+'.','k');
 }
 async function suspender(){
   var e=atual(),ativar=!e.ativa;

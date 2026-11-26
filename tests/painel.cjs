@@ -17,14 +17,14 @@ rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_empresa
   ok(await pg.locator('.tp.on').innerText().then(t => /Alfaiataria/.test(t)), 'mostra o tipo Alfaiataria (ateliê e fábrica)');
   await pg.fill('#q', 'mark'); ok((await pg.locator('.it').count()) === 1, 'busca por nome filtra a lista');
   await pg.locator('.it').first().click(); await pg.waitForSelector('h2');
-  ok(/Mark Bel/.test(await pg.locator('h2').innerText()) && (await pg.locator('.tp[data-tipo]:disabled').count()) === 3, 'empresa de tecidos abre com o tipo travado');
+  ok(/Mark Bel/.test(await pg.locator('h2').innerText()) && (await pg.locator('.tp[data-tipo]:disabled').count()) === 2, 'empresa de tecidos abre com o tipo travado');
   await pg.fill('#q', ''); await pg.locator('.it').first().click();
   await pg.fill('#c-doc', '11111111111111'); await pg.click('#salvar');
   ok(/CNPJ inválido/.test(await pg.locator('#msg').innerText()), 'CNPJ inválido é barrado antes de enviar');
   await pg.fill('#c-tel', '19988887777'); ok((await pg.inputValue('#c-tel')) === '(19) 98888-7777', 'telefone com máscara');
-  await pg.click('.tp[data-tipo="fabrica"]'); await pg.waitForTimeout(150);
-  ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'definir_tipo_empresa' && c[1].p_tipo === 'fabrica' && c[1].p_area_atelies === false)), 'trocar o tipo chama a função da plataforma');
-  ok(await pg.locator('#m-area').isDisabled(), 'só a alfaiataria liga a área para ateliês (a fábrica tem sempre)');
+  await pg.click('.tp[data-tipo="atelie"]'); await pg.waitForTimeout(150);
+  ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'definir_tipo_empresa' && c[1].p_tipo === 'atelie')), 'trocar o tipo chama a função da plataforma');
+  ok(await pg.locator('#c-doc').evaluate(el => el.parentElement.parentElement.firstElementChild.querySelector('select') !== null) && (await pg.locator('#c-carregar').count()) === 1, 'o documento vem primeiro e há o botão de carregar dados');
   await pg.click('#susp'); await pg.waitForTimeout(150);
   ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'plataforma_definir_ativa' && c[1].p_ativa === false)) && /Suspensa/.test(await pg.locator('#det .no').first().innerText()), 'suspender chama a função e marca a empresa como suspensa');
   await pg.click('#nova'); await pg.fill('#n-nome', 'Ateliê Novo'); await pg.fill('#n-em', 'novo@x.com'); await pg.click('#n-ok'); await pg.waitForSelector('.lnk');

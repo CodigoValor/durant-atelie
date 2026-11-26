@@ -5646,8 +5646,8 @@ const contagem=()=>[['Clientes',S.clientes.length],['Pedidos',S.pedidos.length],
 /* ===== Configurações da empresa: cadastro (CNPJ único) e o que a empresa faz ===== */
 const empCad=()=>(window.SB&&window.SB.cadastro)||{};
 const empPerfil=()=>(window.SB&&window.SB.perfil)||{vende:true,produz:false};
-const TIPO_NOME={atelie:'Ateliê',alfaiataria:'Alfaiataria',fabrica:'Fábrica',loja:'Loja de tecido',cliente_loja:'Cliente da loja de tecido'};
-const empTipoNome=p=>{const t=p.tipo&&TIPO_NOME[p.tipo]||(p.fornece?'Loja de tecido':p.soTec?'Cliente da loja de tecido':(p.produz&&p.vende===false)?'Fábrica':'Alfaiataria');return 'Tipo: '+t};
+const TIPO_NOME={atelie:'Ateliê',alfaiataria:'Alfaiataria',loja:'Loja de tecido',cliente_loja:'Cliente da loja de tecido'};
+const empTipoNome=p=>{const t=p.tipo&&TIPO_NOME[p.tipo]||(p.fornece?'Loja de tecido':p.soTec?'Cliente da loja de tecido':'Alfaiataria');return 'Tipo: '+t};
 function empresaView(){
  const c=empCad(),p=empPerfil(),adm=!window.SB||window.SB.papel==='admin',dis=adm?'':'disabled';
  const inp=(id,l,v,ex,fx)=>`<label class="full">${l}<input class="ctl" id="${id}" value="${esc(v||'')}" ${ex||''} ${fx||dis} autocomplete="off"></label>`;
@@ -5664,7 +5664,7 @@ function empresaView(){
  <div class="card"><div class="card-h"><h2>O que a empresa faz</h2></div><p style="margin:0 0 8px"><b id="em-nome-tipo">${empTipoNome(p)}</b></p><p class="d" style="margin:0 0 10px;color:var(--ink-2)">O tipo e os módulos são definidos pela equipe Alinhavo na contratação. Para mudar, fale com a equipe.</p>
   <div style="display:grid;gap:10px">
    ${tipo('em-vende','Atende o cliente final','Faz orçamento, pedido, prova e entrega para o cliente final.',p.vende!==false)}
-   ${tipo('em-produz','Área para ateliês','Recebe pedidos de produção de outros ateliês e libera uma área de acesso para eles (aba Ateliês, Pedidos de produção, fechamento).',!!p.produz)}
+   ${tipo('em-produz','Área para ateliês','Aparece quando você cadastra um ateliê como cliente: Pedidos de produção, Ateliês e fechamento.',!!p.produz)}
   </div></div>
  ${adm?'<div class="actions"><button type="button" class="btn" id="em-salvar">Salvar dados da empresa</button></div>':''}</div>`}
 bind.empresa=()=>{
