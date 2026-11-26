@@ -1,0 +1,74 @@
+name: Backup diário do banco (produção)
+
+# Todo dia às 03:00 (horário de Brasília) e, quando quiser, na hora: aba Actions > "Backup diário" > Run workflow.
+# O backup sai CRIPTOGRAFADO e fica guardado como "artefato" do GitHub por 90 dias (nunca vai para dentro do repositório).
+# Se algo falhar, o GitHub manda e-mail para o dono do repositório.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_URL: ${{ secrets.DB_URL_PRODUCAO }}          # Supabase > Connect > "Session pooler" (com a senha do banco)
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}  # frase longa inventada por você, guardada também no gerenciador de senhas
+    steps:
+      - name: Conferir segredos
+        run: |
+          [ -n "$DB_URL" ] || { echo "::error::Falta o segredo DB_URL_PRODUCAO (veja docs/BACKUP.md)"; exit 1; }
+          [ -n "$BACKUP_PASSPHRASE" ] || { echo "::error::Falta o segredo BACKUP_PASSPHRASE (veja docs/BACKUP.md)"; exit 1; }
+          [ "${#BACKUP_PASSPHRASE}" -ge 16 ] || { echo "::error::BACKUP_PASSPHRASE precisa ter pelo menos 16 caracteres"; exit 1; }
+
+      - name: Instalar cliente PostgreSQL da mesma versão do banco
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common > /dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y -qq postgresql-client > /dev/null
+          V=$(psql "$DB_URL" -Atc "show server_version_num" | cut -c1-2)
+          sudo apt-get install -y -qq "postgresql-client-$V" > /dev/null
+          echo "PG_BIN=/usr/lib/postgresql/$V/bin" >> "$GITHUB_ENV"
+
+      - name: Gerar o backup (só os dados do sistema)
+        run: |
+          set -euo pipefail
+          "$PG_BIN/pg_dump" "$DB_URL" --data-only --no-owner --no-privileges \
+            --table=public.empresas --table=public.membros --table=public.reg --table=public.audit_log \
+            | gzip -9 > backup.sql.gz
+
+      - name: Conferir se o backup tem o que deveria
+        run: |
+          set -euo pipefail
+          N_DB=$(psql "$DB_URL" -Atc "select count(*) from public.reg")
+          N_DUMP=$(gunzip -c backup.sql.gz | awk '/^COPY public\.reg /{f=1;next} f&&/^\\\.$/{f=0} f{c++} END{print c+0}')
+          echo "Documentos no banco: $N_DB | no backup: $N_DUMP"
+          if [ "$N_DB" -gt 0 ] && [ "$N_DUMP" -eq 0 ]; then echo "::error::Backup veio vazio, mas o banco tem dados"; exit 1; fi
+          DIFF=$(( N_DB > N_DUMP ? N_DB - N_DUMP : N_DUMP - N_DB ))
+          LIMITE=$(( N_DB / 100 > 5 ? N_DB / 100 : 5 ))
+          if [ "$DIFF" -gt "$LIMITE" ]; then echo "::error::Diferença grande entre banco e backup ($DIFF)"; exit 1; fi
+          {
+            echo "### Backup de $(date -u +%F) concluído"
+            echo "- Documentos no banco: **$N_DB** | no backup: **$N_DUMP**"
+            echo "- Tamanho comprimido: $(du -h backup.sql.gz | cut -f1)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Criptografar
+        run: |
+          set -euo pipefail
+          openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
+            -in backup.sql.gz -out "durant-backup-$(date -u +%F).sql.gz.enc" -pass env:BACKUP_PASSPHRASE
+          rm -f backup.sql.gz
+
+      - name: Guardar por 90 dias (criptografado)
+        uses: actions/upload-artifact@v4
+        with:
+          name: durant-backup-${{ github.run_id }}
+          path: durant-backup-*.sql.gz.enc
+          retention-days: 90
+          if-no-files-found: error
