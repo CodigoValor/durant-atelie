@@ -167,11 +167,19 @@ function novoBanco(cfg) {
   await ctx.close();
 
   console.log('6) e-mail que entrou mas não é usuário do sistema');
-  const b3 = novoBanco({});
+  const b3 = novoBanco({ membros: [{ empresa_id: 'E1', papel: 'usuario' }] });
   ({ pg, ctx, erros } = await abre(b3));
   await pg.waitForSelector('#g-u'); await loginUi(pg, 'outro@exemplo.com', 'senhaCerta123');
   await pg.waitForFunction(() => document.body.innerText.includes('Usuário não cadastrado'), null, { timeout: 15000 });
   ok(true, 'e-mail fora da lista de usuários do sistema é barrado');
+  await ctx.close();
+
+  console.log('6b) administrador do servidor nunca fica trancado para fora (lista de usuários sem o e-mail dele)');
+  const b3b = novoBanco({});
+  ({ pg, ctx, erros } = await abre(b3b));
+  await pg.waitForSelector('#g-u'); await loginUi(pg, 'durant.henrique@gmail.com', 'senhaCerta123');
+  await pg.waitForFunction(() => !document.getElementById('gate') || document.getElementById('gate').style.display === 'none' || !document.body.innerText.includes('Usuário não cadastrado'), null, { timeout: 15000 });
+  ok(!(await pg.evaluate(() => document.body.innerText.includes('Usuário não cadastrado'))), 'administrador do servidor entra mesmo sem estar na lista de usuários do app');
   await ctx.close();
 
   console.log('7) duas empresas: escolher, lembrar, trocar e manter os dados separados');

@@ -5178,7 +5178,7 @@ async function boot(){
  if(window.SB&&window.SB.papel==='admin'&&!CFGMENU[2].i.some(i=>i[0]==='acessos'))CFGMENU[2].i.push(['acessos','Acessos e convites']);
  if(NUM.ativo())await NUM.preparar();
  const sid=sess.get();let u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));
- if(!u&&window.SB&&(window.SB.recemAceito||window.SB.papel==='parceiro')){   /* quem acabou de aceitar um convite (ou é parceiro, que não lê a lista de usuários) ganha o cadastro de usuário com o grupo do papel */
+ if(!u&&window.SB&&(window.SB.recemAceito||window.SB.papel==='parceiro'||window.SB.papel==='admin')){   /* quem acabou de aceitar um convite, o parceiro (não lê a lista de usuários) e o administrador do servidor (dono da empresa nunca fica trancado para fora, mesmo que a lista de usuários tenha sido substituída) ganham o cadastro de usuário com o grupo do papel */
   const em=window.SB.email,adm=window.SB.papel==='admin';
   u={id:nid(),nome:em.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),email:em,grupo:adm?'Administrador':'Atendimento e vendas',ativo:true};
   S.cfg.usuarios.push(u);if(window.SB.papel!=='parceiro')await flush();
