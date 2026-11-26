@@ -57,6 +57,10 @@ const novaEmp = await como(NOVO, async () => (await q1(`select public.aceitar_co
 const e = await q1(`select nome, vende_cliente_final v, produz p from public.empresas where id=$1`, [novaEmp]);
 ok(e.nome === 'Ateliê Novo' && e.v === true && e.p === true, 'empresa criada com o perfil do convite');
 ok((await q1(`select papel from public.membros where empresa_id=$1 and user_id=$2`, [novaEmp, NOVO])).papel === 'admin', 'quem aceitou virou administrador');
+await como(LUIZ, async () => {
+  const l = (await db.query(`select * from public.listar_convites(null)`)).rows;
+  ok(l.length === 1 && l[0].estado === 'usado' && l[0].empresa_nome === 'Ateliê Novo', 'o convite de empresa já aceito continua na lista da plataforma, como "usado"');
+});
 await como(NOVO, async () => ok(/inválido ou expirado/.test(await falha(`select public.aceitar_convite($1)`, [tokEmp])), 'o convite só funciona uma vez'));
 
 console.log('Convite de usuário');

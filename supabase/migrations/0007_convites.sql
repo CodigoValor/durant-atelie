@@ -146,7 +146,7 @@ begin
                 else case when c.expira_em < now() then 'expirado' else 'valido' end end,
            c.expira_em, c.criado_em
       from public.convites c
-     where (p_empresa is null and c.empresa_id is null and c.status <> 'aceito')
+     where (p_empresa is null and c.empresa_nome is not null)          -- convites de empresa nova, inclusive os já aceitos
         or (p_empresa is not null and c.empresa_id = p_empresa)
      order by c.criado_em desc limit 200;
 end $$;
