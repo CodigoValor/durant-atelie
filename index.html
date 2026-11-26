@@ -674,7 +674,7 @@ function bindAceite(){
 /* o item "Pedidos de produção" só existe para quem produz para parceiros (empresa que produz, ou que já recebeu pedido de parceiro) */
 function navProdParc(){
  if(PARC()||NAV.some(n=>n.id==='prodparc'))return false;
- if(!((window.SB&&window.SB.perfil&&window.SB.perfil.produz)||Object.keys(ORIGEM).length))return false;
+ if(!((window.SB&&window.SB.perfil&&window.SB.perfil.produz)||Object.keys(ORIGEM).length||Object.keys((S.cfg&&S.cfg.atelies)||{}).length))return false;
  NAV.splice(NAV.findIndex(n=>n.id==='pedidos')+1,0,{id:'prodparc',label:'Pedidos de produção',short:'Ateliês',icon:'i-truck'});return true;
 }
 const novoIdCliente=()=>NUM.ativo()?(()=>{let n;do{n=NUM.tomar('cliente')}while(S.clientes.some(c=>c.id===n));return n})():Math.max(0,...S.clientes.map(x=>x.id))+1;
@@ -1292,11 +1292,18 @@ R.painel=()=>{
 /* ===== Fábrica: aba "Ateliês" (lista de ateliês, ficha e clientes do ateliê com as medidas ao lado) ===== */
 const ateliesLista=()=>{const m={};
  const g=n=>(m[n]=m[n]||{nome:n,cli:0,ped:0,aberto:0,prod:0,desde:''});
+ Object.keys((S.cfg&&S.cfg.atelies)||{}).forEach(n=>g(n));
  S.clientes.forEach(c=>{const n=ORIGEM['clientes~'+c.id];if(n)g(n).cli++});
  [...S.pedidos,...S.orcamentos].forEach(p=>{const n=origemDe(p.id);if(n){const a=g(n);a.ped++;const e=estadoParc(p);if(e==='recebido')a.aberto++;if(e==='aceito'&&!pedFin(p))a.prod++;const dt=p.dped||'';if(dt&&(!a.desde||dt<a.desde))a.desde=dt}});
  return Object.values(m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))};
 const podeAteliesAba=()=>!PARC()&&(((window.SB||{}).perfil||{}).tipo==='alfaiataria'||ateliesLista().length>0);
 const aAceitarN=()=>ateliesLista().reduce((n,a)=>n+(a.aberto||0),0);
+const tabsLista=modo=>{if(!podeAteliesAba())return '';const meus=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length,atel=ateliesLista().length,ac=aAceitarN();
+ const b=(id,l,n,on,x)=>`<button type="button" id="${id}" aria-pressed="${on}" style="flex:1 1 auto;${on?'background:#243430;color:#FFFFFF;border:1px solid #243430':'background:#FFFFFF;color:#243430;border:1px solid #D8D2C6'};border-radius:20px;padding:6px 12px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer;white-space:nowrap">${l} <span style="opacity:.7;margin-left:3px">${n}</span>${x||''}</button>`;
+ return `<div style="display:flex;gap:6px;flex-wrap:wrap">${b('cm-meus','Meus clientes',meus,modo==='meus')}${b('cm-atel','Ateliês',atel,modo==='atel',ac?`<span style="background:${modo==='atel'?'#F3E9D2':'#F3E9D2'};color:#8A5A00;font-size:11px;font-weight:600;border-radius:9px;padding:1px 7px;margin-left:6px">${ac} a aceitar</span>`:'')}</div>`};
+const pillL=(l,on,at)=>`<button type="button" ${at} aria-pressed="${on}" style="${on?'background:#243430;color:#FFFFFF;border:1px solid #243430':'background:#FFFFFF;color:#1F2A27;border:1px solid #D8D2C6'};border-radius:16px;padding:6px 12px;font:${on?500:400} 12.5px 'Inter',sans-serif;cursor:pointer">${l}</button>`;
+const buscaL=(id,ph,val)=>`<div style="border:1px solid #D8D2C6;border-radius:10px;padding:0 12px;min-height:44px;display:flex;align-items:center;gap:8px;background:#fff"><span style="width:18px;height:18px;flex:none;display:inline-flex;color:#5C6760">${ic('i-search').replace('<svg','<svg width="18" height="18"')}</span><input id="${id}" type="search" placeholder="${ph}" value="${esc(val||'')}" aria-label="${ph}" style="border:0;outline:0;flex:1;min-width:0;font:400 13.5px 'Inter',sans-serif;background:transparent"></div>`;
+const btnNovoCli='<button type="button" id="novo-cli" style="margin-left:auto;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:8px 16px;font:500 13.5px \'Inter\',sans-serif;min-height:44px;cursor:pointer">+ Novo cliente</button>';
 const modoClientesHTML=nAt=>{if(!podeAteliesAba())return '';const meus=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length,atel=ateliesLista().length,m=ui.cModo==='atel';
  const b=(id,l,n,on)=>`<button type="button" id="${id}" class="btn ${on?'':'ghost'}" aria-pressed="${on}">${l} <span style="opacity:.7;margin-left:3px">${n}</span></button>`;
  const acN=aAceitarN(),selo=acN?`<span style="background:#F3E9D2;color:#8A5A00;font-size:11px;font-weight:600;border-radius:9px;padding:1px 7px;margin-left:6px">${acN} a aceitar</span>`:'';
@@ -1312,7 +1319,7 @@ function medResumoHTML(c){const M=mc(c.id),h=(M.hist||[]).slice(-1)[0],tot=Objec
  <button type="button" class="btn ghost sm" id="at-med-hist" data-cli="${c.id}" style="align-self:flex-start">Ver todas as medidas, histórico e peças prontas</button>`}
 R.clientes=()=>{
  const ats=ateliesLista();
- if(!PARC()&&!ats.length&&ui.cModo==='atel'&&podeAteliesAba()&&(location.hash||'')==='#clientes')return `<div id="at-wrap" style="margin:-28px calc(50% - 50vw) -48px;background:#FBFAF7;min-height:80vh;font-family:'Inter',system-ui,sans-serif;color:#1F2A27"><div id="at-bar" style="position:sticky;top:0;z-index:20;background:#FFFFFF;border-bottom:1px solid #E6E1D8;box-shadow:0 2px 6px rgba(36,52,48,.06);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-sizing:border-box"><h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:28px;line-height:1">Clientes e medidas</h1><button type="button" id="cm-meus" style="background:#FFFFFF;color:#243430;border:1px solid #D8D2C6;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Meus clientes <span style="opacity:.6;margin-left:3px">${S.clientes.length}</span></button><button type="button" id="cm-atel" style="background:#243430;color:#FFFFFF;border:1px solid #243430;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Ateliês <span style="opacity:.7;margin-left:3px">0</span></button><button type="button" id="at-convidar" style="margin-left:auto;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:8px 16px;font:500 13.5px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Convidar ateliê</button></div><div style="padding:24px"><div style="background:#fff;border:1px solid #E6E1D8;border-radius:14px;padding:28px"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:48px 20px;border:1px dashed #D8D2C6;border-radius:12px"><h2 style="margin:0;font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600">Nenhum ateliê parceiro ainda</h2><p style="margin:0;max-width:380px;font-size:14px;color:#525D57">Convide um ateliê para ele lançar pedidos de produção e acompanhar o andamento. Quando ele aceitar o convite, aparece aqui.</p><button type="button" id="at-convidar2" style="margin-top:6px;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:10px 18px;font:500 14px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Convidar ateliê</button></div></div></div></div>`;
+ if(!PARC()&&!ats.length&&ui.cModo==='atel'&&podeAteliesAba()&&(location.hash||'')==='#clientes')return `<div id="at-wrap" style="margin:-28px calc(50% - 50vw) -48px;background:#FBFAF7;min-height:80vh;font-family:'Inter',system-ui,sans-serif;color:#1F2A27"><div id="at-bar" style="position:sticky;top:0;z-index:20;background:#FFFFFF;border-bottom:1px solid #E6E1D8;box-shadow:0 2px 6px rgba(36,52,48,.06);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-sizing:border-box"><h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:28px;line-height:1">Clientes e medidas</h1>${btnNovoCli}</div><div style="padding:24px"><div style="max-width:300px;margin-bottom:14px">${tabsLista('atel')}</div><div style="background:#fff;border:1px solid #E6E1D8;border-radius:14px;padding:28px"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:48px 20px;border:1px dashed #D8D2C6;border-radius:12px"><h2 style="margin:0;font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600">Nenhum ateliê parceiro ainda</h2><p style="margin:0;max-width:380px;font-size:14px;color:#525D57">Cadastre um ateliê para ele lançar pedidos de produção e acompanhar o andamento. Ele recebe um convite e, quando aceitar, passa a aparecer aqui.</p><button type="button" id="at-convidar2" style="margin-top:6px;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:10px 18px;font:500 14px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Cadastrar ateliê</button></div></div></div></div>`;
  if(PARC()||!ats.length||ui.cModo!=='atel'||(location.hash||'')!=='#clientes')return R.clientesMeus();
  const q=semAcento((ui.atQ||'').trim()),ft=ui.atTipo||'',dados=n=>(S.cfg.atelies||{})[n]||{};
  const L=ats.filter(a=>(!q||semAcento(a.nome+' '+(dados(a.nome).cidade||'')).includes(q))&&(!ft||(dados(a.nome).tipo||'PJ')===ft));
@@ -1346,14 +1353,10 @@ R.clientes=()=>{
  return `<div id="at-wrap" style="margin:-28px calc(50% - 50vw) -48px;background:#FBFAF7;min-height:80vh;font-family:'Inter',system-ui,sans-serif;color:#1F2A27">
  <div id="at-bar" style="position:sticky;top:0;z-index:20;background:#FFFFFF;border-bottom:1px solid #E6E1D8;box-shadow:0 2px 6px rgba(36,52,48,.06);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-sizing:border-box">
   <h1 style="margin:0;${SER};font-size:28px;line-height:1">Clientes e medidas</h1>
-  <button type="button" id="cm-meus" style="background:#FFFFFF;color:#243430;border:1px solid #D8D2C6;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Meus clientes <span style="opacity:.6;margin-left:3px">${meusN}</span></button>
-  <button type="button" id="cm-atel" style="background:#243430;color:#FFFFFF;border:1px solid #243430;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Ateliês <span style="opacity:.7;margin-left:3px">${ats.length}</span>${aAceitarN()?`<span style="background:#F3E9D2;color:#8A5A00;font-size:11px;font-weight:600;border-radius:9px;padding:1px 7px;margin-left:6px">${aAceitarN()} a aceitar</span>`:''}</button>
-  <div style="flex:1 1 220px;max-width:300px;border:1px solid #D8D2C6;border-radius:10px;padding:0 12px;min-height:44px;display:flex;align-items:center;background:#fff"><input id="at-q" type="search" placeholder="Buscar ateliê por nome ou cidade" value="${esc(ui.atQ||'')}" aria-label="Buscar ateliê" style="border:0;outline:0;width:100%;font:13.5px 'Inter',sans-serif;color:#1F2A27;background:transparent"></div>
-  ${pill('Todos',!ft,'data-attipo=""')}${pill('PJ',ft==='PJ','data-attipo="PJ"')}${pill('PF',ft==='PF','data-attipo="PF"')}
-  <button type="button" id="at-convidar" style="margin-left:auto;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:8px 16px;font:500 13.5px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Convidar ateliê</button>
+  ${btnNovoCli}
  </div>
  <div style="padding:16px 24px;display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;box-sizing:border-box">
-  <div style="flex:0 0 300px;max-width:100%;display:flex;flex-direction:column;gap:8px">${esq||'<p style="font-size:13px;color:#525D57">Nenhum ateliê com esse filtro.</p>'}<p style="margin:4px 2px 0;font-size:12px;color:#525D57">Ateliê novo entra por convite e aparece aqui sozinho.</p></div>
+  <div style="flex:0 0 300px;max-width:100%;display:flex;flex-direction:column;gap:8px">${tabsLista('atel')}${buscaL('at-q','Buscar ateliê por nome ou cidade',ui.atQ)}<div style="display:flex;gap:6px;flex-wrap:wrap">${pillL('Todos',!ft,'data-attipo=""')}${pillL('PJ',ft==='PJ','data-attipo="PJ"')}${pillL('PF',ft==='PF','data-attipo="PF"')}</div>${esq||'<p style="font-size:13px;color:#525D57">Nenhum ateliê com esse filtro.</p>'}<p style="margin:4px 2px 0;font-size:12px;color:#525D57">Ateliê novo: use + Novo cliente. Ele entra por convite e aparece aqui.</p></div>
   <div style="flex:1 1 560px;display:flex;flex-direction:column;gap:14px;min-width:0">
    <div style="background:#FFFFFF;border:1px solid #E6E1D8;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">${av(nome,true,48,16)}
@@ -1381,6 +1384,42 @@ function atelieFichaHTML(nome){const a=((S.cfg.atelies||{})[nome])||{};
  const l=(r,v)=>v?`<div><span style="color:var(--ink-3)">${r}</span> ${esc(v)}</div>`:'';
  return `<div class="card" style="padding:12px;margin:0 4px 10px;background:var(--bg-2,#FBFAF7)" id="at-ficha"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${esc(nome)}</b><button type="button" class="btn ghost sm" id="at-edit">Editar dados</button></div>
  <div style="font-size:13px;color:var(--ink-2);margin-top:6px">${a.tipo?`<div>${a.tipo==='PF'?'Pessoa física':'Pessoa jurídica'}${a.doc?' · '+esc(a.doc):''}</div>`:''}${l('Responsável',a.resp)}${l('Telefone',a.tel)}${l('E-mail',a.email)}${l('Endereço',a.end)}${l('Obs.',a.obs)}${Object.keys(a).length?'':'Sem dados cadastrados ainda.'}</div></div>`}
+function novoClienteEscolha(){
+ if(!podeAteliesAba()){ui.cModo='meus';ui.voltaAt=false;ui.cli='novo';ui.tab='cadastro';render();document.getElementById('c-nome')?.focus();return}
+ const op=(v,t,d,on)=>`<label style="display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid #D8D2C6;border-radius:12px;cursor:pointer"><input type="radio" name="nc-tipo" value="${v}" ${on?'checked':''} style="margin-top:4px"><span><b style="display:block">${t}</b><span style="font-size:13px;color:var(--ink-2)">${d}</span></span></label>`;
+ modal('Novo cliente',`<p class="full" style="margin:0;color:var(--ink-2);font-size:14px">Que tipo de cliente é?</p>${op('cons','Consumidor','Pessoa que compra a peça. Abre o cadastro com dados e medidas.',true)}${op('atel','Ateliê','Manda produzir com você. Recebe um convite e passa a lançar pedidos de produção.',false)}`,()=>{
+  const v=document.querySelector('input[name="nc-tipo"]:checked').value;
+  if(v==='atel'){setTimeout(atelieNovo,0);return ''}
+  ui.cModo='meus';ui.voltaAt=false;ui.cli='novo';ui.tab='cadastro';setTimeout(()=>document.getElementById('c-nome')?.focus(),30);return ''},'Continuar')}
+function atelieNovo(){
+ modal('Novo ateliê',`<p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Comece pelo documento. O botão carrega os dados da empresa (a busca automática entra numa etapa futura). Depois, o convite vai para o e-mail do ateliê.</p>
+ <label class="full">CNPJ ou CPF<input class="ctl" id="an-doc" maxlength="18" inputmode="numeric" autocomplete="off" placeholder="00.000.000/0001-00"></label>
+ <div class="full"><button type="button" class="btn ghost sm" id="an-carregar">Carregar dados pelo documento</button></div>
+ <label class="full">Razão social ou nome do ateliê<input class="ctl" id="an-razao" maxlength="100" autocomplete="off"></label>
+ <label class="full">Nome fantasia<input class="ctl" id="an-fant" maxlength="80" autocomplete="off"></label>
+ <label class="full">Responsável<input class="ctl" id="an-resp" maxlength="80" autocomplete="off"></label>
+ <label class="full">WhatsApp<input class="ctl" id="an-tel" maxlength="20" inputmode="tel" autocomplete="off"></label>
+ <label class="full">Cidade · UF<input class="ctl" id="an-cidade" maxlength="60" autocomplete="off" placeholder="São Paulo · SP"></label>
+ <label class="full">E-mail que receberá o convite<input class="ctl" id="an-email" type="email" maxlength="80" autocomplete="off"></label>`,()=>{
+  const v=id=>document.getElementById(id).value.trim(),em=v('an-email'),dg=v('an-doc').replace(/\D/g,''),fant=v('an-fant')||v('an-razao');
+  if(dg.length!==11&&dg.length!==14)return 'Informe o CNPJ (14 números) ou o CPF (11 números).';
+  if(fant.length<2)return 'Informe o nome fantasia ou a razão social.';
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return 'Informe um e-mail válido para enviar o convite.';
+  S.cfg.atelies=S.cfg.atelies||{};
+  if(S.cfg.atelies[fant])return 'Já existe um ateliê com esse nome.';
+  S.cfg.atelies[fant]={tipo:dg.length===11?'PF':'PJ',razao:v('an-razao'),doc:v('an-doc'),resp:v('an-resp'),tel:v('an-tel'),email:em,cidade:v('an-cidade'),end:'',obs:''};
+  persistSoon();ui.cModo='atel';ui.atSel=fant;ui.atCli=null;
+  if(window.SB&&window.SB.client&&window.SB.empresa){
+   window.SB.client.rpc('criar_convite',{p_empresa:window.SB.empresa,p_email:em,p_papel:'parceiro',p_nome_parceiro:fant}).then(r=>{
+    if(r.error){toast('Ateliê salvo, mas o convite falhou: '+String(r.error.message||'tente de novo em Configurações > Acessos'));return}
+    const l=linkConvite(r.data);
+    modal('Convite criado',`<p class="full" style="margin:0;color:var(--ink-2);font-size:14px">Envie este link para ${esc(em)} (WhatsApp ou e-mail). Vale 7 dias, serve só para esse e-mail e só funciona uma vez. Ele não será mostrado de novo.</p><input class="ctl full" id="an-link" readonly value="${esc(l)}"><div class="full"><button type="button" class="btn" id="an-copia">Copiar link</button></div>`,null);
+    const li=document.getElementById('an-link');if(li)li.select();
+    const cp=document.getElementById('an-copia');if(cp)cp.onclick=()=>{li.select();try{navigator.clipboard.writeText(li.value)}catch(e){document.execCommand('copy')}toast('Link copiado')}});
+  }else toast('Ateliê cadastrado');
+  return ''},'Enviar convite');
+ const dc=document.getElementById('an-doc');if(dc)dc.oninput=()=>{const d=dc.value.replace(/\D/g,'').slice(0,14);dc.value=d.length>11?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/,'$1.$2.$3/$4-$5').replace(/[-/.]+$/,''):cpfMask(d)};
+ const ca=document.getElementById('an-carregar');if(ca)ca.onclick=()=>toast('Em breve: a busca automática pelo documento entra numa próxima etapa.')}
 function atelieEditar(nome){const a=((S.cfg.atelies||{})[nome])||{};
  modal('Dados do ateliê · '+nome,`<label class="full">Tipo<select class="ctl" id="at-tipo"><option value="PJ" ${a.tipo!=='PF'?'selected':''}>Pessoa jurídica (CNPJ)</option><option value="PF" ${a.tipo==='PF'?'selected':''}>Pessoa física (CPF)</option></select></label>
  <label class="full">Razão social<input class="ctl" id="at-razao" value="${esc(a.razao||'')}" maxlength="100" autocomplete="off"></label>
@@ -1415,7 +1454,7 @@ R.clientesMeus=()=>{
  const fld=(id,label,val,data,tags)=>`<div class="fld ${val!=null?'filled':''}"><label class="l" for="${id}">${label}</label><div class="in"><input id="${id}" inputmode="decimal" autocomplete="off" value="${fmtN(val)}" ${data} ${ui.medEdit?'':'disabled'}><span class="u">cm</span><div class="stp">${ui.medEdit?`<button type="button" class="stpb" data-stp="up" tabindex="-1" aria-label="Aumentar 0,5 cm">▲</button><button type="button" class="stpb" data-stp="down" tabindex="-1" aria-label="Diminuir 0,5 cm">▼</button>`:''}</div></div>${tags||''}</div>`;
  const medBar=`<span class="saved" id="saved" role="status" aria-live="polite"></span>`;
  const SERm="font-family:'Cormorant Garamond',serif;font-weight:600";
- const left=`<div style="flex:0 0 300px;max-width:100%;display:flex;flex-direction:column;gap:8px"><div style="border:1px solid #D8D2C6;border-radius:10px;padding:0 12px;min-height:44px;display:flex;align-items:center;gap:8px;background:#fff"><span style="width:18px;height:18px;flex:none;display:inline-flex;color:#5C6760">${ic('i-search').replace('<svg','<svg width="18" height="18"')}</span><input id="q" type="search" placeholder="Buscar por nome ou CPF" value="${esc(ui.q)}" aria-label="Buscar cliente" style="border:0;outline:0;flex:1;min-width:0;font:400 13.5px 'Inter',sans-serif;background:transparent"></div><div class="clist" role="listbox" aria-label="Clientes" data-sc="clist">
+ const left=`<div style="flex:0 0 300px;max-width:100%;display:flex;flex-direction:column;gap:8px">${ui.voltaAt?'':tabsLista('meus')}${buscaL('q','Buscar por nome ou CPF',ui.q)}${nRev?`<div style="display:flex;gap:6px;flex-wrap:wrap">${pillL('Todos',!ui.soRev,'id="c-todos"')}${pillL(`<span class="dotrev"></span> Só para revisar <span class="mono">${nRev}</span>`,!!ui.soRev,'id="c-rev"')}</div>`:''}<div class="clist" role="listbox" aria-label="Clientes" data-sc="clist">
    ${novo?`<button class="citem" role="option" aria-selected="true"><span class="av">+</span><span style="flex:1"><b style="display:block;font-weight:600">Novo cliente</b><span style="font-size:13px;color:var(--ink-2)">Preencha o cadastro ao lado</span></span></button>`:''}
    ${list.map(x=>`<button class="citem" role="option" data-cli="${x.id}" aria-selected="${!novo&&!!c&&x.id===c.id}"><span class="av">${initials(x.nome)}</span><span style="min-width:0;flex:1"><b style="display:block;font-weight:600">${esc(x.nome)} ${x.revisar?'<span class="pillrev"><span class="dotrev"></span>Revisar</span> ':''}${x.indicPend?'<span class="pend">Revisar indicação</span> ':''}${x.club?`<span class="emblem mini" role="img" aria-label="Membro do Club"></span>`:''}</b><span style="font-size:13px;color:var(--ink-2)">${sub(x)}</span></span><span class="mono" style="color:var(--ink-3)" title="Medidas do corpo preenchidas">${corpoCount(x.id)}/${TOTAL}</span></button>`).join('')||(novo?'':'<p style="padding:12px;color:var(--ink-2)">Nenhum cliente encontrado.</p>')}
    </div></div>`;
@@ -1469,8 +1508,7 @@ R.clientesMeus=()=>{
  const abasC=podeAteliesAba()&&!ui.voltaAt?`<button type="button" id="cm-meus" style="background:#243430;color:#FFFFFF;border:1px solid #243430;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Meus clientes <span style="opacity:.7;margin-left:3px">${S.clientes.filter(x=>!doAt(x)).length}</span></button><button type="button" id="cm-atel" style="background:#FFFFFF;color:#243430;border:1px solid #D8D2C6;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Ateliês <span style="opacity:.6;margin-left:3px">${ateliesLista().length}</span>${aAceitarN()?`<span style="background:#F3E9D2;color:#8A5A00;font-size:11px;font-weight:600;border-radius:9px;padding:1px 7px;margin-left:6px">${aAceitarN()} a aceitar</span>`:''}</button>`:'';
  const barraC=`<div id="at-bar" style="position:sticky;top:0;z-index:20;background:#FFFFFF;border-bottom:1px solid #E6E1D8;box-shadow:0 2px 6px rgba(36,52,48,.06);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-sizing:border-box">
   <h1 style="margin:0;${SERm};font-size:28px;line-height:1">Clientes e medidas</h1>
-  ${ui.voltaAt?'<button type="button" class="btn ghost" id="at-volta">← Voltar ao ateliê</button>':abasC}
-  ${nRev?pillC('Todos',!ui.soRev,'id="c-todos"')+pillC(`<span class="dotrev"></span> Só para revisar <span class="mono">${nRev}</span>`,!!ui.soRev,'id="c-rev"'):''}
+  ${ui.voltaAt?'<button type="button" class="btn ghost" id="at-volta">← Voltar ao ateliê</button>':''}
   <span style="margin-left:auto;display:flex;align-items:center;gap:12px">${syncHTML()}<button type="button" id="novo-cli" style="background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:8px 16px;font:500 13.5px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Novo cliente</button></span>
  </div>`;
  return `<div id="at-wrap" style="margin:-28px calc(50% - 50vw) -48px;background:#FBFAF7;min-height:80vh;font-family:'Inter',system-ui,sans-serif;color:#1F2A27">${barraC}<div style="padding:16px 24px;display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;box-sizing:border-box">${left}<div style="flex:1 1 560px;min-width:0">${right}</div></div></div>`;
@@ -1702,8 +1740,8 @@ bind.clientes=()=>{
  document.querySelectorAll('[data-atfil]').forEach(b=>b.onclick=()=>{ui.atFiltro=b.dataset.atfil;render()});
  const att=document.getElementById('at-todos');if(att)att.onclick=()=>{ui.atTodos=true;render()};
  const barra=document.getElementById('at-bar'),topo=document.querySelector('header.top');if(barra&&topo)barra.style.top=topo.offsetHeight+'px';
- const atc=document.getElementById('at-convidar');if(atc)atc.onclick=()=>{ui.cfg='acessos';location.hash='config';render()};
- const atc2=document.getElementById('at-convidar2');if(atc2)atc2.onclick=()=>{ui.cfg='acessos';location.hash='config';render()};
+ const ncb=document.getElementById('novo-cli');if(ncb)ncb.onclick=novoClienteEscolha;
+ const atc2=document.getElementById('at-convidar2');if(atc2)atc2.onclick=()=>atelieNovo();
  const atp=document.getElementById('at-pedidos');if(atp)atp.onclick=()=>{ui.ppParc=ui.atSel;ui.ppEst='';location.hash='prodparc'};
  const ame=document.getElementById('at-med-edit');if(ame)ame.onclick=()=>{const M=mc(+ame.dataset.cli||ame.dataset.cli);ui.cModo='meus';ui.cli=+ame.dataset.cli||ame.dataset.cli;ui.tab='corpo';ui._lockCli=ui.cli;ui._lockTab='corpo';ui._medSnap={corpo:{...M.corpo},peca:JSON.parse(JSON.stringify(M.peca)),rev:M.rev||0};ui.medEdit=true;ui.voltaAt=true;render();window.scrollTo(0,0)};
  const amh=document.getElementById('at-med-hist');if(amh)amh.onclick=()=>{ui.cModo='meus';ui.cli=+amh.dataset.cli||amh.dataset.cli;ui.tab='corpo';ui.voltaAt=true;render();window.scrollTo(0,0)};
@@ -1725,7 +1763,7 @@ bind.clientes=()=>{
  document.querySelectorAll('[data-cli]').forEach(b=>b.onclick=()=>{ui.cli=+b.dataset.cli;ui.open=undefined;ui.delp=null;if(ui.tab==='cadastro'&&false)ui.tab='corpo';render()});
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ui.tab=b.dataset.tab;ui.delp=null;render()});
  document.querySelectorAll('[data-visao]').forEach(b=>b.onclick=()=>{ui.visao=b.dataset.visao;render()});
- document.getElementById('novo-cli').onclick=()=>{ui.cli='novo';ui.tab='cadastro';render();document.getElementById('c-nome')?.focus()};
+ 
  const cpf=document.getElementById('c-cpf');
  if(cpf)cpf.addEventListener('input',()=>{cpf.value=cpfMask(cpf.value)});
  const cEditar=document.getElementById('c-editar');if(cEditar)cEditar.onclick=()=>{ui.cadEdit=true;render()};
