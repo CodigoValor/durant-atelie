@@ -701,7 +701,7 @@ const PRONTAS={
 let ui={det:null,draft:null,cli:1,tab:'corpo',visao:'peca',q:'',parc:'todos',fin:'receber',open:undefined,delp:null};
 /* M.peca[tipo] = medidas da peça pronta (dict fixo por tipo, igual M.corpo). M.prontas (lista antiga) não é mais usada na tela, mas fica guardada e é migrada para M.peca na primeira leitura, sem apagar nada. */
 function mc(id){
- const M=S.medidas[id]=S.medidas[id]||{corpo:{},prontas:[]};
+ const M=(id==null||id==='')?{corpo:{},prontas:[]}:(S.medidas[id]=S.medidas[id]||{corpo:{},prontas:[]});   /* sem cliente selecionado: objeto solto, nunca gravado como med~null */
  if(!M.peca){
   M.peca={};Object.keys(TIPOS).forEach(t=>M.peca[t]={});
   (M.prontas||[]).forEach(p=>{if(M.peca[p.tipo])Object.assign(M.peca[p.tipo],p.m||{})});
@@ -4678,7 +4678,7 @@ function setState(s){P.state=s;if(s==='ok'){const n=new Date();P.at=n.toLocaleTi
 function snapshot(){
  const m=new Map();
  for(const [k,idk] of Object.entries(ARR))S[k].forEach(r=>m.set(did(k,r[idk]),{k,i:String(r[idk]),j:JSON.stringify(r)}));
- Object.keys(S.medidas).forEach(c=>m.set(did('med',c),{k:'med',i:String(c),j:JSON.stringify(S.medidas[c])}));
+ Object.keys(S.medidas).filter(c=>c!=='null'&&c!=='undefined'&&c!=='').forEach(c=>m.set(did('med',c),{k:'med',i:String(c),j:JSON.stringify(S.medidas[c])}));
  SING.forEach(n=>m.set(did('sing',n),{k:'sing',i:n,j:JSON.stringify(S[n])}));
  return m;
 }
