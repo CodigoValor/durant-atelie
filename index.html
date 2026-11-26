@@ -5068,6 +5068,9 @@ async function loadParceiro(){
  }
  const pub=await retry(()=>P.col.doc('pub~catalogo').get());
  if(pub.exists){const j=JSON.parse(pub.data().j);Object.keys(j).forEach(c=>{if(c==='cat')S.cat=j.cat;else S.cfg[c]=j[c]});}
+ /* Quem produz o pedido de um parceiro é a própria empresa dona (chave 'hda' = produção interna dela) */
+ S.fornecedores=(S.fornecedores||[]).filter(f=>!(f.tipos&&f.tipos.includes('Prestador')));
+ S.fornecedores.push({id:'FPR1',fantasia:(window.SB&&window.SB.empresaNome)||'Produção',tipos:['Prestador'],prestKey:'hda',prestCat:['Alfaiataria','Camisaria'],ativo:true,sistema:true,travado:true,emails:[]});
  S.tecidos={};S.forros={};catSync();syncParceiros();
  pUid=Math.max(0,...[...S.pedidos,...S.orcamentos].flatMap(o=>(o.pecas||[]).map(p=>p.uid||0)));
  P.last=raw;

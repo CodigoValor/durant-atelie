@@ -9,7 +9,9 @@
     "test:rls": "node tests/rls.mjs",
     "test:ambientes": "node tests/ambientes.cjs",
     "test:parceiro": "node tests/parceiro.mjs",
-    "test:numeracao": "node tests/numeracao.mjs"
+    "test:numeracao": "node tests/numeracao.mjs",
+    "test:convites": "node tests/convites.mjs",
+    "test:copia": "node tests/copia.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.6.0",
