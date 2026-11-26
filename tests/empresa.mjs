@@ -7,18 +7,19 @@ await db.exec(`
   create role anon nologin; create role authenticated nologin;
   create schema auth; create table auth.users (id uuid primary key default gen_random_uuid(), email text);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub', true), '')::uuid $$;
-  grant usage on schema public, auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;
+  create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+  grant usage on schema public, auth to anon, authenticated; grant execute on function auth.uid(), auth.jwt() to anon, authenticated;
 `);
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
-await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql'));
+await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0023_painel_2fa.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
 const E2 = (await db.query(`select id from public.empresas where nome='Outra'`)).rows[0].id;
 await db.exec(`insert into public.membros (user_id, empresa_id, papel) values ('${LUIZ}','${E1}','admin'),('${MARIA}','${E1}','usuario'),('${ANA}','${E2}','admin')`);
-async function como(sub, fn) { await db.exec(`set role authenticated; select set_config('request.jwt.sub','${sub}',false);`); try { return await fn(); } finally { await db.exec(`reset role; select set_config('request.jwt.sub','',false);`); } }
+async function como(sub, fn, aal = 'aal2') { await db.exec(`set role authenticated; select set_config('request.jwt.sub','${sub}',false); select set_config('request.jwt.claims','{"aal":"${aal}"}',false);`); try { return await fn(); } finally { await db.exec(`reset role; select set_config('request.jwt.sub','',false); select set_config('request.jwt.claims','',false);`); } }
 const q1 = async (s, p) => (await db.query(s, p)).rows[0];
 const falha = async (s, p) => { try { await db.query(s, p); return false; } catch (e) { return e.message; } };
 const cad = d => JSON.stringify({ tipo: 'PJ', razao: 'Durant Alfaiataria Ltda.', fantasia: 'Durant', doc, resp: 'Luiz', ...d });
@@ -83,5 +84,18 @@ await como(LUIZ, async () => {
   const n = await q1(`select nome from public.empresas where id=$1`, [E1]); ok(n.nome === 'Nome Novo', 'o nome fantasia salvo vira o nome da empresa');
   await db.query(`select public.salvar_empresa($1, '{"razao":"Razão Teste Ltda.","fantasia":"Durant Alfaiataria","doc":"12.345.678/0001-90"}'::jsonb)`, [E1]);
 });
+// --- 2FA do painel (migração 0023): só vale com aal2 ---
+await como(LUIZ, async () => ok(/sem permissão/.test(await falha(`select * from public.plataforma_empresas()`)), 'painel recusa quem entrou só com senha (aal1), mesmo sendo administrador'), 'aal1');
+await como(LUIZ, async () => ok((await q1(`select public.plataforma_admin_cadastrado() v`)).v === true, 'a tela descobre que a pessoa é administradora e precisa do segundo fator'), 'aal1');
+await como(MARIA, async () => ok((await q1(`select public.plataforma_admin_cadastrado() v`)).v === false, 'quem não é administrador recebe falso'), 'aal1');
+await como(LUIZ, async () => ok((await db.query(`select * from public.plataforma_empresas()`)).rows.length >= 2, 'com o segundo fator (aal2) o painel responde'));
+await como(LUIZ, async () => ok(/só o administrador da plataforma/.test(await falha(`select public.definir_tipo_empresa($1,'atelie',false)`, [E2])), 'trocar tipo também exige aal2'), 'aal1');
+await como(LUIZ, async () => ok(/sem permissão/.test(await falha(`select public.plataforma_admin_adicionar('ana@ex.com')`)), 'adicionar administrador exige aal2'), 'aal1');
+await como(LUIZ, async () => { await db.query(`select public.plataforma_admin_adicionar('ana@ex.com')`); });
+await como(ANA, async () => ok((await db.query(`select * from public.plataforma_admins_listar()`)).rows.length === 2, 'o administrador de emergência entra com o próprio segundo fator e vê os dois'));
+await como(LUIZ, async () => ok(/ainda não tem conta/.test(await falha(`select public.plataforma_admin_adicionar('ninguem@ex.com')`)), 'e-mail sem conta é recusado'));
+await como(LUIZ, async () => ok(/próprio acesso/.test(await falha(`select public.plataforma_admin_remover($1)`, [LUIZ])), 'não dá para remover o próprio acesso'));
+await como(LUIZ, async () => { await db.query(`select public.plataforma_admin_remover($1)`, [ANA]); });
+await como(ANA, async () => ok(/sem permissão/.test(await falha(`select * from public.plataforma_empresas()`)), 'administrador removido perde o acesso'));
 const tp = (await q1(`select tipo from public.empresas where nome='Durant Alfaiataria'`)).tipo; ok(['alfaiataria', 'fabrica', 'atelie'].includes(tp), 'empresas existentes ganharam um tipo na migração');
 console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);

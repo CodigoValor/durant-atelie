@@ -82,6 +82,65 @@ function telaLogin(aviso){
 }
 async function sair(aviso){await sb.auth.signOut();telaLogin(aviso)}
 
+/* ---------- segundo fator (TOTP): sem ele o servidor não responde ao painel ---------- */
+async function segundoFator(){
+  var a=await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(a.data&&a.data.currentLevel==='aal2')return true;
+  var adm=await sb.rpc('plataforma_admin_cadastrado');
+  if(adm.error||adm.data!==true){await sair('Sem acesso a este painel.');return false}
+  var f=await sb.auth.mfa.listFactors(),ver=((f.data&&f.data.totp)||[])[0];
+  if(ver){telaCodigo(ver.id);return false}
+  var velhos=((f.data&&f.data.all)||[]).filter(function(x){return x.status==='unverified'});
+  for(var i=0;i<velhos.length;i++)await sb.auth.mfa.unenroll({factorId:velhos[i].id});
+  await telaCadastro2FA();return false;
+}
+async function confirmarCodigo(fatorId,codigo){
+  var ch=await sb.auth.mfa.challenge({factorId:fatorId});if(ch.error)return false;
+  var v=await sb.auth.mfa.verify({factorId:fatorId,challengeId:ch.data.id,code:codigo});return !v.error;
+}
+function telaCodigo(fatorId){
+  app.innerHTML='<div class="login"><div class="logo" style="color:#243430">Alinhavo</div><div class="sub" style="margin-top:-8px">Verificação em duas etapas</div>'+
+  '<label>Código de 6 números do aplicativo autenticador<input id="cd" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="letter-spacing:6px;font-size:20px;text-align:center"></label>'+
+  '<div id="msg" class="msg e"></div><button class="btn" id="go">Confirmar</button><button class="lk" id="sair" style="color:#6b726f;text-align:center">Sair</button></div>';
+  var go=async function(){var c=digs($('cd').value);if(c.length!==6){msg('Digite os 6 números.');return}
+    $('go').disabled=true;msg('');var ok=await confirmarCodigo(fatorId,c);$('go').disabled=false;
+    if(!ok){msg('Código incorreto ou vencido. Tente o próximo.');$('cd').value='';$('cd').focus();return}
+    iniciar()};
+  $('go').onclick=go;$('cd').onkeydown=function(e){if(e.key==='Enter')go()};$('sair').onclick=function(){sair()};$('cd').focus();
+}
+async function telaCadastro2FA(){
+  var r=await sb.auth.mfa.enroll({factorType:'totp',friendlyName:'Painel Alinhavo'});
+  if(r.error){await sair('Não consegui ativar a verificação em duas etapas: '+erro(r.error));return}
+  var t=r.data.totp;
+  app.innerHTML='<div class="login"><div class="logo" style="color:#243430">Alinhavo</div><div class="sub" style="margin-top:-8px">Ative a verificação em duas etapas</div>'+
+  '<div class="sub" style="font-size:13px">O painel controla todas as empresas, por isso exige um segundo passo. Abra um aplicativo autenticador (Google Authenticator, Microsoft Authenticator, 1Password ou Authy), escaneie o código e digite os 6 números que ele mostrar.</div>'+
+  '<div style="text-align:center"><img id="qr" alt="QR code para o aplicativo autenticador" width="180" height="180" src="'+esc(t.qr_code)+'"></div>'+
+  '<div class="sub" style="font-size:12px">Sem câmera? Digite esta chave no aplicativo:</div><div class="lnk" id="seg">'+esc(t.secret)+'</div>'+
+  '<label>Código de 6 números<input id="cd" inputmode="numeric" autocomplete="one-time-code" maxlength="6" style="letter-spacing:6px;font-size:20px;text-align:center"></label>'+
+  '<div id="msg" class="msg e"></div><button class="btn" id="go">Ativar e entrar</button><button class="lk" id="sair" style="color:#6b726f;text-align:center">Sair</button></div>';
+  var go=async function(){var c=digs($('cd').value);if(c.length!==6){msg('Digite os 6 números.');return}
+    $('go').disabled=true;msg('');var ok=await confirmarCodigo(r.data.id,c);$('go').disabled=false;
+    if(!ok){msg('Código incorreto ou vencido. Tente o próximo.');$('cd').value='';$('cd').focus();return}
+    iniciar()};
+  $('go').onclick=go;$('cd').onkeydown=function(e){if(e.key==='Enter')go()};$('sair').onclick=function(){sair()};$('cd').focus();
+}
+function administradores(){
+  var m=document.createElement('div');m.className='modal';
+  m.innerHTML='<div class="box"><h1>Administradores da plataforma</h1><div class="sub">Quem entra neste painel (sempre com verificação em duas etapas). Mantenha um segundo administrador de emergência, com a própria conta e o próprio autenticador.</div><div id="ad-l"></div>'+
+  '<label>Adicionar administrador (e-mail de quem já tem conta)<input id="ad-em" type="email"></label><div id="ad-msg" class="msg e"></div>'+
+  '<div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="ad-x">Fechar</button><button class="btn" id="ad-ok">Adicionar</button></div></div>';
+  document.body.appendChild(m);
+  var pintar=async function(){var r=await sb.rpc('plataforma_admins_listar');
+    if(r.error){$('ad-l').textContent=erro(r.error);return}
+    $('ad-l').innerHTML=(r.data||[]).map(function(a){return '<div class="us"><span>'+esc(a.email)+(a.eu?' <span class="sub">(você)</span>':'')+'</span>'+(a.eu?'':'<button class="lk" data-rm="'+esc(a.user_id)+'" style="color:#9b3d2e">Remover</button>')+'</div>'}).join('');
+    Array.prototype.forEach.call(m.querySelectorAll('[data-rm]'),function(b){b.onclick=async function(){
+      var x=await sb.rpc('plataforma_admin_remover',{p_user:b.getAttribute('data-rm')});
+      if(x.error){$('ad-msg').textContent=erro(x.error);return}$('ad-msg').textContent='';pintar()}})};
+  $('ad-x').onclick=function(){m.remove()};
+  $('ad-ok').onclick=async function(){$('ad-ok').disabled=true;var r=await sb.rpc('plataforma_admin_adicionar',{p_email:$('ad-em').value.trim()});$('ad-ok').disabled=false;
+    if(r.error){$('ad-msg').textContent=erro(r.error);return}$('ad-msg').textContent='';$('ad-em').value='';pintar()};
+  pintar();
+}
 /* ---------- dados ---------- */
 async function carregar(){
   var r=await sb.rpc('plataforma_empresas');
@@ -97,6 +156,7 @@ async function iniciar(){
   var s=await sb.auth.getSession();
   if(!s.data.session){telaLogin();return}
   E.eu=s.data.session.user.email;
+  if(!(await segundoFator()))return;
   try{if(!(await carregar()))return;await carregarUsuarios();desenhar()}catch(x){telaLogin('Não consegui abrir o painel: '+erro(x))}
 }
 
@@ -110,12 +170,12 @@ function visiveis(){
 }
 function desenhar(){
   var tot=E.lista.length,at=E.lista.filter(function(e){return e.ativa}).length;
-  app.innerHTML='<div class="top"><div><span class="logo">Alinhavo</span><span class="tag">PAINEL DE CONTROLE</span>'+(cfg.ambiente==='producao'?'':'<span class="amb">HOMOLOGAÇÃO</span>')+'</div><div style="font-size:14px">'+esc(E.eu)+' &nbsp; <button class="lk" id="sair">Sair</button></div></div>'+
+  app.innerHTML='<div class="top"><div><span class="logo">Alinhavo</span><span class="tag">PAINEL DE CONTROLE</span>'+(cfg.ambiente==='producao'?'':'<span class="amb">HOMOLOGAÇÃO</span>')+'</div><div style="font-size:14px">'+esc(E.eu)+' &nbsp; <button class="lk" id="adms">Administradores</button> &nbsp; <button class="lk" id="sair">Sair</button></div></div>'+
   '<div class="wrap"><div class="side"><div style="display:flex;justify-content:space-between;align-items:center"><h1>Empresas</h1><button class="btn" id="nova">+ Nova</button></div>'+
   '<input id="q" placeholder="Buscar por nome ou CNPJ" value="'+esc(E.q)+'">'+
   '<div class="chips"><span class="chip '+(E.filtro==='todas'?'on':'')+'" data-f="todas">Todas '+tot+'</span><span class="chip '+(E.filtro==='ativas'?'on':'')+'" data-f="ativas">Ativas '+at+'</span><span class="chip '+(E.filtro==='suspensas'?'on':'')+'" data-f="suspensas">Suspensas '+(tot-at)+'</span></div>'+
   '<div id="lista" style="display:flex;flex-direction:column;gap:8px">'+listaHTML()+'</div></div><div class="main" id="det">'+detalheHTML()+'</div></div>';
-  $('sair').onclick=function(){sair()};$('nova').onclick=novaEmpresa;
+  $('sair').onclick=function(){sair()};$('adms').onclick=administradores;$('nova').onclick=novaEmpresa;
   $('q').oninput=function(){E.q=this.value;$('lista').innerHTML=listaHTML();ligarLista()};
   Array.prototype.forEach.call(document.querySelectorAll('[data-f]'),function(c){c.onclick=function(){E.filtro=c.dataset.f;desenhar()}});
   ligarLista();ligarDetalhe();
