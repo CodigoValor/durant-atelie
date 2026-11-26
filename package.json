@@ -13,7 +13,10 @@
     "test:convites": "node tests/convites.mjs",
     "test:copia": "node tests/copia.mjs",
     "test:copia-empresa": "node tests/copia_empresa.mjs",
-    "test:subida": "node tests/subida.mjs"
+    "test:subida": "node tests/subida.mjs",
+    "test:tecidos": "node tests/tecidos.mjs",
+    "test:tecidos-ui": "node tests/tecidos_ui.cjs",
+    "test:tecidos-loja": "node tests/tecidos_loja.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.6.0",
