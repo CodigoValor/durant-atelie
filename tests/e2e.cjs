@@ -334,13 +334,15 @@ function novoBanco(cfg) {
   await r13.pg.evaluate(() => { ui.det = null; location.hash = 'painel'; render(); }); await r13.pg.waitForTimeout(300);
   ok(!(await r13.pg.textContent('main')).includes('Felipe'), 'painel do parceiro não traz lembretes de exemplo da empresa');
   await r13.pg.evaluate(() => { location.hash = 'pedidos'; ui.det = null; ui.draft = newDraft(5); render(); }); await r13.pg.waitForTimeout(300);
+  ok(await r13.pg.evaluate(() => !document.getElementById('dest-card')), 'sem peças ainda, o quadro de destino não aparece');
+  await r13.pg.click('[data-add="camisa"]'); await r13.pg.waitForTimeout(300);
+  ok(await r13.pg.evaluate(() => document.getElementById('dest-card').compareDocumentPosition(document.querySelector('#ped .pcard')) & Node.DOCUMENT_POSITION_PRECEDING), 'o quadro de destino fica depois das peças')
   ok(await r13.pg.evaluate(() => !!document.getElementById('dest-card')), 'ao lançar pedido o parceiro vê "Para onde vai a peça pronta?"');
   await r13.pg.click('[data-destr="tipo|cliente"]'); await r13.pg.waitForTimeout(200);
   ok(await r13.pg.evaluate(() => !!document.querySelector('[data-dest="rua"]') && !!document.querySelector('[data-dest="tel"]')), 'escolher "direto ao cliente" pede o endereço e o telefone');
   await r13.pg.click('[data-destr="tipo|retirada"]'); await r13.pg.waitForTimeout(200); await r13.pg.click('[data-destr="quem|motoboy"]'); await r13.pg.waitForTimeout(200);
   ok(await r13.pg.evaluate(() => !!document.querySelector('[data-dest="quemNome"]') && !document.querySelector('[data-dest="rua"]')), 'retirada por motoboy pede o nome/empresa e some o endereço');
   ok(await r13.pg.evaluate(() => destErro(ui.draft.dest).includes('motoboy') && destErro({ tipo: 'parceiro' }) === '' && destErro({}).includes('Escolha') && destErro({ tipo: 'cliente', nome: 'A', tel: '11999990000', rua: 'R', num: '1', bairro: 'B', cidade: 'C' }) === '' && destErro({ tipo: 'cliente', nome: 'A' }).includes('telefone')), 'validação do destino: exige o que falta em cada escolha');
-  await r13.pg.click('[data-add="camisa"]'); await r13.pg.waitForTimeout(300);
   await r13.pg.evaluate(() => { ui.draft.dest = destVazio(); document.getElementById('d-save').click(); }); await r13.pg.waitForTimeout(300);
   ok((await r13.pg.textContent('#toast, .toast, body')).includes('Escolha para onde a peça pronta'), 'não deixa salvar o pedido do parceiro sem escolher o destino');
   await r13.pg.evaluate(() => { ui.draft = null; render(); });

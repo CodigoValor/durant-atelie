@@ -435,8 +435,13 @@ body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:h
 .pill.tg-alf,.ddi.tg-alf{background:#E2EFE4;color:#27503A}.pill.tg-cam,.ddi.tg-cam{background:#E0EBF8;color:#26466E}
 .ddi.tg-alf:hover{background:#D3E7D7}.ddi.tg-cam:hover{background:#CFE1F4}
 .nbadge{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:#B98332;color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:600}
-.dest-opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:0 0 8px;cursor:pointer}
-.dest-opt input{margin-top:3px}
+.dest-row{display:flex;flex-wrap:wrap;gap:8px}
+.dest-opt{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border:1px solid var(--line);border-radius:999px;font-size:14px;cursor:pointer}
+.dest-opt:has(input:checked){border-color:#B98332;background:#F6EFE0}
+.dest-opt input{margin:0}
+#dest-card{padding:14px 16px}
+#dest-card .card-h{margin-bottom:8px}
+#dest-card .card-h h2{font-size:18px}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -608,9 +613,9 @@ function destinoHTML(dr){
  const inp=(k,l,extra='')=>`<label class="tf ${extra}">${l}<input class="ctl" data-dest="${k}" autocomplete="off" value="${esc(d[k]||'')}"></label>`;
  const opt=(g,k,l)=>`<label class="dest-opt"><input type="radio" name="dest-${g}" data-destr="${g}|${k}" ${d[g]===k?'checked':''}><span>${l}</span></label>`;
  return `<section class="card" id="dest-card"><div class="card-h"><h2>Para onde vai a peça pronta?</h2></div>
-  ${Object.entries(DEST_TIPOS).map(([k,l])=>opt('tipo',k,l)).join('')}
+  <div class="dest-row">${Object.entries(DEST_TIPOS).map(([k,l])=>opt('tipo',k,l)).join('')}</div>
   ${d.tipo==='cliente'?`<div class="pgrid4" style="margin-top:8px">${inp('nome','Nome de quem recebe')}${inp('tel','Telefone (com DDD)')}${inp('cep','CEP')}${inp('rua','Rua')}${inp('num','Número')}${inp('comp','Complemento')}${inp('bairro','Bairro')}${inp('cidade','Cidade')}</div><p class="hint">O produtor só vê estes dados de contato porque a peça vai direto ao cliente.</p>`:''}
-  ${d.tipo==='retirada'?`<div style="margin-top:8px">${Object.entries(DEST_QUEM).map(([k,l])=>opt('quem',k,l)).join('')}${d.quem==='outra'||d.quem==='motoboy'?`<div class="pgrid4">${inp('quemNome',d.quem==='motoboy'?'Nome ou empresa do motoboy':'Nome de quem retira')}</div>`:''}</div>`:''}
+  ${d.tipo==='retirada'?`<div style="margin-top:8px"><div class="dest-row">${Object.entries(DEST_QUEM).map(([k,l])=>opt('quem',k,l)).join('')}</div>${d.quem==='outra'||d.quem==='motoboy'?`<div class="pgrid4">${inp('quemNome',d.quem==='motoboy'?'Nome ou empresa do motoboy':'Nome de quem retira')}</div>`:''}</div>`:''}
  </section>`;
 }
 /* ===== Privacidade: o dono vê só o necessário do cliente final de um parceiro (nome e medidas) ===== */
@@ -2005,11 +2010,11 @@ function editorHTML(){
   <label class="tf" id="d-prazoUnicoWrap" ${dr.prazoUnico?'':'hidden'} style="margin-top:6px;max-width:260px">Prazo de entrega (todas as peças)<input class="ctl" type="date" id="d-prazoUnicoData" value="${dr.prazoUnicoData||''}"></label>
   <p class="hint">O pedido nasce como orçamento. Você envia ao cliente e, quando ele aprovar, o pedido entra na produção. O prazo de entrega é definido por produto (ou por peça), nas peças abaixo — a não ser que você marque o prazo único.${dr.prazoUnico?' Com prazo único marcado, essa data já vem preenchida em cada peça, mas o campo continua editável: se uma peça específica precisar de um prazo diferente, é só mudar direto nela — as outras continuam seguindo o prazo único normalmente.':''}</p>
  </section>
- ${PARC()?destinoHTML(dr):''}
  ${dr.pecas.filter(p=>!p.lote).map((p,i)=>pecaHTML(p,i,dr)).join('')}
  <section class="card"><div class="card-h"><h2>Adicionar peça</h2></div>
   <div class="addp">${Object.entries(TIPOS_P).map(([k,l])=>`<button type="button" class="btn ghost" data-add="${k}">${ic('i-plus')}${l}</button>`).join('')}<span class="vsep"></span><button type="button" class="btn ghost" data-add="costume">${ic('i-plus')}Costume <small>paletó + calça</small></button><button type="button" class="btn ghost" data-add="terno">${ic('i-plus')}Terno <small>paletó + calça + colete</small></button></div>
  </section>
+ ${PARC()&&dr.pecas.length?destinoHTML(dr):''}
  ${dr.pecas.length?programacaoHTML(dr):''}
  ${dr.pecas.length?faturamentoHTML(dr):''}
  ${dr.pecas.length?`<section class="card"><div class="card-h"><h2>Depois que o orçamento for aprovado</h2></div><ul class="plist"><li>O pedido entra na fila de produção e o contas a receber é gerado.</li><li>Cada peça ganha as atividades: pedir tecido${dr.pecas.some(temForro)?' e forro':''}, enviar a ficha a ${[...new Set(dr.pecas.map(p=>PARCEIROS[p.prest]).filter(Boolean))].join(' e ')||'quem vai produzir'}, confirmar envio e recebimento do tecido, prova, entrega.</li><li>Ao registrar o pedido de tecido, de forro e da produção, o contas a pagar é gerado.</li></ul></section>`:''}
