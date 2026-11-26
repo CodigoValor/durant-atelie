@@ -3294,7 +3294,7 @@ S.cfg={
  prodV2:true,markbelV1:true,lsV1:true,wtextV1:true,wtextV2:true,prestV1:true,imperialeV1:true,luizV1:true,impCliV1:true,impCliV2:true,impCliV3:true,planV1:true,planV2:true,brunoV1:true,recV1:true,adrV1:true,zeroV1:true,monoV1:true,imperialeV2:true,imperialeV2f:true,
  usuarios:[{id:nid(),nome:'Luiz Durant',email:'hd@henriquedurant.com',grupo:'Administrador',ativo:true}]
 };
-const CFGMENU=[{g:'Cadastros',i:[['clientes','Clientes'],['fornecedores','Fornecedores'],['tecidos','Tecidos e forros'],['produtos','Produtos e valores'],['materiais','Fibras da composição'],['servicos','Serviços de ordem de serviço'],['industrias','Indústrias e marcas'],['tipostec','Tipos de tecido']]},{g:'Financeiro',i:[['bancos','Bancos'],['contas','Contas correntes'],['formas','Formas de pagamento'],['categorias','Categorias'],['recorrentes','Despesas fixas recorrentes']]},{g:'Controle de acesso',i:[['grupos','Grupos de acesso'],['usuarios','Usuários']]},{g:'Sistema',i:[['dados','Dados e backup']]}];
+const CFGMENU=[{g:'Cadastros',i:[['clientes','Clientes'],['fornecedores','Fornecedores'],['tecidos','Tecidos e forros'],['produtos','Produtos e valores'],['materiais','Fibras da composição'],['servicos','Serviços de ordem de serviço'],['industrias','Indústrias e marcas'],['tipostec','Tipos de tecido']]},{g:'Financeiro',i:[['bancos','Bancos'],['contas','Contas correntes'],['formas','Formas de pagamento'],['categorias','Categorias'],['recorrentes','Despesas fixas recorrentes']]},{g:'Controle de acesso',i:[['grupos','Grupos de acesso'],['usuarios','Usuários']]},{g:'Sistema',i:[['empresa','Configurações da empresa'],['dados','Dados e backup']]}];
 const cfgTitulo=k=>CFGMENU.flatMap(g=>g.i).find(i=>i[0]===k)[1];
 const cfgGrupo=k=>CFGMENU.find(g=>g.i.some(i=>i[0]===k)).g;
 const CRUD={
@@ -3592,6 +3592,7 @@ R.config=()=>{
  else if(k==='fornecedores')body=R.fornecedores().replace('<div class="eyebrow">Cadastro</div>','<div class="eyebrow">Configurações · Cadastros</div>');
  else if(k==='tecidos')body=tecView();
  else if(k==='grupos')body=grupoView();
+ else if(k==='empresa')body=empresaView();
  else if(k==='dados')body=dadosView();
  else if(k==='acessos')body=acessosView();
  else body=crudView(k);
@@ -3602,7 +3603,7 @@ bind.config=()=>{
  document.querySelectorAll('[data-cfg]').forEach(b=>b.onclick=()=>go(b.dataset.cfg));
  document.getElementById('cfg-sel').onchange=e=>go(e.target.value);
  const k=ui.cfg;
- if(k==='clientes')bind.clientes();else if(k==='fornecedores')bind.fornecedores();else if(k==='tecidos')bindTec();else if(k==='grupos')bindGrupo();else if(k==='dados')bindDados();else if(k==='acessos')bindAcessos();else bindCrud(k);
+ if(k==='clientes')bind.clientes();else if(k==='fornecedores')bind.fornecedores();else if(k==='tecidos')bindTec();else if(k==='grupos')bindGrupo();else if(k==='dados')bindDados();else if(k==='empresa')bind.empresa();else if(k==='acessos')bindAcessos();else bindCrud(k);
 };
 
 /* ===== Fornecedores ===== */
@@ -5641,6 +5642,52 @@ async function boot(){
 
 /* backup, restauração e limpeza */
 const contagem=()=>[['Clientes',S.clientes.length],['Pedidos',S.pedidos.length],['Orçamentos',S.orcamentos.length],['Ordens de serviço',S.os.length],['Lançamentos a receber',S.receber.length],['Lançamentos a pagar',S.pagar.length],['Fornecedores',S.fornecedores.length]];
+/* ===== Configurações da empresa: cadastro (CNPJ único) e o que a empresa faz ===== */
+const empCad=()=>(window.SB&&window.SB.cadastro)||{};
+const empPerfil=()=>(window.SB&&window.SB.perfil)||{vende:true,produz:false};
+function empresaView(){
+ const c=empCad(),p=empPerfil(),adm=!window.SB||window.SB.papel==='admin',dis=adm?'':'disabled';
+ const inp=(id,l,v,ex)=>`<label class="full">${l}<input class="ctl" id="${id}" value="${esc(v||'')}" ${ex||''} ${dis} autocomplete="off"></label>`;
+ const tipo=(id,t,desc,on,fixo)=>`<label style="display:flex;gap:10px;align-items:flex-start;border:1px solid ${on?'#D9C9A3':'var(--line)'};background:${on?'#F4EFE4':'#fff'};border-radius:12px;padding:12px 14px;${fixo||!adm?'opacity:.75':'cursor:pointer'}"><input type="checkbox" id="${id}" ${on?'checked':''} ${fixo||!adm?'disabled':''} style="margin-top:3px"><span><b>${t}</b><span style="display:block;font-size:13px;color:var(--ink-2)">${desc}</span></span></label>`;
+ return head('Configurações · Sistema','Configurações da empresa','')+`<div class="stack">
+ ${adm?'':'<div class="note">Só o administrador altera os dados da empresa.</div>'}
+ <div class="card"><div class="card-h"><h2>Cadastro da empresa</h2></div><p class="d" style="margin:0 0 10px;color:var(--ink-2)">Quem comprou o Alinhavo. O CNPJ (ou CPF) é único: não pode ser usado por duas empresas.</p>
+  <div class="form">
+   <label class="full">Tipo<select class="ctl" id="em-tipo" ${dis}><option value="PJ" ${c.tipo!=='PF'?'selected':''}>Pessoa jurídica (CNPJ)</option><option value="PF" ${c.tipo==='PF'?'selected':''}>Pessoa física (CPF)</option></select></label>
+   ${inp('em-razao','Razão social',c.razao,'maxlength="100"')}${inp('em-fantasia','Nome fantasia',c.fantasia||(window.SB&&window.SB.empresaNome),'maxlength="100"')}
+   ${inp('em-doc','CNPJ ou CPF',c.doc,'maxlength="18" inputmode="numeric"')}${inp('em-resp','Responsável',c.resp,'maxlength="80"')}
+   ${inp('em-email','E-mail',c.email,'type="email" maxlength="80"')}${inp('em-tel','WhatsApp',c.tel,'maxlength="20" inputmode="tel"')}
+   ${inp('em-cidade','Cidade · UF',c.cidade,'maxlength="60"')}${inp('em-end','Endereço',c.end,'maxlength="160"')}${inp('em-obs','Observações',c.obs,'maxlength="200"')}
+  </div></div>
+ <div class="card"><div class="card-h"><h2>O que a empresa faz</h2></div><p class="d" style="margin:0 0 10px;color:var(--ink-2)">Marque os módulos que a empresa usa. Uma empresa pode ser alfaiataria e fábrica ao mesmo tempo.</p>
+  <div style="display:grid;gap:10px">
+   ${tipo('em-vende','Alfaiataria','Atende o cliente final, faz orçamento e pedido, produz as próprias peças.',p.vende!==false,false)}
+   ${tipo('em-produz','Fábrica','Recebe pedidos de produção de outros ateliês e libera uma área de acesso para eles (aba Ateliês, Pedidos de produção, fechamento).',!!p.produz,false)}
+   ${tipo('em-loja','Loja de tecido','Vende tecido e recebe pedidos de tecido (módulo de tecidos, separado deste sistema).',!!p.fornece,true)}
+   ${tipo('em-cliente','Cliente da loja de tecido','Pede tecido a uma loja pelo módulo de tecidos.',!!p.soTec,true)}
+  </div><p class="d" style="margin:10px 0 0;color:var(--ink-3);font-size:12.5px">Loja de tecido e cliente da loja são liberados pelo módulo de tecidos, não por aqui.</p></div>
+ ${adm?'<div class="actions"><button type="button" class="btn" id="em-salvar">Salvar configurações da empresa</button></div>':''}</div>`}
+bind.empresa=()=>{
+ const sv=document.getElementById('em-salvar');if(!sv)return;
+ const doc=document.getElementById('em-doc'),tipo=document.getElementById('em-tipo');
+ doc.addEventListener('input',()=>{doc.value=tipo.value==='PJ'?cnpjMask(doc.value):cpfMask(doc.value)});
+ sv.onclick=async()=>{
+  const v=id=>document.getElementById(id).value.trim(),dg=v('em-doc').replace(/\D/g,'');
+  if(dg&&tipo.value==='PJ'&&!cnpjOk(dg)){toast('CNPJ inválido. Confira os números.');return}
+  if(dg&&tipo.value==='PF'&&dg.length!==11){toast('CPF tem 11 números.');return}
+  const e=v('em-email');if(e&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){toast('E-mail inválido.');return}
+  const vende=document.getElementById('em-vende').checked,produz=document.getElementById('em-produz').checked;
+  if(!vende&&!produz){toast('Marque Alfaiataria ou Fábrica.');return}
+  const cad={tipo:tipo.value,razao:v('em-razao'),fantasia:v('em-fantasia'),doc:v('em-doc'),resp:v('em-resp'),email:e,tel:v('em-tel'),cidade:v('em-cidade'),end:v('em-end'),obs:v('em-obs')};
+  if(!window.SB||!window.SB.client){toast('Disponível só no sistema online.');return}
+  sv.disabled=true;const r=await window.SB.client.rpc('salvar_empresa',{p_empresa:window.SB.empresa,p_cadastro:cad,p_vende:vende,p_produz:produz});sv.disabled=false;
+  if(r.error){toast(r.error.message||'Não consegui salvar.');return}
+  const mudou=!!empPerfil().produz!==produz||(empPerfil().vende!==false)!==vende;
+  window.SB.cadastro=cad;window.SB.perfil=Object.assign({},window.SB.perfil,{vende,produz});
+  toast(mudou?'Salvo. Atualizando o menu…':'Configurações da empresa salvas');
+  if(mudou)setTimeout(()=>location.reload(),900);else render();
+ };
+};
 function dadosView(){
  const ba=S.cfg.backupAt,dias=ba?Math.floor((TODAY()-d(ba))/864e5):null;
  return head('Configurações · Sistema','Dados e backup','')+

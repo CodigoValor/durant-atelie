@@ -444,6 +444,11 @@ function novoBanco(cfg) {
     document.getElementById('cm-meus').click(); r.meus = document.querySelectorAll('.citem[data-cli]').length === S.clientes.length - 1;
     ids.forEach(id => delete ORIGEM['clientes~' + id]); ui.cModo = 'meus'; return r; });
   ok(at.tabs && at.lista && at.ficha && at.editar && at.pedidos && at.clientes === 1 && at.medidas && at.meus, 'fábrica: aba Ateliês com lista, ficha (razão social, documento, responsável), barra fixa com "Convidar ateliê", clientes do ateliê e medidas ao lado; "Meus clientes" mostra só os próprios');
+  const em = await r15.pg.evaluate(() => { window.SB.cadastro = { tipo: 'PJ', razao: 'Durant Alfaiataria Ltda.', doc: '12.345.678/0001-90' }; window.SB.perfil = { vende: true, produz: true };
+    ui.draft = null; ui.det = null; ui.cfg = 'empresa'; location.hash = 'config'; render();
+    const g = id => document.getElementById(id), menu = [...document.querySelectorAll('.cfgmenu *, nav *, main *')].some(e => e.textContent.trim() === 'Configurações da empresa');
+    return { tela: !!g('em-salvar') && g('em-razao').value === 'Durant Alfaiataria Ltda.' && g('em-doc').value === '12.345.678/0001-90', vende: g('em-vende').checked && g('em-produz').checked && !g('em-loja').checked && g('em-loja').disabled, menu }; });
+  ok(em.tela && em.vende && em.menu, 'Configurações da empresa: cadastro com CNPJ, alfaiataria e fábrica marcadas, loja e cliente de loja só informativos');
   await r15.ctx.close();
 
   console.log('14) Enter executa o login (e-mail e senha preenchidos)');
