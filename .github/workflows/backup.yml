@@ -40,6 +40,9 @@ jobs:
           set -euo pipefail
           "$PG_BIN/pg_dump" "$DB_URL" --data-only --no-owner --no-privileges \
             --table=public.empresas --table=public.membros --table=public.reg --table=public.audit_log --table=public.contadores \
+            --table=public.convites --table=public.plataforma_admins --table=public.pessoas \
+            --table=public.tec_lojas --table=public.tec_vendedores --table=public.tec_catalogo --table=public.tec_destinos \
+            --table=public.tec_pedidos --table=public.tec_pedido_itens --table=public.tec_mensagens --table=public.tec_loja_clientes \
             | gzip -9 > backup.sql.gz
 
       - name: Conferir se o backup tem o que deveria
