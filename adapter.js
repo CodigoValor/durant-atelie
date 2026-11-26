@@ -263,14 +263,14 @@
       var lista = m.data.map(function (x) {
         var e = porId[x.empresa_id] || {};
         return { id: x.empresa_id, papel: x.papel, papelTxt: PAPEL_TXT[x.papel] || x.papel, nome: e.nome || 'Empresa',
-          vende: e.vende_cliente_final !== false, produz: e.produz === true, fornece: e.fornece_tecido === true, soTec: e.somente_tecidos === true, cadastro: e.cadastro || {} };
+          vende: e.vende_cliente_final !== false, produz: e.produz === true, fornece: e.fornece_tecido === true, soTec: e.somente_tecidos === true, tipo: e.tipo || null, cadastro: e.cadastro || {} };
       });
       SB.empresas = lista;
       var uid = session.user.id, esc1 = null, lemb = lembrada(uid);
       if (lemb) esc1 = lista.filter(function (x) { return x.id === lemb; })[0] || null;   // só vale se ainda for vínculo real
       if (!esc1) esc1 = lista.length === 1 ? lista[0] : await telaEscolherEmpresa(lista);
       lembrada(uid, esc1.id);
-      SB.uid = uid; SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz, fornece: esc1.fornece, soTec: esc1.soTec }; SB.cadastro = esc1.cadastro;
+      SB.uid = uid; SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz, fornece: esc1.fornece, soTec: esc1.soTec, tipo: esc1.tipo }; SB.cadastro = esc1.cadastro;
       aplicaMarca();
     })();
     entrando.catch(function () { entrando = null; });

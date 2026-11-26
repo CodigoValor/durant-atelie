@@ -2,9 +2,9 @@
 const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
 const raiz = path.join(__dirname, '..'); let falhas = 0; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ') + m); if (!c) falhas++; };
 const srv = http.createServer((q, r) => { const f = path.join(raiz, q.url.split('?')[0] === '/' ? 'painel.html' : q.url.split('?')[0]); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : f.endsWith('.png') ? 'image/png' : 'text/html' }); r.end(d); } }); });
-const STUB = `window.__chamadas=[];window.supabase={createClient:function(){var L=[{id:'a',nome:'Durant Alfaiataria',cnpj:'12345678000190',cadastro:{tipo:'PJ',razao:'Durant Ltda.',doc:'12.345.678/0001-90'},vende:true,produz:true,fornece:false,so_tecidos:false,ativa:true,criado_em:'2026-03-12T00:00:00Z',usuarios:2},{id:'b',nome:'Mark Bel',cnpj:null,cadastro:{},vende:false,produz:false,fornece:true,so_tecidos:false,ativa:true,criado_em:'2026-11-20T00:00:00Z',usuarios:1}];
+const STUB = `window.__chamadas=[];window.supabase={createClient:function(){var L=[{id:'a',nome:'Durant Alfaiataria',cnpj:'12345678000190',cadastro:{tipo:'PJ',razao:'Durant Ltda.',doc:'12.345.678/0001-90'},tipo:'alfaiataria',vende:true,produz:false,fornece:false,so_tecidos:false,ativa:true,criado_em:'2026-03-12T00:00:00Z',usuarios:2},{id:'b',nome:'Mark Bel',cnpj:null,cadastro:{},tipo:'loja',vende:false,produz:false,fornece:true,so_tecidos:false,ativa:true,criado_em:'2026-11-20T00:00:00Z',usuarios:1}];
 return{auth:{getSession:async()=>({data:{session:{user:{email:'hd@henriquedurant.com'}}}}),signOut:async()=>({}),signInWithPassword:async()=>({})},
-rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_empresas')return{data:L};if(n==='plataforma_usuarios')return{data:[{email:'luiz@x.com',papel:'admin'}]};if(n==='criar_convite_empresa')return{data:'TOKEN123'};if(n==='plataforma_definir_ativa'){L.forEach(function(e){if(e.id===a.p_empresa)e.ativa=a.p_ativa});return{}}return{}}}}};`;
+rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_empresas')return{data:L};if(n==='plataforma_usuarios')return{data:[{email:'luiz@x.com',papel:'admin'}]};if(n==='criar_convite_empresa')return{data:'TOKEN123'};if(n==='definir_tipo_empresa'){L.forEach(function(e){if(e.id===a.p_empresa){e.tipo=a.p_tipo;e.produz=a.p_tipo==='fabrica'?true:(a.p_tipo==='atelie'?false:a.p_area_atelies)}});return{}}if(n==='plataforma_definir_ativa'){L.forEach(function(e){if(e.id===a.p_empresa)e.ativa=a.p_ativa});return{}}return{}}}}};`;
 (async () => {
   await new Promise(r => srv.listen(0, r)); const url = 'http://localhost:' + srv.address().port + '/';
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 760 } }); const erros = [];
@@ -22,8 +22,9 @@ rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_empresa
   await pg.fill('#c-doc', '11111111111111'); await pg.click('#salvar');
   ok(/CNPJ inválido/.test(await pg.locator('#msg').innerText()), 'CNPJ inválido é barrado antes de enviar');
   await pg.fill('#c-tel', '19988887777'); ok((await pg.inputValue('#c-tel')) === '(19) 98888-7777', 'telefone com máscara');
-  await pg.click('.tp[data-tipo="Fábrica"]'); await pg.waitForTimeout(150);
-  ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'definir_tipo_empresa' && c[1].p_vende === false && c[1].p_produz === true)), 'trocar o tipo chama a função da plataforma');
+  await pg.click('.tp[data-tipo="fabrica"]'); await pg.waitForTimeout(150);
+  ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'definir_tipo_empresa' && c[1].p_tipo === 'fabrica' && c[1].p_area_atelies === false)), 'trocar o tipo chama a função da plataforma');
+  ok(await pg.locator('#m-area').isDisabled(), 'só a alfaiataria liga a área para ateliês (a fábrica tem sempre)');
   await pg.click('#susp'); await pg.waitForTimeout(150);
   ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'plataforma_definir_ativa' && c[1].p_ativa === false)) && /Suspensa/.test(await pg.locator('#det .no').first().innerText()), 'suspender chama a função e marca a empresa como suspensa');
   await pg.click('#nova'); await pg.fill('#n-nome', 'Ateliê Novo'); await pg.fill('#n-em', 'novo@x.com'); await pg.click('#n-ok'); await pg.waitForSelector('.lnk');

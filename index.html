@@ -5646,7 +5646,8 @@ const contagem=()=>[['Clientes',S.clientes.length],['Pedidos',S.pedidos.length],
 /* ===== Configurações da empresa: cadastro (CNPJ único) e o que a empresa faz ===== */
 const empCad=()=>(window.SB&&window.SB.cadastro)||{};
 const empPerfil=()=>(window.SB&&window.SB.perfil)||{vende:true,produz:false};
-const empTipoNome=p=>{const v=p.vende!==false,f=!!p.produz;return v&&f?'Tipo: Alfaiataria (ateliê e fábrica juntos)':f?'Tipo: Fábrica':'Tipo: Ateliê'};
+const TIPO_NOME={atelie:'Ateliê',alfaiataria:'Alfaiataria',fabrica:'Fábrica',loja:'Loja de tecido',cliente_loja:'Cliente da loja de tecido'};
+const empTipoNome=p=>{const t=p.tipo&&TIPO_NOME[p.tipo]||(p.fornece?'Loja de tecido':p.soTec?'Cliente da loja de tecido':(p.produz&&p.vende===false)?'Fábrica':'Alfaiataria');return 'Tipo: '+t};
 function empresaView(){
  const c=empCad(),p=empPerfil(),adm=!window.SB||window.SB.papel==='admin',dis=adm?'':'disabled';
  const inp=(id,l,v,ex,fx)=>`<label class="full">${l}<input class="ctl" id="${id}" value="${esc(v||'')}" ${ex||''} ${fx||dis} autocomplete="off"></label>`;
@@ -5660,12 +5661,10 @@ function empresaView(){
    ${inp('em-email','E-mail',c.email,'type="email" maxlength="80"')}${inp('em-tel','WhatsApp',c.tel,'maxlength="20" inputmode="tel"')}
    ${inp('em-cidade','Cidade · UF',c.cidade,'maxlength="60"')}${inp('em-end','Endereço',c.end,'maxlength="160"')}${inp('em-obs','Observações',c.obs,'maxlength="200"')}
   </div></div>
- <div class="card"><div class="card-h"><h2>O que a empresa faz</h2></div><p style="margin:0 0 8px"><b id="em-nome-tipo">${empTipoNome(p)}</b></p><p class="d" style="margin:0 0 10px;color:var(--ink-2)">Definido pela equipe Alinhavo no momento da contratação. Para mudar, fale com a equipe.</p>
+ <div class="card"><div class="card-h"><h2>O que a empresa faz</h2></div><p style="margin:0 0 8px"><b id="em-nome-tipo">${empTipoNome(p)}</b></p><p class="d" style="margin:0 0 10px;color:var(--ink-2)">O tipo e os módulos são definidos pela equipe Alinhavo na contratação. Para mudar, fale com a equipe.</p>
   <div style="display:grid;gap:10px">
-   ${tipo('em-vende','Ateliê','Atende o cliente final, faz orçamento e pedido. Pode mandar produzir em uma fábrica.',p.vende!==false)}
-   ${tipo('em-produz','Fábrica','Produz peças e recebe pedidos de outros ateliês, com uma área de acesso para eles (aba Ateliês, Pedidos de produção, fechamento).',!!p.produz)}
-   ${tipo('em-loja','Loja de tecido','Vende tecido e recebe pedidos de tecido (módulo de tecidos, separado deste sistema).',!!p.fornece)}
-   ${tipo('em-cliente','Cliente da loja de tecido','Pede tecido a uma loja pelo módulo de tecidos.',!!p.soTec)}
+   ${tipo('em-vende','Atende o cliente final','Faz orçamento, pedido, prova e entrega para o cliente final.',p.vende!==false)}
+   ${tipo('em-produz','Área para ateliês','Recebe pedidos de produção de outros ateliês e libera uma área de acesso para eles (aba Ateliês, Pedidos de produção, fechamento).',!!p.produz)}
   </div></div>
  ${adm?'<div class="actions"><button type="button" class="btn" id="em-salvar">Salvar dados da empresa</button></div>':''}</div>`}
 bind.empresa=()=>{

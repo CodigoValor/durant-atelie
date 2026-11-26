@@ -12,7 +12,7 @@ await db.exec(`
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
-await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql'));
+await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
@@ -27,7 +27,7 @@ await db.exec(`insert into public.plataforma_admins (user_id) values ('${LUIZ}')
 const S = (e) => [e, cad({})];
 await como(MARIA, async () => ok(/sem permissão/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E1))), 'usuário comum não altera o cadastro'));
 await como(ANA, async () => ok(/sem permissão/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E1))), 'administrador de outra empresa não altera esta'));
-await como(LUIZ, async () => { await db.query(`select public.definir_tipo_empresa($1,true,true)`, [E1]); await db.query(`select public.salvar_empresa($1,$2::jsonb)`, S(E1)); });
+await como(LUIZ, async () => { await db.query(`select public.definir_tipo_empresa($1,'alfaiataria',true)`, [E1]); await db.query(`select public.salvar_empresa($1,$2::jsonb)`, S(E1)); });
 const r = await q1(`select cnpj, vende_cliente_final v, produz p, cadastro->>'razao' razao from public.empresas where id=$1`, [E1]);
 ok(r.cnpj === '12345678000190' && r.v && r.p && r.razao === 'Durant Alfaiataria Ltda.', 'salva cadastro e CNPJ (só dígitos); plataforma define o tipo');
 await como(LUIZ, async () => ok(/já está cadastrado/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E2))), 'CNPJ repetido em outra empresa é recusado (plataforma)'));
@@ -39,9 +39,9 @@ await como(LUIZ, async () => { await db.query(`select public.salvar_empresa($1,$
 await como(MARIA, async () => {});
 ok((await q1(`select cnpj from public.empresas where id=$1`, [E1])).cnpj === '99999999000199' && p1.cnpj === '12345678000190', 'a plataforma altera o CNPJ');
 await como(LUIZ, async () => { await db.query(`select public.salvar_empresa($1,$2::jsonb)`, [E1, cad({ doc: '12.345.678/0001-90' })]); });
-await como(ANA, async () => ok(/só o administrador da plataforma/.test(await falha(`select public.definir_tipo_empresa($1,true,true)`, [E2])), 'administrador da empresa não muda o tipo (travado)'));
+await como(ANA, async () => ok(/só o administrador da plataforma/.test(await falha(`select public.definir_tipo_empresa($1,'alfaiataria',true)`, [E2])), 'administrador da empresa não muda o tipo (travado)'));
 await como(LUIZ, async () => {
-  ok(/precisa ser alfaiataria/.test(await falha(`select public.definir_tipo_empresa($1,false,false)`, [E1])), 'tipo sem alfaiataria e sem fábrica é recusado');
+  ok(/tipo inválido/.test(await falha(`select public.definir_tipo_empresa($1,'xyz',false)`, [E1])), 'tipo inventado é recusado');
   doc = '123'; ok(/11 números e CNPJ tem 14/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E1))), 'documento com tamanho errado é recusado');
   doc = ''; ok(/Informe o CNPJ/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E1))), 'CNPJ em branco é recusado (obrigatório)');
 });
@@ -64,4 +64,14 @@ await como(MARIA, async () => ok((await q1(`select count(*)::int c from public.m
 ok(await veReg(ANA, E2) === 0 && (await db.query(`select 1 from public.reg where empresa_id='${E1}'`)).rows.length === 1, 'suspender não apaga dados nem afeta outra empresa');
 await como(LUIZ, async () => { await db.query(`select public.plataforma_definir_ativa($1,true)`, [E1]); });
 ok(await veReg(MARIA, E1) === 1, 'reativar devolve o acesso');
+await como(LUIZ, async () => {
+  const t = async (tipo, area) => { await db.query(`select public.definir_tipo_empresa($1,$2,$3)`, [E1, tipo, area]); return await q1(`select tipo, vende_cliente_final v, produz p from public.empresas where id=$1`, [E1]); };
+  let r1 = await t('atelie', true); ok(r1.tipo === 'atelie' && r1.v && !r1.p, 'Ateliê: vende ao cliente final e nunca tem área para ateliês');
+  r1 = await t('alfaiataria', false); ok(r1.tipo === 'alfaiataria' && r1.v && !r1.p, 'Alfaiataria sem área para ateliês (caso da Durant): menus não mudam');
+  r1 = await t('alfaiataria', true); ok(r1.v && r1.p, 'Alfaiataria pode ligar a área para ateliês');
+  r1 = await t('fabrica', false); ok(r1.tipo === 'fabrica' && !r1.v && r1.p, 'Fábrica: só produz e sempre tem a área para ateliês');
+  const pl = (await db.query(`select * from public.plataforma_empresas()`)).rows.find(x => x.id === E1); ok(pl.tipo === 'fabrica', 'a lista do painel traz o tipo');
+  await t('alfaiataria', false);
+});
+const tp = (await q1(`select tipo from public.empresas where nome='Durant Alfaiataria'`)).tipo; ok(['alfaiataria', 'fabrica', 'atelie'].includes(tp), 'empresas existentes ganharam um tipo na migração');
 console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);
