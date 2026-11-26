@@ -427,6 +427,11 @@ function novoBanco(cfg) {
     await r15.pg.click('[data-newtec]'); await r15.pg.waitForTimeout(400);
     ok(await r15.pg.evaluate(() => !document.querySelector('[data-newtec]') && ui.draft.pecas[0].forroCod === '42'), 'cadastrar forro novo pelo campo: o botão "+ Cadastrar" some e o código fica no campo');
   } else ok(false, 'campo de código do forro não encontrado no teste');
+  const fl = await r15.pg.evaluate(() => { const id = S.clientes[0].id; ORIGEM['clientes~' + id] = 'Ateliê Teste'; ui.det = null; ui.draft = null; ui.cli = null; ui.cOrig = ''; location.hash = 'clientes'; render();
+    const chips = [...document.querySelectorAll('[data-corig]')].map(b => b.dataset.corig); const todos = document.querySelectorAll('.citem[data-cli]').length;
+    document.querySelector('[data-corig="Ateliê Teste"]').click(); const soAt = document.querySelectorAll('.citem[data-cli]').length;
+    document.querySelector('[data-corig="__meus"]').click(); const meus = document.querySelectorAll('.citem[data-cli]').length; delete ORIGEM['clientes~' + id]; return { chips, todos, soAt, meus }; });
+  ok(fl.chips.includes('Ateliê Teste') && fl.chips.includes('__meus') && fl.soAt === 1 && fl.meus === fl.todos - 1, 'fábrica filtra clientes por ateliê: Todos, Meus clientes e cada ateliê');
   await r15.ctx.close();
 
   console.log('14) Enter executa o login (e-mail e senha preenchidos)');
