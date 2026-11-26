@@ -5552,11 +5552,13 @@ function contaModal(){
  modal('Sua conta',`<div class="full"><b>${esc(u.nome)}</b><div class="d" style="color:var(--ink-2);font-size:14px">${esc(u.email||'')} · ${esc(u.grupo||'')}</div></div>
  <label class="full">Nova senha<input id="ac-p" type="password" class="ctl" autocomplete="new-password" placeholder="Deixe em branco para manter a atual"></label>
  ${window.SB&&window.SB.empresaNome?`<div class="full" style="font-size:14px;color:var(--ink-2)">Empresa: <b>${esc(window.SB.empresaNome)}</b>${window.SB.empresas&&window.SB.empresas.length>1?` <button type="button" class="btn ghost sm" id="ac-troca">Trocar de empresa</button>`:''}</div>`:''}
+ <div class="full" id="ac-sis" hidden><div class="d" style="font-size:12px;color:var(--ink-2);margin-bottom:6px">Alternar para</div><div id="ac-sis-l" style="display:flex;flex-wrap:wrap;gap:8px"></div></div>
  <div class="full"><button type="button" class="btn ghost" id="ac-out">Sair do sistema</button></div>`,()=>{
   const p=document.getElementById('ac-p').value;if(!p)return;
   const m=pwOk(p);if(m)return m;
   if(window.SB)window.SB.client.auth.updateUser({password:p}).then(r=>{toast(r.error?'Não consegui alterar a senha':'Senha alterada')});else setSenha(u,p).then(()=>{toast('Senha alterada');flush()});
  },'Salvar');
+ if(window.SB&&window.SB.client){window.SB.client.rpc('meus_sistemas').then(r=>{const nm={atelie:'Ateliê',fabrica:'Fábrica',loja:'Loja de tecidos',cliente:'Cliente de loja'};const vistos={};(r.data||[]).forEach(x=>{if(!nm[x.sistema]||vistos[x.sistema])return;if((x.sistema==='atelie'||x.sistema==='fabrica')&&x.empresa_id===window.SB.empresa)return;vistos[x.sistema]=1;const b=document.createElement('button');b.type='button';b.className='btn ghost sm';b.textContent=nm[x.sistema];b.onclick=()=>{if(x.sistema==='atelie'||x.sistema==='fabrica'){window.SB.irParaEmpresa(x.empresa_id);return}try{sessionStorage.setItem('tec.sis',x.sistema)}catch(e){}location.href='/tecidos/pedido'};document.getElementById('ac-sis-l').appendChild(b)});if(Object.keys(vistos).length)document.getElementById('ac-sis').hidden=false}).catch(()=>{})}
  document.getElementById('ac-out').onclick=sair;const trc=document.getElementById('ac-troca');if(trc)trc.onclick=()=>window.SB.trocarEmpresa();
 }
 async function boot(){

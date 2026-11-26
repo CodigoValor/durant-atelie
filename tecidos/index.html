@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Alinhavo · Tecidos</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#20312A">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F4F5F2; --ink:#1E2824; --ink-2:#56605B; --ink-3:#88908A;
+  --line:#E0E4DE; --rail:#20312A; --rail-ink:#F1EEDD; --rail-ink-2:#9DA89F; --btn-bg:#20312A; --btn-fg:#F4F1E2;
+  --chip:#E8ECE5; --cream:#F1E7CC; --gold:#B98A2E; --amber:#FFAA57;
+  --ok:#2C7552; --ok-bg:#E0EFE5; --warn:#9A6614; --warn-bg:#F6ECD9; --crit:#A8343A; --crit-bg:#F6E1E2; --info:#2F5A7A; --info-bg:#E0EAF0;
+  --f-display:"Cormorant Garamond",Georgia,serif; --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif; --r:10px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface-2);color:var(--ink);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+.top{background:var(--rail);color:var(--rail-ink);position:sticky;top:0;z-index:30}
+.top-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:10px 16px}
+.brand b{font:700 21px/1 var(--f-display);letter-spacing:.04em;display:block}
+.brand small{font-size:9.5px;letter-spacing:.3em;color:var(--amber);font-weight:600;display:block;margin-top:4px}
+.nav{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav button{background:none;border:0;color:var(--rail-ink-2);padding:10px 12px;font-weight:500;font-size:13.5px;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent}
+.nav button:hover{color:var(--rail-ink)}
+.nav button[aria-current="page"]{color:var(--rail-ink);border-bottom-color:var(--amber)}
+.demo{flex:none;background:rgba(255,255,255,.14);color:var(--rail-ink);font-size:11px;font-weight:600;letter-spacing:.08em;padding:5px 9px;border-radius:99px}
+main{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+h1,h2,h3{font-family:var(--f-display);margin:0 0 10px;line-height:1.15}
+h2{font-size:24px} h3{font-size:19px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.muted{color:var(--ink-2)} .small{font-size:13px} .tiny{font-size:12px;color:var(--ink-3)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:8px 0}
+.row.end{justify-content:flex-end}
+.row>label{flex:1;min-width:180px}
+label{display:block;font-size:13px;font-weight:600;color:var(--ink-2)}
+input,select,textarea{width:100%;margin-top:4px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:400;color:var(--ink)}
+textarea{resize:vertical;min-height:110px}
+input[type=checkbox]{width:auto;margin:0 6px 0 0}
+.btn{background:var(--btn-bg);color:var(--btn-fg);border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.15)}
+.btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.sec:hover{background:var(--surface-2)}
+.btn.danger{background:#fff;color:var(--crit);border:1px solid var(--crit-bg)}
+.btn.gold{background:var(--gold);color:#fff}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--chip);color:var(--ink-2);white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.crit{background:var(--crit-bg);color:var(--crit)} .chip.info{background:var(--info-bg);color:var(--info)}
+.tw{overflow-x:auto;margin:0 -4px;padding:0 4px}
+table.t{width:100%;border-collapse:collapse;min-width:640px}
+table.t th{text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+table.t td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.t td input,table.t td select{margin-top:0}
+table.t tr.err td{background:var(--crit-bg)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.kpi b{display:block;font:700 26px/1.1 var(--f-display)} .kpi span{font-size:12px;color:var(--ink-3)}
+  .prog{height:8px;border-radius:6px;background:#e6e2d9;overflow:hidden;margin:8px 0 2px}.prog i{display:block;height:100%;background:#5b8f3a;border-radius:6px}
+pre.msg{white-space:pre-wrap;word-break:break-word;background:#E7F5DC;border:1px solid #cfe6bd;border-radius:12px;padding:14px;font:14px/1.5 var(--f-body);margin:8px 0}
+.alert{border-radius:8px;padding:10px 12px;font-size:14px;margin:8px 0}
+.alert.warn{background:var(--warn-bg);color:var(--warn)} .alert.crit{background:var(--crit-bg);color:var(--crit)} .alert.info{background:var(--info-bg);color:var(--info)}
+.ped-h{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.ped-h b{font-family:var(--f-display);font-size:20px}
+dialog{border:0;border-radius:14px;padding:20px;width:min(560px,94vw);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(20,30,25,.55)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--rail);color:var(--rail-ink);padding:10px 16px;border-radius:99px;font-size:14px;z-index:99;max-width:92vw}
+footer{padding:18px 16px;color:var(--ink-3);font-size:12px;text-align:center}
+.steps{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 2px}
+.empty{padding:26px;text-align:center;color:var(--ink-3)}
+@media (max-width:700px){
+  table.stack{min-width:0!important}
+  table.stack thead{display:none}
+  table.stack,table.stack tbody{display:block}
+  table.stack tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:#fff}
+  table.stack tr.err{background:var(--crit-bg)}
+  table.stack td{display:block;border:0;padding:4px 0;min-width:0!important;width:auto!important}
+  table.stack td::before{content:attr(data-l);display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:2px}
+  table.stack td.full{grid-column:1/-1}
+  table.stack td.num{display:none}
+  table.stack td.x{grid-column:1/-1;text-align:right}
+  table.stack td.x::before{display:none}
+}
+@media (max-width:640px){main{padding:12px 10px 40px}.card{padding:12px}.top-in{gap:8px;padding:8px 10px}.demo{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand"><b>ALINHAVO</b><small>TECIDOS</small></div>
+  <nav class="nav" id="nav" aria-label="Seções"></nav>
+  <span class="demo" title="Os dados ficam só neste navegador">DEMONSTRAÇÃO</span>
+</div></header>
+<main id="app"></main>
+<footer>Alinhavo · módulo Tecidos · dados de exemplo guardados apenas neste aparelho · <a href="#" data-a="restaurar" style="color:inherit">restaurar exemplo</a></footer>
+<dialog id="dlg"></dialog>
+<div id="toast" hidden></div>
+
+<script>
+(function () {
+'use strict';
+var EMPRESA = 'Durant Alfaiataria';
+var KEY = 'alinhavo.tecidos.demo.v1';
+
+/* ---------- utilidades ---------- */
+function $(s, r) { return (r || document).querySelector(s); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function nl(s) { /* minúsculo e sem acento, mantendo o MESMO tamanho (posições batem com o texto original) */
+  return String(s || '').split('').map(function (c) { var d = c.normalize('NFD').replace(/[̀-ͯ]/g, ''); return ((d || c).charAt(0).toLowerCase()) || c; }).join('');
+}
+function norm(s) { return nl(s).trim(); }
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'); }
+function uid() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function fmtM(n) { return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' m'; }
+function fmtBRL(n) { return (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function hoje() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function dataBR(iso) { return String(iso || '').split('-').reverse().join('/'); }
+function numBR(v) { var s = String(v == null ? '' : v).trim(); if (!s) return null; if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.'); var n = parseFloat(s); return isFinite(n) ? n : null; }
+function zap(n) { var d = String(n || '').replace(/\D/g, ''); if (d.length === 10 || d.length === 11) d = '55' + d; return d; }
+var toastT;
+function toast(t) { var e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { e.hidden = true; }, 3200); }
+
+/* ---------- dados (demonstração = só neste navegador; no banco, tudo passa por gravar/apagar) ---------- */
+function semente() {
+  var ls = uid(), imp = uid(), mb = uid();
+  function t(loja, ref, nome, comp, larg, cor, preco, apel) { return { id: uid(), loja_id: loja, referencia: ref, nome: nome, composicao: comp, largura_cm: larg, cor: cor, preco_metro: preco, apelidos: apel || [], ativo: true }; }
+  return {
+    v: 1, seq: 0,
+    lojas: [{ id: ls, nome: 'LS Tecidos', whatsapp: '', ativo: true }, { id: imp, nome: 'Imperiale', whatsapp: '', ativo: true }, { id: mb, nome: 'Mark Bel', whatsapp: '11982457810', ativo: true }],
+    vendedores: [
+      { id: uid(), loja_id: ls, nome: 'Carlos (exemplo)', whatsapp: '', principal: true, ativo: true },
+      { id: uid(), loja_id: ls, nome: 'Renata (exemplo)', whatsapp: '', principal: false, ativo: true },
+      { id: uid(), loja_id: imp, nome: 'Vendedor Imperiale (exemplo)', whatsapp: '', principal: true, ativo: true },
+      { id: uid(), loja_id: mb, nome: 'Ionaldo (Nenê)', whatsapp: '11964383980', principal: true, ativo: true }
+    ],
+    catalogo: [
+      t(ls, '405/3', 'Azul marinho liso', '100% lã', 150, 'Azul marinho', 390, ['azul marinho da ls']),
+      t(ls, '405/7', 'Cinza chumbo liso', '100% lã', 150, 'Cinza', 390, []),
+      t(ls, '512', 'Príncipe de Gales', 'Lã e seda', 148, 'Cinza e azul', 520, ['principe de gales']),
+      t(imp, '210/1', 'Linho puro', '100% linho', 140, 'Bege', 310, ['linho bege']),
+      t(imp, '210/4', 'Linho puro', '100% linho', 140, 'Azul claro', 310, []),
+      /* Mark Bel: 97 referências reais (tabelas alfaiataria/diversos jun/2026 e camisaria set/2026) */
+      t(mb, "3453", "Super tropical", "", null, '', 115, []),
+      t(mb, "7177", "Gabardine", "", null, '', 115, []),
+      t(mb, "7855", "Cambraia", "", null, '', 115, []),
+      t(mb, "8295/8685", "Lã camurça", "", null, '', 175, []),
+      t(mb, "6812", "98% lã 2% elastano", "", null, '', 235, []),
+      t(mb, "8589", "96% lã 4% elastano", "", null, '', 240, []),
+      t(mb, "4157", "Gabardine lisa", "", null, '', 230, []),
+      t(mb, "7005", "Prunel", "", null, '', 230, []),
+      t(mb, "8057", "Twill", "", null, '', 230, []),
+      t(mb, "8154", "Twill", "", null, '', 230, []),
+      t(mb, "8156", "Cambraia", "", null, '', 230, []),
+      t(mb, "8157", "Gabardine mescla", "", null, '', 230, []),
+      t(mb, "8256", "S120 exclusivo", "", null, '', 235, []),
+      t(mb, "110118", "Jeans", "", null, '', 250, []),
+      t(mb, "8296", "Casimir", "", null, '', 335, []),
+      t(mb, "8298", "Superfine", "", null, '', 335, []),
+      t(mb, "JACKET", "Jacket super 100", "", null, '', 250, []),
+      t(mb, "S100", "S100 super 100", "", null, '', 330, []),
+      t(mb, "PRIVILEGE", "Privilege super 120", "", null, '', 350, []),
+      t(mb, "DIAMOND", "Diamond super 140", "", null, '', 440, []),
+      t(mb, "2120", "Fratelli", "", null, '', 540, []),
+      t(mb, "2130", "Fratelli", "", null, '', 720, []),
+      t(mb, "2160", "Fratelli", "", null, '', 810, []),
+      t(mb, "2458", "Guabello", "", null, '', 540, []),
+      t(mb, "2728", "Italiano", "", null, '', 89.9, []),
+      t(mb, "2731", "Fratelli", "", null, '', 540, []),
+      t(mb, "3063", "Fratelli", "", null, '', 540, []),
+      t(mb, "3065", "Angélico", "", null, '', 540, []),
+      t(mb, "3067", "Fratelli", "", null, '', 540, []),
+      t(mb, "0101", "Tricoline lisa 120/2", "Algodão", null, '', 130, []),
+      t(mb, "0102", "Tricoline fio tinto 120/2", "Algodão", null, '', 130, []),
+      t(mb, "0104", "Pin point ouro 80/2", "Algodão", null, '', 115, []),
+      t(mb, "0105", "Pin point 60/2", "Algodão", null, '', 115, []),
+      t(mb, "1001", "Tricoline lisa 80/2", "Algodão", null, '', 85, []),
+      t(mb, "1006", "Tricoline fio tinto 80/2", "Algodão", null, '', 85, []),
+      t(mb, "1008", "Tricoline fio tinto 80/2", "Algodão", null, '', 85, []),
+      t(mb, "1009", "Tricoline prata 80/2", "Algodão", null, '', 115, []),
+      t(mb, "0106", "Tricoline 80/2", "Algodão", null, '', 145, []),
+      t(mb, "0107", "Tricoline 100/2", "Algodão", null, '', 145, []),
+      t(mb, "0108", "Tricoline 160/2", "Algodão", null, '', 225, []),
+      t(mb, "0109", "Tricoline 120/2", "Algodão", null, '', 205, []),
+      t(mb, "0110", "Tricoline 70/2", "Algodão", null, '', 115, []),
+      t(mb, "0111", "Tricoline com elastano 70/2", "Algodão", null, '', 115, []),
+      t(mb, "0112", "Point 70/2", "Algodão", null, '', 115, []),
+      t(mb, "0117", "Tricoline com elastano 70/2", "Algodão", null, '', 125, []),
+      t(mb, "0113", "Tricoline 80/2", "Algodão", null, '', 105, []),
+      t(mb, "0114", "Piquet malha 80/2", "Algodão", null, '', 100, []),
+      t(mb, "0115", "Tricoline 120/2", "Algodão", null, '', 160, []),
+      t(mb, "0116", "Tricoline com elastano", "Algodão", null, '', 105, []),
+      t(mb, "0119", "Casuale", "Algodão", null, '', 140, []),
+      t(mb, "0120", "Casuale com elastano", "Algodão", null, '', 140, []),
+      t(mb, "0121", "Classic", "Algodão", null, '', 140, []),
+      t(mb, "1053", "Cerimoniale", "Algodão", null, '', 130, []),
+      t(mb, "1054", "Cerimoniale", "Algodão", null, '', 130, []),
+      t(mb, "1060", "No iron 80/2", "Algodão", null, '', 140, []),
+      t(mb, "1086", "Cambraia de linho", "Algodão", null, '', 185, []),
+      t(mb, "1120", "Impermeável 120/2", "Algodão", null, '', 175, []),
+      t(mb, "1050", "Tricoline com elastano", "Algodão", null, '', 80, []),
+      t(mb, "1051", "Tricoline com elastano acetinado", "Algodão", null, '', 80, []),
+      t(mb, "1052", "Tricoline", "Algodão", null, '', 80, []),
+      t(mb, "1057", "Easy iron vol. I", "Algodão", null, '', 70, []),
+      t(mb, "1058", "Easy iron vol. II", "Algodão", null, '', 60, []),
+      t(mb, "1059", "Easy iron vol. III", "Algodão", null, '', 70, []),
+      t(mb, "1085", "Cambraia de linho", "Algodão", null, '', 185, []),
+      t(mb, "1118", "Essential charlotte 80", "Algodão", null, '', 80, []),
+      t(mb, "2457", "Flanela", "Algodão", null, '', 60, []),
+      t(mb, "10120", "Luxury 120", "Algodão", null, '', 140, []),
+      t(mb, "10140", "Luxury 140", "Algodão", null, '', 180, []),
+      t(mb, "10170", "Luxury 170", "Algodão", null, '', 230, []),
+      t(mb, "10200", "Luxury 200", "Algodão", null, '', 320, []),
+      t(mb, "0302/2010", "Micro fibra", "", null, '', 60, []),
+      t(mb, "0314/2012", "Oxford", "", null, '', 40, []),
+      t(mb, "0348/2023", "Gabardine", "", null, '', 40, []),
+      t(mb, "0355/2001", "Panamá", "", null, '', 55, []),
+      t(mb, "1186", "Valência com elastano", "", null, '', 115, []),
+      t(mb, "1187", "Valência com elastano", "", null, '', 115, []),
+      t(mb, "2050", "Sarja", "", null, '', 90, []),
+      t(mb, "2051", "Jeans lavado", "", null, '', 90, []),
+      t(mb, "2055", "Jeans leve", "", null, '', 75, []),
+      t(mb, "2058", "Veludo cotele", "", null, '', 80, []),
+      t(mb, "2072", "Sarja italiana", "", null, '', 175, []),
+      t(mb, "2073", "Sarja italiana", "", null, '', 175, []),
+      t(mb, "2076", "Sarja com elastano", "", null, '', 100, []),
+      t(mb, "2078", "Sarja com elastano", "", null, '', 100, []),
+      t(mb, "2080", "Linho misto", "", null, '', 100, []),
+      t(mb, "2083", "Cotton linho", "", null, '', 175, []),
+      t(mb, "2085", "Linho acetinado S129", "", null, '', 270, []),
+      t(mb, "2086", "Linho soft", "", null, '', 160, []),
+      t(mb, "2087", "Linho puro", "", null, '', 170, []),
+      t(mb, "2156", "Veludo", "", null, '', 80, []),
+      t(mb, "2256", "Veludo com elastano", "", null, '', 85, []),
+      t(mb, "3739", "Andorra", "", null, '', 105, []),
+      t(mb, "6089", "Barcelona", "", null, '', 105, []),
+      t(mb, "6090", "High tech", "", null, '', 135, []),
+      t(mb, "6091", "Madrid", "", null, '', 115, []),
+      t(mb, "8650", "Super 100", "", null, '', 115, []),
+      t(mb, "9001", "Linho", "", null, '', 230, [])
+    ],
+    destinos: [{ id: uid(), nome: 'Ateliê', endereco: '', padrao: true, ativo: true }, { id: uid(), nome: 'Maria', endereco: '', padrao: false, ativo: true }, { id: uid(), nome: 'WGT', endereco: '', padrao: false, ativo: true }],
+    pedidos: [], itens: [], mensagens: []
+  };
+}
+var S;
+function carregar() { try { var r = localStorage.getItem(KEY); if (r) { var o = JSON.parse(r); if (o && o.v === 1) return o; } } catch (e) {} return semente(); }
+function salvar() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+/* ponto único de escrita: ligar ao Supabase é trocar só estas duas funções (tabelas tec_*, ver migração 0010) */
+function gravar(tab, row) { var l = S[tab], i = l.findIndex(function (x) { return x.id === row.id; }); if (i >= 0) l[i] = row; else l.push(row); salvar(); return row; }
+function apagar(tab, id) { S[tab] = S[tab].filter(function (x) { return x.id !== id; }); salvar(); }
+function por(tab, id) { return S[tab].find(function (x) { return x.id === id; }); }
+
+/* ---------- interpretação do pedido (regras; a versão com IA troca só esta função) ---------- */
+var NOME = "\\p{Lu}[\\p{L}'’.-]*(?:\\s+(?:d[aeo]s?\\s+)?\\p{Lu}[\\p{L}'’-]*){0,3}";
+var reCli1 = new RegExp("(?:\\bque\\s+(?:é|e)(?=\\s)|\\bcliente(?:\\s+(?:dele|dela))?\\s*(?::|é(?=\\s)|e(?=\\s))?)\\s*(?:o\\s+|a\\s+)?(" + NOME + ")", 'u');
+var reCli2 = new RegExp("(?:\\b[Pp]ara|\\b[Pp]ro|\\b[Pp]ra|\\b[Pp]\\/)\\s+(?:o\\s+|a\\s+|os\\s+|as\\s+)?(?:cliente\\s+)?(" + NOME + ")", 'u');
+var reRef = /(?<![A-Za-z0-9\/.,-])(\d{2,5}(?:\s?[\/-]\s?[A-Za-z0-9]{1,4})?)(?![A-Za-z0-9\/])/g;
+
+function chaveRef(s) { return norm(s).replace(/\s+/g, ''); }
+function resolverRef(texto, lojaId) {
+  var k = chaveRef(texto);
+  if (!k) return { cat: null, match: 'vazio' };
+  var ativos = S.catalogo.filter(function (c) { return c.ativo; });
+  function acha(lista) { return lista.find(function (c) { return chaveRef(c.referencia) === k || (c.apelidos || []).some(function (a) { return chaveRef(a) === k; }); }); }
+  var minha = ativos.filter(function (x) { return x.loja_id === lojaId; });
+  var c = acha(minha);
+  if (c) return { cat: c, match: 'ok' };
+  c = acha(ativos);
+  if (c) return { cat: c, match: 'outra_loja' };
+  /* artigo/cor: "1009/6" = artigo 1009, cor 6 (o preço é do artigo, a cor é só o código dentro dele) */
+  var t = String(texto).trim().replace(/\s*([\/-])\s*/g, '$1');
+  for (var i = t.search(/[\/-][^\/-]*$/); i > 0; i = t.slice(0, i).search(/[\/-][^\/-]*$/)) {
+    var kk = chaveRef(t.slice(0, i)), cor = t.slice(i + 1);
+    function acha2(lista) { return lista.find(function (x) { return chaveRef(x.referencia) === kk || (x.apelidos || []).some(function (a) { return chaveRef(a) === kk; }); }); }
+    var a = acha2(minha); if (a) return { cat: a, match: 'ok', cor: cor };
+    a = acha2(ativos); if (a) return { cat: a, match: 'outra_loja', cor: cor };
+  }
+  return { cat: null, match: 'desconhecido' };
+}
+function achaAncoras(linha, lojaId) {
+  var L = nl(linha), out = [];
+  var ativos = S.catalogo.filter(function (c) { return c.ativo; });
+  ativos.forEach(function (c) {
+    var pri = c.loja_id === lojaId ? 0 : 1;
+    [c.referencia].concat(c.apelidos || []).forEach(function (term) {
+      var tt = nl(term).trim(); if (!tt) return;
+      var re = new RegExp('(?<![a-z0-9/.,-])' + tt.split(/\s+/).map(escRe).join('\\s+') + '(?![a-z0-9/])', 'g'), m;
+      while ((m = re.exec(L))) out.push({ start: m.index, end: m.index + m[0].length, raw: linha.slice(m.index, m.index + m[0].length), pri: pri, len: m[0].length });
+    });
+  });
+  var m2; reRef.lastIndex = 0;
+  while ((m2 = reRef.exec(linha))) out.push({ start: m2.index, end: m2.index + m2[0].length, raw: m2[0], pri: 2, len: m2[0].length });
+  out.sort(function (a, b) { return a.start - b.start || a.pri - b.pri || b.len - a.len; });
+  var res = [], fim = -1;
+  out.forEach(function (a) { if (a.start >= fim) { res.push(a); fim = a.end; } });
+  return res;
+}
+function extrairMetragem(txt) {
+  var m = /(\d+(?:[.,]\d+)?)\s*(?:cm\b)/i.exec(txt);
+  if (m) { var cm = numBR(m[1]); if (cm) return Math.round(cm) / 100; }
+  m = /(\d+(?:[.,]\d+)?)\s*(?:m\b|mt\b|mts\b|metros?\b)/i.exec(txt);
+  if (m) return numBR(m[1]);
+  m = /(?<![\w\/])(\d{1,2}[.,]\d{1,2})(?![\w\/])/.exec(txt);
+  return m ? numBR(m[1]) : null;
+}
+function destinoDe(txt, padrao) {
+  var T = norm(txt), achado = null;
+  S.destinos.filter(function (d) { return d.ativo; }).forEach(function (d) {
+    var n = norm(d.nome); if (!n) return;
+    if (new RegExp('(?:^|[^a-z0-9])(?:para|pra|pro|na|no|ao|a|em)\\s+(?:o\\s+|a\\s+)?' + n.split(/\s+/).map(escRe).join('\\s+') + '(?![a-z0-9])').test(T)) achado = d;
+  });
+  if (!achado && /(?:^|[^a-z0-9])(?:para|pra|pro)\s+mim(?![a-z0-9])/.test(T)) achado = padrao || null;
+  return achado;
+}
+function interpretar(texto, lojaId) {
+  var padrao = S.destinos.find(function (d) { return d.ativo && d.padrao; }) || S.destinos.find(function (d) { return d.ativo; }) || null;
+  var linhas = String(texto || '').split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  var chunks = [], globalDest = null;
+  linhas.forEach(function (ln) {
+    var an = achaAncoras(ln, lojaId);
+    if (!an.length) {
+      var g = /(?:tudo|todos|todas)\s+(?:(?:para|pra|pro|na|no)\s+)?(?:o\s+|a\s+)?(.+)/i.exec(ln);
+      if (g) { var dd = destinoDe('para ' + g[1], padrao); if (dd) globalDest = dd; }
+      if (chunks.length) chunks[chunks.length - 1].extra += ' ' + ln;
+      return;
+    }
+    an.forEach(function (a, i) {
+      var ate = i + 1 < an.length ? an[i + 1].start : ln.length;
+      chunks.push({ anc: a, texto: (i === 0 ? ln.slice(0, a.start) + ' ' : '') + ln.slice(a.start, ate), extra: '' });
+    });
+  });
+  var avisos = [];
+  var itens = chunks.map(function (c) {
+    var t = c.texto + ' ' + c.extra;
+    var semAnc = t.replace(c.anc.raw, ' ');
+    var met = extrairMetragem(semAnc);
+    var cli = null, m = reCli1.exec(semAnc);
+    if (m) cli = m[1]; else { m = reCli2.exec(semAnc); if (m) cli = m[1]; }
+    var dest = destinoDe(t, padrao);
+    if (cli && S.destinos.some(function (d) { return d.ativo && norm(d.nome) === norm(cli); })) { if (!dest) dest = S.destinos.find(function (d) { return norm(d.nome) === norm(cli); }); cli = null; }
+    var assumido = false;
+    if (!dest) { dest = globalDest || padrao; assumido = !!dest; }
+    var r = resolverRef(c.anc.raw, lojaId);
+    return { referencia: r.cat ? (r.cor ? r.cat.referencia + '/' + r.cor : r.cat.referencia) : c.anc.raw.replace(/\s+/g, ''), catalogo_id: r.cat ? r.cat.id : null, match: r.match,
+      metragem: met, cliente_final: cli ? cli.replace(/[.,;:\s]+$/, '') : '', destino_id: dest ? dest.id : '', assumido: assumido };
+  });
+  if (!itens.length && String(texto || '').trim()) avisos.push('Não encontrei nenhum tecido no texto. Confira se a referência está escrita (ex.: 405/3) ou adicione o item manualmente.');
+  return { itens: itens, avisos: avisos };
+}
+function interpretarResposta(texto, itens) {
+  var out = [], linhas = String(texto || '').split(/\n|;/).map(function (x) { return x.trim(); }).filter(Boolean);
+  function classe(t) {
+    t = norm(t);
+    if (/(sem estoque|nao tem|nao temos|nao ha|acabou|esgotad|indisponi|em falta|nao consigo|nao chegou)/.test(t)) return { st: 'indisponivel' };
+    var p = /(?:so|apenas|somente|tenho|temos|sobrou|restam?|ficou)\s*(?:uns?\s*)?(\d+(?:[.,]\d+)?)\s*(?:m\b|mt|mts|metros?)/.exec(t);
+    if (p) return { st: 'parcial', met: numBR(p[1]) };
+    if (/(\bok\b|\btem\b|\btemos\b|dispon|separad|confirmad|\bcerto\b|beleza|pode\b|fechado|positivo|\bsim\b)/.test(t)) return { st: 'disponivel' };
+    return null;
+  }
+  linhas.forEach(function (ln) {
+    var g = /^(?:tudo|todos|todas)\b(.*)$/i.exec(ln);
+    if (g) { var c0 = classe(g[1] || 'ok'); if (c0) itens.forEach(function (it, i) { if (!out.some(function (o) { return o.i === i; })) out.push({ i: i, st: c0.st, met: c0.met }); }); return; }
+    var m = /^(?:item\s*)?(\d{1,2})\s*[).:\-–]?\s*(.*)$/i.exec(ln);
+    var idx = -1, resto = ln;
+    if (m && +m[1] >= 1 && +m[1] <= itens.length) { idx = +m[1] - 1; resto = m[2]; }
+    else { var n = norm(ln); idx = itens.findIndex(function (it) { return n.indexOf(norm(it.referencia)) >= 0; }); }
+    if (idx < 0) return;
+    var c = classe(resto || ln); if (!c) return;
+    out = out.filter(function (o) { return o.i !== idx; });
+    out.push({ i: idx, st: c.st, met: c.met });
+  });
+  return out;
+}
+
+/* ---------- mensagem para o vendedor ---------- */
+function montarMensagem(numero, dia, loja, vend, itens) {
+  var L = [];
+  L.push('*Pedido de tecido' + (numero ? ' nº ' + numero : '') + ' — ' + dataBR(dia) + '*');
+  L.push(EMPRESA + (loja ? ' → ' + loja.nome : ''));
+  L.push('');
+  L.push('Olá' + (vend && vend.nome ? ', ' + vend.nome.replace(/\s*\(exemplo\)/i, '').split(' ')[0] : '') + '! Segue o pedido de hoje:');
+  var grupos = [], idx = {};
+  itens.forEach(function (it, i) {
+    var d = it.destino_id ? por('destinos', it.destino_id) : null, k = d ? d.id : '_';
+    if (!(k in idx)) { idx[k] = grupos.length; grupos.push({ d: d, its: [] }); }
+    grupos[idx[k]].its.push({ n: i + 1, it: it });
+  });
+  var total = 0;
+  grupos.forEach(function (g) {
+    L.push('');
+    L.push('*Entrega: ' + (g.d ? g.d.nome : 'a definir') + '*' + (g.d && g.d.endereco ? ' (' + g.d.endereco + ')' : ''));
+    g.its.forEach(function (x) {
+      var c = x.it.catalogo_id ? por('catalogo', x.it.catalogo_id) : null;
+      total += Number(x.it.metragem) || 0;
+      L.push(x.n + ') Ref. ' + x.it.referencia + (c && c.nome ? ' (' + c.nome + (c.cor ? ', ' + c.cor : '') + ')' : '') + ' — ' + fmtM(x.it.metragem) + (x.it.cliente_final ? ' — Cliente: ' + x.it.cliente_final : ''));
+    });
+  });
+  L.push('');
+  L.push('Total: ' + fmtM(total) + ' em ' + itens.length + (itens.length === 1 ? ' item.' : ' itens.'));
+  L.push('Por favor, responda item a item. Ex.: "1 ok", "2 sem estoque", "3 só 1,20 m".');
+  return L.join('\n');
+}
+
+/* ---------- estado de tela ---------- */
+var aba = 'pedido';
+var D = { lojaId: '', vendedorId: '', texto: '', itens: [], avisos: [], pedidoId: '', erros: false };
+var ABAS = [['pedido', 'Pedido do dia'], ['pedidos', 'Pedidos'], ['historico', 'Meus pedidos'], ['loja', 'Visão da loja'], ['whatsapp', 'WhatsApp (simulação)'], ['catalogo', 'Catálogo'], ['lojas', 'Lojas e destinos']];
+var lojaView = '', W = { lojaId: '', de: 'Luiz Durant', texto: '', res: null };
+var filtroDia = hoje(), filtroCat = '', buscaCat = '';
+
+function sit(it) {
+  var r = [];
+  if (!(Number(it.metragem) > 0)) r.push({ c: 'crit', t: 'Falta metragem' });
+  if (it.match === 'desconhecido') r.push({ c: 'warn', t: 'Fora do catálogo' });
+  if (it.match === 'outra_loja') { var c = it.catalogo_id ? por('catalogo', it.catalogo_id) : null, l = c ? por('lojas', c.loja_id) : null; r.push({ c: 'warn', t: 'É da ' + (l ? l.nome : 'outra loja') }); }
+  if (!it.cliente_final) r.push({ c: 'info', t: 'Sem cliente' });
+  if (it.assumido) r.push({ c: 'info', t: 'Destino padrão' });
+  if (!r.length) r.push({ c: 'ok', t: 'Reconhecido' });
+  return r;
+}
+function infoTecido(it) {
+  var c = it.catalogo_id ? por('catalogo', it.catalogo_id) : null;
+  if (!c) return '<span class="tiny">não encontrado no catálogo da loja</span>';
+  return '<span class="tiny">' + esc([c.nome, c.composicao, c.largura_cm ? c.largura_cm + ' cm' : '', c.preco_metro ? fmtBRL(c.preco_metro) + '/m' : ''].filter(Boolean).join(' · ')) + '</span>';
+}
+
+/* ---------- telas ---------- */
+function vNav() {
+  $('#nav').innerHTML = ABAS.map(function (a) { return '<button data-a="aba" data-v="' + a[0] + '"' + (a[0] === aba ? ' aria-current="page"' : '') + '>' + esc(a[1]) + '</button>'; }).join('');
+}
+function render() { vNav(); $('#app').innerHTML = ({ pedido: vPedido, pedidos: vPedidos, historico: vHistorico, loja: vLoja, whatsapp: vWhats, catalogo: vCatalogo, lojas: vLojas })[aba](); if (aba === 'pedido') { renderItens(); renderMsg(); } }
+function optsLojas(sel) { return S.lojas.filter(function (l) { return l.ativo; }).map(function (l) { return '<option value="' + l.id + '"' + (l.id === sel ? ' selected' : '') + '>' + esc(l.nome) + '</option>'; }).join(''); }
+
+function vPedido() {
+  var lojas = S.lojas.filter(function (l) { return l.ativo; });
+  if (!lojas.length) return '<div class="card empty">Cadastre uma loja em <b>Lojas e destinos</b> para começar.</div>';
+  if (!lojas.some(function (l) { return l.id === D.lojaId; })) D.lojaId = lojas[0].id;
+  var vs = S.vendedores.filter(function (v) { return v.ativo && v.loja_id === D.lojaId; });
+  if (!vs.some(function (v) { return v.id === D.vendedorId; })) D.vendedorId = (vs.find(function (v) { return v.principal; }) || vs[0] || {}).id || '';
+  return '<section class="card"><h2>Pedido de tecido</h2>' +
+    '<p class="muted small" style="margin-top:-4px">Escreva do jeito que você mandaria no WhatsApp. Pode misturar vários tecidos, clientes e destinos no mesmo texto.</p>' +
+    '<div class="row"><label>Loja<select id="d-loja">' + optsLojas(D.lojaId) + '</select></label>' +
+    '<label>Vendedor<select id="d-vend">' + vs.map(function (v) { return '<option value="' + v.id + '"' + (v.id === D.vendedorId ? ' selected' : '') + '>' + esc(v.nome) + '</option>'; }).join('') + (vs.length ? '' : '<option value="">(sem vendedor)</option>') + '</select></label></div>' +
+    '<label>Pedido<textarea id="d-texto" placeholder="Ex.: Bom dia! 405/3, 1,80m para o João Paiva, enviar para mim&#10;405/7 2,40m pro cliente Marcos Lima, mandar pra Maria">' + esc(D.texto) + '</textarea></label>' +
+    '<div class="row" style="margin-bottom:0"><button class="btn" data-a="interpretar">Interpretar pedido</button><button class="btn sec" data-a="exemplo">Usar exemplo</button><button class="btn sec" data-a="limpar">Limpar</button></div></section>' +
+    '<section class="card" id="d-rasc"' + (D.itens.length || D.avisos.length ? '' : ' hidden') + '><div id="d-aviso"></div><h3>Itens do pedido</h3><div id="d-itens"></div>' +
+    '<div class="row" style="margin-top:12px"><button class="btn sec sm" data-a="item+">+ Adicionar item</button></div>' +
+    '<h3 style="margin-top:18px">Mensagem para o vendedor</h3><pre class="msg" id="d-msg"></pre><div id="d-tot" class="small muted"></div>' +
+    '<div class="row"><button class="btn gold" data-a="enviar">Enviar pelo WhatsApp</button><button class="btn sec" data-a="copiar">Copiar mensagem</button><button class="btn sec" data-a="rascunho">Salvar rascunho</button></div></section>';
+}
+function renderItens() {
+  var box = $('#d-itens'); if (!box) return;
+  $('#d-rasc').hidden = !(D.itens.length || D.avisos.length);
+  $('#d-aviso').innerHTML = D.avisos.map(function (a) { return '<div class="alert warn">' + esc(a) + '</div>'; }).join('');
+  if (!D.itens.length) { box.innerHTML = '<div class="empty small">Nenhum item ainda.</div>'; return; }
+  box.innerHTML = '<div class="tw"><table class="t stack"><thead><tr><th>#</th><th>Tecido</th><th>Metragem (m)</th><th>Cliente final</th><th>Destino</th><th>Situação</th><th></th></tr></thead><tbody>' +
+    D.itens.map(function (it, i) {
+      var erro = D.erros && (!(Number(it.metragem) > 0) || !it.referencia);
+      return '<tr class="' + (erro ? 'err' : '') + '" data-i="' + i + '"><td class="num">' + (i + 1) + '</td>' +
+        '<td class="full" data-l="Tecido (item ' + (i + 1) + ')" style="min-width:170px"><input data-f="referencia" value="' + esc(it.referencia) + '" aria-label="Tecido do item ' + (i + 1) + '"><div class="info">' + infoTecido(it) + '</div></td>' +
+        '<td data-l="Metragem (m)" style="width:120px"><input data-f="metragem" inputmode="decimal" value="' + (it.metragem == null ? '' : String(it.metragem).replace('.', ',')) + '" aria-label="Metragem do item ' + (i + 1) + '"></td>' +
+        '<td data-l="Cliente final" style="min-width:150px"><input data-f="cliente_final" value="' + esc(it.cliente_final) + '" aria-label="Cliente final do item ' + (i + 1) + '"></td>' +
+        '<td data-l="Destino" style="min-width:130px"><select data-f="destino_id" aria-label="Destino do item ' + (i + 1) + '"><option value="">(a definir)</option>' + S.destinos.filter(function (d) { return d.ativo; }).map(function (d) { return '<option value="' + d.id + '"' + (d.id === it.destino_id ? ' selected' : '') + '>' + esc(d.nome) + '</option>'; }).join('') + '</select></td>' +
+        '<td class="sit full" data-l="Situação">' + sit(it).map(function (s) { return '<span class="chip ' + s.c + '">' + esc(s.t) + '</span>'; }).join(' ') + '</td>' +
+        '<td class="x"><button class="btn danger sm" data-a="item-" data-i="' + i + '" aria-label="Remover item ' + (i + 1) + '">✕</button></td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function renderMsg() {
+  var pre = $('#d-msg'); if (!pre) return;
+  var loja = por('lojas', D.lojaId), vend = por('vendedores', D.vendedorId);
+  var ped = D.pedidoId ? por('pedidos', D.pedidoId) : null;
+  pre.textContent = D.itens.length ? montarMensagem(ped ? ped.numero : S.seq + 1, ped ? ped.dia : hoje(), loja, vend, D.itens) : '';
+  var tot = D.itens.reduce(function (s, it) { return s + (Number(it.metragem) || 0); }, 0);
+  var preco = D.itens.reduce(function (s, it) { var c = it.catalogo_id ? por('catalogo', it.catalogo_id) : null; return s + (c && c.preco_metro ? c.preco_metro * (Number(it.metragem) || 0) : 0); }, 0);
+  $('#d-tot').textContent = D.itens.length ? 'Total: ' + fmtM(tot) + ' · valor estimado pelo catálogo: ' + fmtBRL(preco) : '';
+}
+function atualizaLinha(i) {
+  var tr = $('tr[data-i="' + i + '"]'); if (!tr) return;
+  var it = D.itens[i];
+  tr.querySelector('.info').innerHTML = infoTecido(it);
+  tr.querySelector('.sit').innerHTML = sit(it).map(function (s) { return '<span class="chip ' + s.c + '">' + esc(s.t) + '</span>'; }).join(' ');
+}
+
+function chipStatus(s) { var m = { rascunho: ['', 'Rascunho'], enviado: ['info', 'Enviado'], parcial: ['warn', 'Respondido em parte'], concluido: ['ok', 'Respondido'], cancelado: ['crit', 'Cancelado'] }[s] || ['', s]; return '<span class="chip ' + m[0] + '">' + m[1] + '</span>'; }
+function chipItem(s) { var m = { pendente: ['', 'Aguardando'], disponivel: ['ok', 'Disponível'], parcial: ['warn', 'Parcial'], indisponivel: ['crit', 'Sem estoque'] }[s] || ['', s]; return '<span class="chip ' + m[0] + '">' + m[1] + '</span>'; }
+function itensDe(p) { return S.itens.filter(function (i) { return i.pedido_id === p.id; }).sort(function (a, b) { return a.ordem - b.ordem; }); }
+
+function vPedidos() {
+  var ps = S.pedidos.filter(function (p) { return p.dia === filtroDia; }).sort(function (a, b) { return b.numero - a.numero; });
+  var its = ps.reduce(function (a, p) { return a.concat(itensDe(p)); }, []);
+  var resp = its.filter(function (i) { return i.status !== 'pendente'; }).length;
+  var h = '<div class="row" style="align-items:center"><h2 style="margin:0">Pedidos</h2><label style="flex:none;min-width:170px">Dia<input type="date" id="f-dia" value="' + filtroDia + '"></label></div>' +
+    '<div class="kpis"><div class="kpi"><b>' + ps.length + '</b><span>pedidos no dia</span></div><div class="kpi"><b>' + its.length + '</b><span>itens</span></div>' +
+    '<div class="kpi"><b>' + fmtM(its.reduce(function (s, i) { return s + i.metragem; }, 0)).replace(' m', '') + '</b><span>metros pedidos</span></div><div class="kpi"><b>' + resp + '/' + its.length + '</b><span>itens respondidos</span></div></div>';
+  if (!ps.length) return h + '<div class="card empty">Nenhum pedido neste dia. Crie o primeiro em <b>Pedido do dia</b>.</div>';
+  return h + ps.map(function (p) {
+    var loja = por('lojas', p.loja_id), vend = p.vendedor_id ? por('vendedores', p.vendedor_id) : null, itens = itensDe(p);
+    return '<section class="card" data-p="' + p.id + '"><div class="ped-h"><div><b>Pedido nº ' + p.numero + '</b> <span class="muted">· ' + esc(loja ? loja.nome : '?') + (vend ? ' · ' + esc(vend.nome) : '') + '</span></div><div>' + chipStatus(p.status) + '</div></div>' +
+      '<div class="tw"><table class="t stack" style="min-width:560px"><thead><tr><th>#</th><th>Tecido</th><th>Pedido</th><th>Cliente</th><th>Destino</th><th>Situação</th></tr></thead><tbody>' +
+      itens.map(function (i) {
+        var d = i.destino_id ? por('destinos', i.destino_id) : null;
+        var edit = p.status !== 'rascunho' && p.status !== 'cancelado';
+        return '<tr data-it="' + i.id + '"><td class="num">' + (i.ordem + 1) + '</td><td data-l="Tecido (item ' + (i.ordem + 1) + ')">' + esc(i.referencia) + '</td><td data-l="Pedido">' + fmtM(i.metragem) + '</td><td data-l="Cliente">' + esc(i.cliente_final || '—') + '</td><td data-l="Destino">' + esc(d ? d.nome : '—') + '</td><td class="full" data-l="Situação">' +
+          (edit ? '<select data-a-chg="st" aria-label="Situação do item ' + (i.ordem + 1) + '">' + [['pendente', 'Aguardando'], ['disponivel', 'Disponível'], ['parcial', 'Parcial'], ['indisponivel', 'Sem estoque']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === i.status ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' + (i.status === 'parcial' ? '<div class="tiny">Confirmado: ' + (i.metragem_confirmada != null ? fmtM(i.metragem_confirmada) : '—') + '</div>' : '') : chipItem(i.status)) + '</td></tr>';
+      }).join('') + '</tbody></table></div><div class="row" style="margin-bottom:0">' +
+      (p.status === 'rascunho' ? '<button class="btn sm" data-a="abrir" data-p="' + p.id + '">Abrir rascunho</button><button class="btn danger sm" data-a="ped-excluir" data-p="' + p.id + '">Excluir</button>' :
+        (p.status !== 'cancelado' ? '<button class="btn sm" data-a="resposta" data-p="' + p.id + '">Registrar resposta do vendedor</button><button class="btn sec sm" data-a="reenviar" data-p="' + p.id + '">Copiar mensagem</button><button class="btn danger sm" data-a="ped-cancelar" data-p="' + p.id + '">Cancelar pedido</button>' : '')) + '</div></section>';
+  }).join('');
+}
+
+
+/* ---------- valor, andamento ---------- */
+function precoDe(it) { var c = it.catalogo_id ? por('catalogo', it.catalogo_id) : null; return c && Number(c.preco_metro) > 0 ? Number(c.preco_metro) : null; }
+function metrosValidos(it) { return it.status === 'indisponivel' ? 0 : (it.status === 'parcial' && it.metragem_confirmada != null ? Number(it.metragem_confirmada) : Number(it.metragem) || 0); }
+function totaisPedido(p) {
+  var its = itensDe(p), pedido = 0, conf = 0, metros = 0, semPreco = 0, resp = 0;
+  its.forEach(function (i) {
+    var pr = precoDe(i); metros += Number(i.metragem) || 0; if (i.status !== 'pendente') resp++;
+    if (pr == null) { semPreco++; return; }
+    pedido += (Number(i.metragem) || 0) * pr; if (i.status !== 'pendente') conf += metrosValidos(i) * pr;
+  });
+  return { itens: its.length, resp: resp, metros: metros, pedido: pedido, conf: conf, semPreco: semPreco };
+}
+function barra(r, n) { var pc = n ? Math.round(100 * r / n) : 0; return '<div class="prog" title="' + r + ' de ' + n + ' itens respondidos"><i style="width:' + pc + '%"></i></div><span class="tiny">' + r + ' de ' + n + ' itens respondidos</span>'; }
+function chipOrigem(p) { return p.origem === 'whatsapp' ? ' <span class="chip info">WhatsApp</span>' : ''; }
+
+/* ---------- Meus pedidos (área do cliente) ---------- */
+function vHistorico() {
+  var ps = S.pedidos.slice().sort(function (a, b) { return b.numero - a.numero; });
+  var ativos = ps.filter(function (p) { return p.status === 'enviado' || p.status === 'parcial'; }).length;
+  var valido = ps.filter(function (p) { return p.status !== 'cancelado' && p.status !== 'rascunho'; }), tot = valido.reduce(function (a, p) { var t = totaisPedido(p); a.m += t.metros; a.v += t.pedido; return a; }, { m: 0, v: 0 });
+  var h = '<h2 style="margin:0 0 4px">Meus pedidos</h2><p class="muted small" style="margin-top:0">É o que o cliente vê ao entrar na área dele: cada pedido, quando foi feito, o andamento e o valor.</p>' +
+    '<div class="kpis"><div class="kpi"><b>' + ps.length + '</b><span>pedidos no histórico</span></div><div class="kpi"><b>' + ativos + '</b><span>em andamento</span></div>' +
+    '<div class="kpi"><b>' + fmtM(tot.m).replace(' m', '') + '</b><span>metros pedidos</span></div><div class="kpi"><b>' + fmtBRL(tot.v) + '</b><span>valor pedido</span></div></div>';
+  if (!ps.length) return h + '<div class="card empty">Nenhum pedido ainda. Crie em <b>Pedido do dia</b> ou veja a aba <b>WhatsApp (simulação)</b>.</div>';
+  return h + ps.map(function (p) {
+    var loja = por('lojas', p.loja_id), t = totaisPedido(p), itens = itensDe(p);
+    var val = '<div class="tiny">Valor do pedido: <b>' + fmtBRL(t.pedido) + '</b>' + (p.status !== 'rascunho' && p.status !== 'cancelado' && t.resp ? ' · confirmado até agora: <b>' + fmtBRL(t.conf) + '</b>' : '') + (t.semPreco ? ' · ' + t.semPreco + ' item(ns) sem preço no catálogo' : '') + '</div>';
+    return '<section class="card"><div class="ped-h"><div><b>Pedido nº ' + p.numero + '</b> <span class="muted">· ' + dataBR(p.dia) + ' · ' + esc(loja ? loja.nome : '?') + '</span>' + chipOrigem(p) + '</div><div>' + chipStatus(p.status) + '</div></div>' +
+      (p.status === 'cancelado' ? '' : barra(t.resp, t.itens)) + val +
+      '<div class="tw"><table class="t stack" style="min-width:520px"><thead><tr><th>#</th><th>Tecido</th><th>Metragem</th><th>Cliente final</th><th>Situação</th><th>Valor</th></tr></thead><tbody>' +
+      itens.map(function (i) {
+        var pr = precoDe(i), c = i.catalogo_id ? por('catalogo', i.catalogo_id) : null;
+        var met = i.status === 'parcial' && i.metragem_confirmada != null ? fmtM(i.metragem_confirmada) + ' <span class="tiny">de ' + fmtM(i.metragem) + '</span>' : fmtM(i.metragem);
+        return '<tr><td class="num">' + (i.ordem + 1) + '</td><td data-l="Tecido">' + esc(i.referencia) + (c && c.nome ? ' <span class="tiny">' + esc(c.nome) + '</span>' : '') + '</td><td data-l="Metragem">' + met + '</td><td data-l="Cliente final">' + esc(i.cliente_final || '—') + '</td><td data-l="Situação">' + (p.status === 'rascunho' ? '<span class="chip">Rascunho</span>' : chipItem(i.status)) + '</td><td data-l="Valor">' + (pr == null ? '—' : fmtBRL((Number(i.metragem) || 0) * pr)) + '</td></tr>';
+      }).join('') + '</tbody></table></div></section>';
+  }).join('');
+}
+
+/* ---------- Visão da loja (painel do vendedor) ---------- */
+function vLoja() {
+  var lojas = S.lojas.filter(function (l) { return l.ativo; });
+  if (!lojaView || !por('lojas', lojaView)) lojaView = (lojas.find(function (l) { return /mark/i.test(l.nome); }) || lojas[0] || {}).id || '';
+  var loja = por('lojas', lojaView);
+  var ps = S.pedidos.filter(function (p) { return p.loja_id === lojaView && p.status !== 'rascunho' && p.status !== 'cancelado'; }).sort(function (a, b) { return b.numero - a.numero; });
+  var abertos = ps.filter(function (p) { return p.status !== 'concluido'; }), feitos = ps.filter(function (p) { return p.status === 'concluido'; });
+  var pend = abertos.reduce(function (n, p) { return n + itensDe(p).filter(function (i) { return i.status === 'pendente'; }).length; }, 0);
+  var h = '<div class="row" style="align-items:center"><h2 style="margin:0">Visão da loja</h2><label style="flex:none;min-width:200px">Loja<select id="l-loja">' + optsLojas(lojaView) + '</select></label></div>' +
+    '<p class="muted small" style="margin-top:0">É a tela do vendedor' + (loja ? ' da ' + esc(loja.nome) : '') + ': os pedidos chegam organizados por entrega e cliente, e ele responde item a item. O status aparece na hora em <b>Meus pedidos</b>.</p>' +
+    '<div class="kpis"><div class="kpi"><b>' + abertos.length + '</b><span>pedidos em aberto</span></div><div class="kpi"><b>' + pend + '</b><span>itens aguardando resposta</span></div><div class="kpi"><b>' + feitos.length + '</b><span>pedidos respondidos</span></div></div>';
+  if (!ps.length) return h + '<div class="card empty">Nenhum pedido enviado para esta loja ainda.</div>';
+  function card(p) {
+    var t = totaisPedido(p), itens = itensDe(p), g = [], ix = {};
+    itens.forEach(function (i) { var d = i.destino_id ? por('destinos', i.destino_id) : null, k = d ? d.id : '_'; if (!(k in ix)) { ix[k] = g.length; g.push({ d: d, its: [] }); } g[ix[k]].its.push(i); });
+    return '<section class="card"><div class="ped-h"><div><b>Pedido nº ' + p.numero + '</b> <span class="muted">· ' + esc(EMPRESA) + ' · ' + dataBR(p.dia) + '</span>' + chipOrigem(p) + '</div><div>' + chipStatus(p.status) + '</div></div>' + barra(t.resp, t.itens) +
+      g.map(function (x) {
+        return '<h3 style="margin:12px 0 4px;font-size:15px">Entregar: ' + esc(x.d ? x.d.nome : 'a definir') + (x.d && x.d.endereco ? ' <span class="muted small">(' + esc(x.d.endereco) + ')</span>' : '') + '</h3>' +
+          '<div class="tw"><table class="t stack" style="min-width:520px"><thead><tr><th>#</th><th>Tecido</th><th>Metragem</th><th>Cliente final</th><th>Resposta</th></tr></thead><tbody>' +
+          x.its.map(function (i) {
+            var c = i.catalogo_id ? por('catalogo', i.catalogo_id) : null;
+            return '<tr data-it="' + i.id + '"><td class="num">' + (i.ordem + 1) + '</td><td data-l="Tecido">' + esc(i.referencia) + (c && c.nome ? ' <span class="tiny">' + esc(c.nome) + '</span>' : '') + '</td><td data-l="Metragem">' + fmtM(i.metragem) + '</td><td data-l="Cliente final">' + esc(i.cliente_final || '—') + '</td><td class="full" data-l="Resposta"><select data-a-chg="st" aria-label="Resposta do item ' + (i.ordem + 1) + '">' +
+              [['pendente', 'Aguardando'], ['disponivel', 'Disponível'], ['parcial', 'Parcial'], ['indisponivel', 'Sem estoque']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === i.status ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' + (i.status === 'parcial' ? '<div class="tiny">Confirmado: ' + (i.metragem_confirmada != null ? fmtM(i.metragem_confirmada) : '—') + '</div>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      }).join('') +
+      (t.resp < t.itens ? '<div class="row" style="margin:10px 0 0"><button class="btn sm" data-a="loja-tudo" data-p="' + p.id + '">Tudo disponível</button></div>' : '') + '</section>';
+  }
+  return h + (abertos.length ? '<h3>Em aberto</h3>' + abertos.map(card).join('') : '') + (feitos.length ? '<h3>Respondidos</h3>' + feitos.map(card).join('') : '');
+}
+
+/* ---------- WhatsApp (simulação da mensagem recebida) ---------- */
+var EXEMPLO_ZAP = 'Bom dia Ionaldo! Preciso de:\n1009/6, 1,50m para o Victor Maruyama, mandar pra WGT\n1009/14 1,70m para o João Faé\n0109 de 2m pro cliente Marcos Lima';
+function respostaAuto(itens, avisos, numero) {
+  var L = [];
+  if (!itens.length) return 'Não consegui identificar o tecido na sua mensagem. Pode me mandar assim?\n"1009/6, 1,50 m, para o João, entregar no ateliê"';
+  L.push(numero ? '*Recebi seu pedido nº ' + numero + '*' : '*Entendi o seguinte:*'); L.push('');
+  var dudas = [];
+  itens.forEach(function (it, i) {
+    var d = it.destino_id ? por('destinos', it.destino_id) : null, c = it.catalogo_id ? por('catalogo', it.catalogo_id) : null;
+    L.push((i + 1) + ') ' + it.referencia + (c && c.nome ? ' (' + c.nome + ')' : '') + ' — ' + (Number(it.metragem) > 0 ? fmtM(it.metragem) : '? m') + (it.cliente_final ? ' — ' + it.cliente_final : '') + ' → ' + (d ? d.nome : 'a definir'));
+    if (!(Number(it.metragem) > 0)) dudas.push('item ' + (i + 1) + ': quantos metros?');
+    if (it.match === 'desconhecido') dudas.push('item ' + (i + 1) + ': não achei a referência ' + it.referencia + ' no catálogo, pode conferir?');
+    if (!it.cliente_final) dudas.push('item ' + (i + 1) + ': para qual cliente?');
+    if (it.assumido) dudas.push('item ' + (i + 1) + ': assumi a entrega em ' + (d ? d.nome : 'destino padrão') + ', está certo?');
+  });
+  L.push('');
+  L.push(dudas.length ? 'Preciso confirmar:\n- ' + dudas.join('\n- ') : 'Está tudo certo? Se algo estiver errado, é só responder aqui.');
+  return L.join('\n');
+}
+function vWhats() {
+  var lojas = S.lojas.filter(function (l) { return l.ativo; });
+  if (!W.lojaId || !por('lojas', W.lojaId)) W.lojaId = (lojas.find(function (l) { return /mark/i.test(l.nome); }) || lojas[0] || {}).id || '';
+  var r = W.res, h = '<h2 style="margin:0 0 4px">WhatsApp — simulação</h2>' +
+    '<p class="muted small" style="margin-top:0">Mostra o que acontece quando o cliente manda o pedido pelo WhatsApp da loja. Aqui é uma simulação: cole a mensagem como se tivesse chegado. Na versão ligada ao número oficial, esse passo é automático.</p>' +
+    '<section class="card"><div class="row"><label>Loja que recebe<select id="w-loja">' + optsLojas(W.lojaId) + '</select></label><label>Cliente que escreveu<input id="w-de" value="' + esc(W.de) + '"></label></div>' +
+    '<label>Mensagem recebida<textarea id="w-texto" placeholder="Cole aqui a mensagem do cliente">' + esc(W.texto) + '</textarea></label>' +
+    '<div class="row" style="margin:10px 0 0"><button class="btn" data-a="w-receber">Receber mensagem</button><button class="btn sec" data-a="w-exemplo">Usar exemplo</button><button class="btn sec" data-a="w-limpar">Limpar</button></div></section>';
+  if (!r) return h;
+  var bloqueia = !r.itens.length || r.itens.some(function (i) { return !(Number(i.metragem) > 0) || !i.referencia; });
+  h += '<section class="card"><h3 style="margin-top:0">O que a IA entendeu</h3>' + (r.itens.length ? '<div class="tw"><table class="t stack" style="min-width:520px"><thead><tr><th>#</th><th>Tecido</th><th>Metragem</th><th>Cliente final</th><th>Entrega</th><th>Situação</th></tr></thead><tbody>' +
+    r.itens.map(function (i, n) { var d = i.destino_id ? por('destinos', i.destino_id) : null; return '<tr><td class="num">' + (n + 1) + '</td><td data-l="Tecido">' + esc(i.referencia) + '<br>' + infoTecido(i) + '</td><td data-l="Metragem">' + (Number(i.metragem) > 0 ? fmtM(i.metragem) : '—') + '</td><td data-l="Cliente final">' + esc(i.cliente_final || '—') + '</td><td data-l="Entrega">' + esc(d ? d.nome : '—') + '</td><td data-l="Situação">' + sit(i).map(function (x) { return '<span class="chip ' + x.c + '">' + esc(x.t) + '</span>'; }).join(' ') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Nenhum tecido reconhecido.</div>') +
+    '<h3>Resposta automática ao cliente</h3><pre class="msg" id="w-resp">' + esc(r.resposta) + '</pre>' +
+    '<div class="row" style="margin:10px 0 0"><button class="btn"' + (bloqueia ? ' disabled' : '') + ' data-a="w-criar">Criar pedido e colocar na fila da loja</button></div>' +
+    (bloqueia ? '<p class="tiny">Só cria o pedido quando todos os itens têm tecido e metragem. Aqui a IA perguntaria o que falta ao cliente e esperaria a resposta.</p>' : '') + '</section>';
+  return h;
+}
+
+function vCatalogo() {
+  var lojas = S.lojas.filter(function (l) { return l.ativo; });
+  var lista = S.catalogo.filter(function (c) { return (!filtroCat || c.loja_id === filtroCat) && (!buscaCat || norm([c.referencia, c.nome, c.cor, c.composicao].concat(c.apelidos || []).join(' ')).indexOf(norm(buscaCat)) >= 0); })
+    .sort(function (a, b) { return (por('lojas', a.loja_id) || {}).nome > (por('lojas', b.loja_id) || {}).nome ? 1 : a.referencia.localeCompare(b.referencia, 'pt-BR', { numeric: true }); });
+  return '<div class="row" style="align-items:center"><h2 style="margin:0">Catálogo de tecidos</h2><button class="btn" data-a="tec-novo" style="margin-left:auto">+ Novo tecido</button></div>' +
+    '<div class="card"><div class="row" style="margin-top:0"><label>Loja<select id="c-loja"><option value="">Todas</option>' + optsLojas(filtroCat) + '</select></label><label>Buscar<input id="c-busca" value="' + esc(buscaCat) + '" placeholder="referência, cor, apelido…"></label></div>' +
+    (lista.length ? '<div class="tw"><table class="t"><thead><tr><th>Loja</th><th>Referência</th><th>Tecido</th><th>Composição</th><th>Largura</th><th>Preço/m</th><th>Apelidos</th><th></th></tr></thead><tbody>' +
+      lista.map(function (c) { var l = por('lojas', c.loja_id); return '<tr' + (c.ativo ? '' : ' style="opacity:.5"') + '><td>' + esc(l ? l.nome : '?') + '</td><td><b>' + esc(c.referencia) + '</b></td><td>' + esc([c.nome, c.cor].filter(Boolean).join(' — ')) + '</td><td>' + esc(c.composicao || '') + '</td><td>' + (c.largura_cm ? c.largura_cm + ' cm' : '') + '</td><td>' + (c.preco_metro ? fmtBRL(c.preco_metro) : '') + '</td><td class="small muted">' + esc((c.apelidos || []).join(', ')) + '</td><td><button class="btn sec sm" data-a="tec-edit" data-id="' + c.id + '">Editar</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Nenhum tecido encontrado.</div>') + '</div>' +
+    (lojas.length ? '' : '<div class="alert warn">Cadastre uma loja primeiro.</div>');
+}
+
+function vLojas() {
+  return '<div class="row" style="align-items:center"><h2 style="margin:0">Lojas e destinos</h2><button class="btn" data-a="loja-nova" style="margin-left:auto">+ Nova loja</button></div>' +
+    S.lojas.map(function (l) {
+      var vs = S.vendedores.filter(function (v) { return v.loja_id === l.id; });
+      return '<section class="card"' + (l.ativo ? '' : ' style="opacity:.55"') + '><div class="ped-h"><div><b>' + esc(l.nome) + '</b> <span class="muted small">' + esc(l.whatsapp || 'sem WhatsApp geral') + '</span></div><div><button class="btn sec sm" data-a="loja-edit" data-id="' + l.id + '">Editar</button> <button class="btn sec sm" data-a="vend-novo" data-id="' + l.id + '">+ Vendedor</button></div></div>' +
+        (vs.length ? '<div class="tw"><table class="t" style="min-width:420px"><tbody>' + vs.map(function (v) { return '<tr' + (v.ativo ? '' : ' style="opacity:.5"') + '><td>' + esc(v.nome) + (v.principal ? ' <span class="chip">principal</span>' : '') + '</td><td>' + esc(v.whatsapp || '—') + '</td><td style="text-align:right"><button class="btn sec sm" data-a="vend-edit" data-id="' + v.id + '">Editar</button></td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="tiny">Nenhum vendedor cadastrado.</div>') + '</section>';
+    }).join('') +
+    '<div class="row" style="align-items:center"><h3 style="margin:0">Destinos de entrega</h3><button class="btn sec sm" data-a="dest-novo" style="margin-left:auto">+ Novo destino</button></div>' +
+    '<section class="card"><p class="muted small" style="margin-top:0">Para onde o tecido pode ser enviado (ex.: o ateliê, a Maria, a WGT). O sistema reconhece esses nomes no texto do pedido.</p>' +
+    '<div class="tw"><table class="t" style="min-width:420px"><tbody>' + S.destinos.map(function (d) { return '<tr' + (d.ativo ? '' : ' style="opacity:.5"') + '><td><b>' + esc(d.nome) + '</b>' + (d.padrao ? ' <span class="chip">padrão</span>' : '') + '</td><td class="small muted">' + esc(d.endereco || '—') + '</td><td style="text-align:right"><button class="btn sec sm" data-a="dest-edit" data-id="' + d.id + '">Editar</button></td></tr>'; }).join('') + '</tbody></table></div></section>';
+}
+
+/* ---------- formulários (diálogo) ---------- */
+var dlg = null;
+function form(titulo, campos, vals, onOk, extra) {
+  dlg.innerHTML = '<h3>' + esc(titulo) + '</h3><form id="f" novalidate>' + campos.map(function (c) {
+    var v = vals[c.k] == null ? '' : vals[c.k];
+    if (c.t === 'check') return '<label style="display:flex;align-items:center;margin:10px 0"><input type="checkbox" name="' + c.k + '"' + (v ? ' checked' : '') + '>' + esc(c.l) + '</label>';
+    var inp = c.t === 'area' ? '<textarea name="' + c.k + '" style="min-height:70px">' + esc(v) + '</textarea>' :
+      c.t === 'sel' ? '<select name="' + c.k + '">' + c.o.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(v) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>' :
+      '<input name="' + c.k + '" value="' + esc(v) + '"' + (c.t === 'num' ? ' inputmode="decimal"' : '') + (c.ph ? ' placeholder="' + esc(c.ph) + '"' : '') + '>';
+    return '<label style="margin:10px 0">' + esc(c.l) + (c.req ? ' *' : '') + inp + (c.h ? '<span class="tiny">' + esc(c.h) + '</span>' : '') + '</label>';
+  }).join('') + '<div class="alert crit" id="f-err" hidden></div><div class="row end"><button type="button" class="btn sec" data-a="dlg-fechar">Cancelar</button>' + (extra || '') + '<button class="btn" type="submit">Salvar</button></div></form>';
+  var f = $('#f', dlg);
+  f.onsubmit = function (ev) {
+    ev.preventDefault();
+    var o = {};
+    campos.forEach(function (c) { var e = f.elements[c.k]; o[c.k] = c.t === 'check' ? e.checked : String(e.value).trim(); });
+    for (var i = 0; i < campos.length; i++) if (campos[i].req && !o[campos[i].k]) { var er = $('#f-err', dlg); er.textContent = 'Preencha: ' + campos[i].l + '.'; er.hidden = false; return; }
+    var msg = onOk(o);
+    if (msg) { var er2 = $('#f-err', dlg); er2.textContent = msg; er2.hidden = false; return; }
+    dlg.close(); render();
+  };
+  if (!dlg.open) dlg.showModal();
+}
+function lojasOpts() { return S.lojas.filter(function (l) { return l.ativo; }).map(function (l) { return [l.id, l.nome]; }); }
+
+function formTecido(c) {
+  var novo = !c; c = c || { loja_id: filtroCat || (S.lojas.find(function (l) { return l.ativo; }) || {}).id, ativo: true, apelidos: [] };
+  form(novo ? 'Novo tecido' : 'Editar tecido', [
+    { k: 'loja_id', l: 'Loja', t: 'sel', o: lojasOpts(), req: true },
+    { k: 'referencia', l: 'Referência (como a loja chama)', req: true, ph: '405/3' },
+    { k: 'nome', l: 'Nome do tecido', ph: 'Azul marinho liso' },
+    { k: 'composicao', l: 'Composição', ph: '100% lã' },
+    { k: 'cor', l: 'Cor' },
+    { k: 'largura_cm', l: 'Largura (cm)', t: 'num' },
+    { k: 'preco_metro', l: 'Preço por metro (R$)', t: 'num' },
+    { k: 'apelidos', l: 'Apelidos (separe por vírgula)', t: 'area', h: 'Jeitos de pedir esse tecido, ex.: azul marinho da ls, o marinho' },
+    { k: 'ativo', l: 'Ativo (aparece no pedido)', t: 'check' }
+  ], { loja_id: c.loja_id, referencia: c.referencia, nome: c.nome, composicao: c.composicao, cor: c.cor, largura_cm: c.largura_cm, preco_metro: c.preco_metro, apelidos: (c.apelidos || []).join(', '), ativo: c.ativo }, function (o) {
+    var dup = S.catalogo.some(function (x) { return x.id !== c.id && x.loja_id === o.loja_id && chaveRef(x.referencia) === chaveRef(o.referencia); });
+    if (dup) return 'Já existe essa referência nessa loja.';
+    var la = o.largura_cm ? numBR(o.largura_cm) : null, pr = o.preco_metro ? numBR(o.preco_metro) : null;
+    if ((o.largura_cm && !(la > 0)) || (o.preco_metro && pr == null)) return 'Largura e preço precisam ser números.';
+    gravar('catalogo', { id: c.id || uid(), loja_id: o.loja_id, referencia: o.referencia, nome: o.nome, composicao: o.composicao, cor: o.cor, largura_cm: la, preco_metro: pr, apelidos: o.apelidos.split(',').map(function (x) { return x.trim(); }).filter(Boolean), ativo: o.ativo });
+    toast('Tecido salvo');
+  });
+}
+function formLoja(l) {
+  var novo = !l; l = l || { ativo: true };
+  form(novo ? 'Nova loja' : 'Editar loja', [{ k: 'nome', l: 'Nome da loja', req: true }, { k: 'whatsapp', l: 'WhatsApp geral (com DDD)', ph: '11 99999-0000' }, { k: 'ativo', l: 'Ativa', t: 'check' }],
+    { nome: l.nome, whatsapp: l.whatsapp, ativo: l.ativo }, function (o) {
+      if (S.lojas.some(function (x) { return x.id !== l.id && norm(x.nome) === norm(o.nome); })) return 'Já existe uma loja com esse nome.';
+      gravar('lojas', { id: l.id || uid(), nome: o.nome, whatsapp: o.whatsapp, ativo: o.ativo }); toast('Loja salva');
+    });
+}
+function formVend(v, lojaId) {
+  var novo = !v; v = v || { loja_id: lojaId, ativo: true, principal: !S.vendedores.some(function (x) { return x.loja_id === lojaId && x.ativo; }) };
+  form(novo ? 'Novo vendedor' : 'Editar vendedor', [{ k: 'nome', l: 'Nome', req: true }, { k: 'whatsapp', l: 'WhatsApp (com DDD)', ph: '11 99999-0000', h: 'É para este número que o pedido é enviado.' }, { k: 'principal', l: 'Vendedor principal da loja', t: 'check' }, { k: 'ativo', l: 'Ativo', t: 'check' }],
+    { nome: v.nome, whatsapp: v.whatsapp, principal: v.principal, ativo: v.ativo }, function (o) {
+      var id = v.id || uid();
+      if (o.principal) S.vendedores.forEach(function (x) { if (x.loja_id === v.loja_id && x.id !== id && x.principal) gravar('vendedores', Object.assign({}, x, { principal: false })); });
+      gravar('vendedores', { id: id, loja_id: v.loja_id, nome: o.nome, whatsapp: o.whatsapp, principal: o.principal, ativo: o.ativo }); toast('Vendedor salvo');
+    });
+}
+function formDest(d) {
+  var novo = !d; d = d || { ativo: true };
+  form(novo ? 'Novo destino' : 'Editar destino', [{ k: 'nome', l: 'Nome (como você fala)', req: true, ph: 'Maria' }, { k: 'endereco', l: 'Endereço / observação', t: 'area' }, { k: 'padrao', l: 'Destino padrão (quando o pedido não diz)', t: 'check' }, { k: 'ativo', l: 'Ativo', t: 'check' }],
+    { nome: d.nome, endereco: d.endereco, padrao: d.padrao, ativo: d.ativo }, function (o) {
+      if (S.destinos.some(function (x) { return x.id !== d.id && norm(x.nome) === norm(o.nome); })) return 'Já existe um destino com esse nome.';
+      var id = d.id || uid();
+      if (o.padrao) S.destinos.forEach(function (x) { if (x.id !== id && x.padrao) gravar('destinos', Object.assign({}, x, { padrao: false })); });
+      gravar('destinos', { id: id, nome: o.nome, endereco: o.endereco, padrao: o.padrao, ativo: o.ativo }); toast('Destino salvo');
+    });
+}
+
+/* ---------- pedidos: salvar, enviar, responder ---------- */
+function validarRascunho() {
+  D.erros = true; renderItens();
+  if (!D.itens.length) { toast('Adicione ao menos um item.'); return false; }
+  var ruim = D.itens.findIndex(function (it) { return !String(it.referencia).trim() || !(Number(it.metragem) > 0); });
+  if (ruim >= 0) { toast('Item ' + (ruim + 1) + ': confira o tecido e a metragem.'); return false; }
+  return true;
+}
+function persistirPedido(status) {
+  var p = D.pedidoId ? por('pedidos', D.pedidoId) : null;
+  if (!p) p = { id: uid(), numero: ++S.seq, dia: hoje(), criado_em: new Date().toISOString() };
+  p = Object.assign({}, p, { loja_id: D.lojaId, vendedor_id: D.vendedorId || null, status: status, texto_original: D.texto });
+  if (status === 'enviado') p.enviado_em = new Date().toISOString();
+  S.itens.filter(function (i) { return i.pedido_id === p.id; }).forEach(function (i) { apagar('itens', i.id); });
+  gravar('pedidos', p);
+  D.itens.forEach(function (it, n) {
+    gravar('itens', { id: uid(), pedido_id: p.id, ordem: n, catalogo_id: it.catalogo_id || null, referencia: String(it.referencia).trim(), metragem: Number(it.metragem), cliente_final: it.cliente_final || '', destino_id: it.destino_id || null, status: 'pendente', metragem_confirmada: null });
+  });
+  return p;
+}
+function recalc(p) {
+  if (p.status === 'rascunho' || p.status === 'cancelado') return;
+  var its = itensDe(p), r = its.filter(function (i) { return i.status !== 'pendente'; }).length;
+  p.status = r === 0 ? 'enviado' : (r < its.length ? 'parcial' : 'concluido'); gravar('pedidos', p);
+}
+function copiar(txt) {
+  function fallback() { var t = document.createElement('textarea'); t.value = txt; t.style.position = 'fixed'; t.style.opacity = '0'; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (e) {} t.remove(); }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(fallback); else fallback();
+  toast('Mensagem copiada');
+}
+function abrirResposta(p) {
+  var itens = itensDe(p), prop = [];
+  dlg.innerHTML = '<h3>Resposta do vendedor — pedido nº ' + p.numero + '</h3><p class="muted small" style="margin-top:0">Cole aqui a resposta do WhatsApp. Reconheço linhas como “1 ok”, “2 sem estoque”, “3 só 1,20 m” ou “tudo ok”.</p>' +
+    '<textarea id="r-txt" placeholder="1 ok&#10;2 sem estoque&#10;3 só 1,20 m"></textarea><div id="r-prev" class="small" style="margin-top:8px"></div>' +
+    '<div class="row end"><button class="btn sec" data-a="dlg-fechar">Cancelar</button><button class="btn" id="r-ok" disabled>Aplicar</button></div>';
+  var tx = $('#r-txt', dlg);
+  tx.oninput = function () {
+    prop = interpretarResposta(tx.value, itens);
+    $('#r-prev', dlg).innerHTML = prop.length ? '<b>Vou aplicar:</b><ul style="margin:6px 0;padding-left:18px">' + prop.map(function (x) { return '<li>Item ' + (x.i + 1) + ' (' + esc(itens[x.i].referencia) + '): ' + chipItem(x.st) + (x.met != null ? ' ' + fmtM(x.met) : '') + '</li>'; }).join('') + '</ul>' : (tx.value.trim() ? '<span class="muted">Não entendi nenhuma linha. Use o número do item, ex.: “1 ok”.</span>' : '');
+    $('#r-ok', dlg).disabled = !prop.length;
+  };
+  $('#r-ok', dlg).onclick = function () {
+    prop.forEach(function (x) { var it = Object.assign({}, itens[x.i], { status: x.st, metragem_confirmada: x.st === 'parcial' ? x.met : (x.st === 'disponivel' ? itens[x.i].metragem : null) }); gravar('itens', it); });
+    S.mensagens.push({ id: uid(), pedido_id: p.id, direcao: 'entrada', corpo: tx.value, criado_em: new Date().toISOString() });
+    recalc(por('pedidos', p.id)); dlg.close(); render(); toast('Resposta registrada');
+  };
+  dlg.showModal(); tx.focus();
+}
+
+/* ---------- eventos ---------- */
+var EXEMPLO = 'Bom dia Carlos! Preciso de:\n405/3, 1,80m para o João Paiva, enviar para mim\n405/7 2,40m pro cliente Marcos Lima, mandar pra Maria\nE o 512 de 3,20m para o Ricardo Alves, entregar na WGT';
+var acoes = {
+  aba: function (b) { aba = b.dataset.v; render(); window.scrollTo(0, 0); },
+  'dlg-fechar': function () { dlg.close(); },
+  exemplo: function () { D.texto = EXEMPLO; $('#d-texto').value = EXEMPLO; acoes.interpretar(); },
+  limpar: function () { D = { lojaId: D.lojaId, vendedorId: D.vendedorId, texto: '', itens: [], avisos: [], pedidoId: '', erros: false }; render(); },
+  interpretar: function () {
+    D.texto = $('#d-texto').value; var r = interpretar(D.texto, D.lojaId);
+    D.itens = r.itens; D.avisos = r.avisos; D.erros = false; renderItens(); renderMsg();
+    if (r.itens.length) toast(r.itens.length + (r.itens.length === 1 ? ' item reconhecido' : ' itens reconhecidos') + ' — confira antes de enviar');
+  },
+  'item+': function () { D.itens.push({ referencia: '', catalogo_id: null, match: 'vazio', metragem: null, cliente_final: '', destino_id: (S.destinos.find(function (d) { return d.ativo && d.padrao; }) || {}).id || '', assumido: false }); D.avisos = []; renderItens(); renderMsg(); },
+  'item-': function (b) { D.itens.splice(+b.dataset.i, 1); renderItens(); renderMsg(); },
+  copiar: function () { if (!D.itens.length) return; copiar($('#d-msg').textContent); },
+  rascunho: function () { if (!validarRascunho()) return; var p = persistirPedido('rascunho'); D = { lojaId: D.lojaId, vendedorId: D.vendedorId, texto: '', itens: [], avisos: [], pedidoId: '', erros: false }; aba = 'pedidos'; filtroDia = p.dia; render(); toast('Rascunho salvo'); },
+  enviar: function () {
+    if (!validarRascunho()) return;
+    var vend = por('vendedores', D.vendedorId), loja = por('lojas', D.lojaId);
+    var p = persistirPedido('enviado'), msg = montarMensagem(p.numero, p.dia, loja, vend, D.itens);
+    S.mensagens.push({ id: uid(), pedido_id: p.id, direcao: 'saida', corpo: msg, criado_em: new Date().toISOString() }); salvar();
+    var num = zap((vend && vend.whatsapp) || (loja && loja.whatsapp));
+    window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    D = { lojaId: D.lojaId, vendedorId: D.vendedorId, texto: '', itens: [], avisos: [], pedidoId: '', erros: false }; aba = 'pedidos'; filtroDia = p.dia; render();
+    toast(num ? 'Pedido nº ' + p.numero + ' enviado' : 'Pedido nº ' + p.numero + ' salvo — escolha o contato no WhatsApp (cadastre o número do vendedor para ir direto)');
+  },
+  abrir: function (b) { var p = por('pedidos', b.dataset.p); D = { lojaId: p.loja_id, vendedorId: p.vendedor_id || '', texto: p.texto_original || '', pedidoId: p.id, erros: false, avisos: [],
+    itens: itensDe(p).map(function (i) { var r = i.catalogo_id ? { match: 'ok' } : { match: 'desconhecido' }; return { referencia: i.referencia, catalogo_id: i.catalogo_id, match: r.match, metragem: i.metragem, cliente_final: i.cliente_final, destino_id: i.destino_id || '', assumido: false }; }) };
+    aba = 'pedido'; render(); },
+  'ped-excluir': function (b) { var p = por('pedidos', b.dataset.p); if (!confirm('Excluir este rascunho?')) return; S.itens.filter(function (i) { return i.pedido_id === p.id; }).forEach(function (i) { apagar('itens', i.id); }); apagar('pedidos', p.id); render(); },
+  'ped-cancelar': function (b) { var p = por('pedidos', b.dataset.p); if (!confirm('Cancelar o pedido nº ' + p.numero + '? Avise o vendedor.')) return; gravar('pedidos', Object.assign({}, p, { status: 'cancelado' })); render(); },
+  reenviar: function (b) { var p = por('pedidos', b.dataset.p); copiar(montarMensagem(p.numero, p.dia, por('lojas', p.loja_id), p.vendedor_id ? por('vendedores', p.vendedor_id) : null, itensDe(p))); },
+  resposta: function (b) { abrirResposta(por('pedidos', b.dataset.p)); },
+  'tec-novo': function () { formTecido(null); }, 'tec-edit': function (b) { formTecido(por('catalogo', b.dataset.id)); },
+  'loja-nova': function () { formLoja(null); }, 'loja-edit': function (b) { formLoja(por('lojas', b.dataset.id)); },
+  'vend-novo': function (b) { formVend(null, b.dataset.id); }, 'vend-edit': function (b) { formVend(por('vendedores', b.dataset.id)); },
+  'dest-novo': function () { formDest(null); }, 'dest-edit': function (b) { formDest(por('destinos', b.dataset.id)); },
+  'loja-tudo': function (b) { var p = por('pedidos', b.dataset.p); itensDe(p).forEach(function (i) { if (i.status === 'pendente') gravar('itens', Object.assign({}, i, { status: 'disponivel', metragem_confirmada: i.metragem })); }); recalc(p); render(); toast('Pedido nº ' + p.numero + ': tudo disponível'); },
+  'w-exemplo': function () { W.texto = EXEMPLO_ZAP; if ($('#w-texto')) $('#w-texto').value = EXEMPLO_ZAP; acoes['w-receber'](); },
+  'w-limpar': function () { W.texto = ''; W.res = null; render(); },
+  'w-receber': function () {
+    var t = $('#w-texto') ? $('#w-texto').value : W.texto; W.texto = t;
+    if (!String(t).trim()) { toast('Cole a mensagem do cliente'); return; }
+    var r = interpretar(t, W.lojaId); W.res = { itens: r.itens, avisos: r.avisos, resposta: respostaAuto(r.itens, r.avisos, null) }; render();
+  },
+  'w-criar': function () {
+    var r = W.res; if (!r || !r.itens.length) return;
+    var p = { id: uid(), numero: ++S.seq, dia: hoje(), criado_em: new Date().toISOString(), loja_id: W.lojaId, vendedor_id: ((S.vendedores.find(function (v) { return v.loja_id === W.lojaId && v.principal && v.ativo; }) || {}).id) || null, status: 'enviado', texto_original: W.texto, origem: 'whatsapp', enviado_em: new Date().toISOString() };
+    gravar('pedidos', p);
+    r.itens.forEach(function (it, n) { gravar('itens', { id: uid(), pedido_id: p.id, ordem: n, catalogo_id: it.catalogo_id || null, referencia: String(it.referencia).trim(), metragem: Number(it.metragem), cliente_final: it.cliente_final || '', destino_id: it.destino_id || null, status: 'pendente', metragem_confirmada: null }); });
+    S.mensagens.push({ id: uid(), pedido_id: p.id, direcao: 'entrada', corpo: W.texto, criado_em: new Date().toISOString() });
+    S.mensagens.push({ id: uid(), pedido_id: p.id, direcao: 'saida', corpo: respostaAuto(r.itens, r.avisos, p.numero), criado_em: new Date().toISOString() }); salvar();
+    W.texto = ''; W.res = null; aba = 'loja'; lojaView = p.loja_id; render(); window.scrollTo(0, 0); toast('Pedido nº ' + p.numero + ' criado pelo WhatsApp e enviado para a fila da loja');
+  },
+  restaurar: function () { if (!confirm('Apagar tudo e voltar aos dados de exemplo?')) return; S = semente(); salvar(); W = { lojaId: '', de: 'Luiz Durant', texto: '', res: null }; D = { lojaId: '', vendedorId: '', texto: '', itens: [], avisos: [], pedidoId: '', erros: false }; aba = 'pedido'; render(); toast('Exemplo restaurado'); }
+};
+document.addEventListener('click', function (e) { var b = e.target.closest('[data-a]'); if (!b) return; e.preventDefault(); if (acoes[b.dataset.a]) acoes[b.dataset.a](b); });
+document.addEventListener('input', function (e) {
+  var t = e.target, tr = t.closest && t.closest('tr[data-i]');
+  if (tr && t.dataset.f) {
+    var i = +tr.dataset.i, it = D.itens[i], f = t.dataset.f;
+    if (f === 'metragem') it.metragem = numBR(t.value);
+    else if (f === 'referencia') { it.referencia = t.value; var r = resolverRef(t.value, D.lojaId); it.catalogo_id = r.cat ? r.cat.id : null; it.match = r.match; }
+    else { it[f] = t.value; if (f === 'destino_id') it.assumido = false; }
+    atualizaLinha(i); renderMsg();
+  } else if (t.id === 'd-texto') D.texto = t.value;
+  else if (t.id === 'w-texto') W.texto = t.value;
+  else if (t.id === 'w-de') W.de = t.value;
+  else if (t.id === 'c-busca') { buscaCat = t.value; var pos = t.selectionStart; render(); var n = $('#c-busca'); n.focus(); n.setSelectionRange(pos, pos); }
+});
+document.addEventListener('change', function (e) {
+  var t = e.target;
+  if (t.id === 'd-loja') { D.lojaId = t.value; D.vendedorId = ''; D.itens.forEach(function (it) { var r = resolverRef(it.referencia, D.lojaId); it.catalogo_id = r.cat ? r.cat.id : null; it.match = r.match; }); render(); }
+  else if (t.id === 'd-vend') { D.vendedorId = t.value; renderMsg(); }
+  else if (t.id === 'f-dia') { filtroDia = t.value || hoje(); render(); }
+  else if (t.id === 'c-loja') { filtroCat = t.value; render(); }
+  else if (t.id === 'l-loja') { lojaView = t.value; render(); }
+  else if (t.id === 'w-loja') { W.lojaId = t.value; W.res = null; render(); }
+  else if (t.dataset && t.dataset.aChg === 'st') {
+    var tr = t.closest('tr[data-it]'), it = por('itens', tr.dataset.it), p = por('pedidos', it.pedido_id), st = t.value, mc = null;
+    if (st === 'parcial') { var v = prompt('Quantos metros a loja confirmou?', it.metragem_confirmada != null ? String(it.metragem_confirmada).replace('.', ',') : ''); mc = v == null ? null : numBR(v); if (mc == null || mc < 0) { render(); return; } }
+    if (st === 'disponivel') mc = it.metragem;
+    gravar('itens', Object.assign({}, it, { status: st, metragem_confirmada: mc })); recalc(p); render();
+  }
+});
+document.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.f && e.target.tagName === 'INPUT') e.preventDefault(); });
+
+dlg = $('#dlg');
+S = carregar();
+render();
+window.__tec = { interpretar: interpretar, interpretarResposta: interpretarResposta, montarMensagem: montarMensagem, estado: function () { return S; } };
+})();
+</script>
+</body>
+</html>

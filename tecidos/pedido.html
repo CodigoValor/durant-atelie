@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pedido de tecido · Alinhavo</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#1F3A29">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gelasio:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#F6F2E9;--ink:#1B241E;--green:#1F3A29;--brass:#B58A3A;--brass-t:#8A6420;--card:#E0D8C3;--in:#CBC3AE;--muted:#5A6258;--call:#EFE8D6;
+--ok:#26521C;--ok-bg:#E1EFD9;--wn:#6B4A06;--wn-bg:#F8EBC8;--inf:#24476D;--inf-bg:#E2EAF3;--cr:#8A2A1F;--cr-bg:#FADFDC;--gr:#4A524B;--gr-bg:#ECE8DC}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column}
+h1,h2,h3{font-family:Gelasio,Georgia,serif;margin:0;font-weight:700;line-height:1.15}
+h1{font-size:28px}h2{font-size:21px}h3{font-size:17px}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.hom{background:#B3261E;color:#fff;text-align:center;font-size:12px;font-weight:600;letter-spacing:.08em;padding:4px}
+.top{background:var(--green);border-bottom:3px solid var(--brass);color:var(--bg)}
+.top-in{max-width:1180px;margin:0 auto;padding:0 18px;display:flex;align-items:center;gap:24px}
+.brand{padding:12px 0}
+.brand b{font:700 18px/1 Gelasio,Georgia,serif;letter-spacing:.16em;display:block;text-transform:uppercase}
+.brand small{display:block;margin-top:3px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#D9C48F}
+.nav{display:flex;gap:22px;flex:1;overflow-x:auto}
+.nav button{background:none;border:0;border-bottom:3px solid transparent;color:#D9C8A0;font-weight:500;font-size:14px;padding:18px 2px;cursor:pointer;white-space:nowrap}
+.nav button[aria-current=page]{color:var(--bg);border-bottom-color:var(--brass)}
+.who{font-size:13px;color:#D9C8A0;display:flex;gap:12px;align-items:center;white-space:nowrap}
+.who a{color:#D9C8A0;cursor:pointer;text-decoration:underline}
+.um{position:relative}.umb{background:none;border:.5px solid #D9C8A055;color:#F6F2E9;border-radius:8px;padding:4px 8px;display:flex;gap:8px;align-items:center;cursor:pointer;font:inherit}.uma{width:22px;height:22px;border-radius:50%;background:#B58A3A;color:#1F3A29;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.umd{position:absolute;right:0;top:calc(100% + 6px);width:270px;background:#FFFDF8;color:#1F3A29;border:1px solid #D9C8A0;border-radius:10px;z-index:30;overflow:hidden;text-align:left;white-space:normal}.umh{padding:12px 14px;border-bottom:1px solid #E8E0CC;font-size:13px}.umm{font-size:11px;border:1px solid #B58A3A;border-radius:4px;padding:1px 6px}.umc{padding:10px 14px;background:#F6F2E9;border-bottom:1px solid #E8E0CC;font-size:14px}
+.ey2{font-size:11px;color:#6B6B5F}.umi{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:none;border:0;border-top:1px solid #F0EAD8;padding:10px 14px;cursor:pointer;font:inherit;color:#1F3A29}.umi:hover{background:#F6F2E9}.umi .m{font-size:12px}
+@media (max-width:700px){.who .umn{display:inline}}
+main{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:24px 18px 40px}
+main.cli{max-width:600px}
+.ey{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--brass-t)}
+.sub{color:var(--muted);font-size:14px;margin:6px 0 0}
+.pn{background:#fff;border:1px solid var(--card);border-radius:10px;padding:16px 18px;margin:14px 0}
+.call{border-left:3px solid var(--brass);background:var(--call);padding:12px 14px;border-radius:0 8px 8px 0;font-size:13.5px;color:#3A433C;margin:14px 0}
+.err{border-left:3px solid var(--cr);background:var(--cr-bg);padding:10px 14px;border-radius:0 8px 8px 0;font-size:14px;color:var(--cr);margin:12px 0}
+label{display:block;font-size:13px;font-weight:600;margin-top:12px}
+input,select,textarea{width:100%;margin-top:5px;padding:11px 12px;border:1px solid var(--in);border-radius:8px;background:#fff;font-size:16px}
+textarea{min-height:130px;resize:vertical;line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:48px;padding:0 22px;border-radius:8px;border:0;background:var(--green);color:var(--bg);font-weight:600;font-size:15px;cursor:pointer;text-decoration:none}
+.btn.sec{background:#fff;color:var(--green);border:1.5px solid var(--green)}
+.btn.dg{background:#fff;color:var(--cr);border:1.5px solid var(--cr)}
+.btn.sm{height:38px;padding:0 14px;font-size:13px}
+.btn.full{width:100%}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.sp{justify-content:space-between}
+.c{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--gr-bg);color:var(--gr)}
+.c.ok{background:var(--ok-bg);color:var(--ok)}.c.wn{background:var(--wn-bg);color:var(--wn)}.c.in{background:var(--inf-bg);color:var(--inf)}.c.cr{background:var(--cr-bg);color:var(--cr)}
+.m{font-size:13px;color:var(--muted)}
+.vl{font-family:Gelasio,Georgia,serif;font-weight:700}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}
+.kp>div{background:#fff;border:1px solid var(--card);border-radius:10px;padding:16px 18px}
+.kp b{display:block;font:700 30px/1.1 Gelasio,Georgia,serif}
+.kp span{font-size:13px;color:var(--muted)}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:9px 10px;border-bottom:1.5px solid var(--green)}
+table.t td{padding:11px 10px;border-bottom:1px solid #EFE9D8;vertical-align:middle}
+table.t td input{margin:0;padding:8px 10px;font-size:14px}
+.tw{overflow-x:auto}
+.it{border:1px solid var(--card);border-radius:10px;padding:12px 14px;background:#fff;margin:10px 0}
+.it.bad{border:1.5px solid var(--brass);background:#FFFAEC}
+.pg{height:6px;border-radius:6px;background:#E8E2D0;overflow:hidden;margin:6px 0}.pg i{display:block;height:100%;background:#2F6B3F}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:92px;height:44px;border-radius:8px;border:1.5px solid var(--in);background:#fff;font-weight:600;font-size:14px;cursor:pointer}
+.seg button.on-ok{background:var(--ok-bg);border-color:#2F6B3F;color:var(--ok)}
+.seg button.on-wn{background:var(--wn-bg);border-color:var(--brass);color:var(--wn)}
+.seg button.on-cr{background:var(--cr-bg);border-color:var(--cr);color:var(--cr)}
+.bn{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--card);display:flex}
+.bn button{flex:1;background:none;border:0;padding:11px 0 13px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;min-height:52px}
+.bn button[aria-current=page]{color:var(--green)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.tabs button{padding:8px 14px;border-radius:999px;border:1px solid var(--in);background:#fff;font-size:13px;cursor:pointer}
+.tabs button.on{background:var(--green);border-color:var(--green);color:var(--bg);font-weight:600}
+.cen{max-width:440px;margin:0 auto}
+.seg2{display:flex;border:1.5px solid var(--in);border-radius:8px;overflow:hidden;margin-top:6px}
+.seg2 button{flex:1;height:44px;border:0;background:#fff;font-weight:600;cursor:pointer}
+.seg2 button.on{background:var(--green);color:var(--bg)}
+#toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:var(--green);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:99;max-width:92vw}
+footer{padding:14px;text-align:center;font-size:12px;color:var(--muted)}
+@media (max-width:700px){.who>span{display:none}.nav{gap:14px}}
+@media print{.top,.bn,.hom,footer,#toast{display:none}}
+</style>
+</head>
+<body>
+<div class="hom" id="hom" hidden>HOMOLOGAÇÃO · dados de teste</div>
+<header class="top"><div class="top-in">
+  <div class="brand"><b id="b-nome">Alinhavo</b><small id="b-sub">Pedido de tecido</small></div>
+  <nav class="nav" id="nav" aria-label="Seções"></nav>
+  <div class="who" id="who"></div>
+</div></header>
+<main id="app"></main>
+<div class="bn" id="bn" hidden></div>
+<footer id="foot">Alinhavo · Pedido de tecido</footer>
+<div id="toast" hidden></div>
+
+<script src="/vendor/supabase.js"></script>
+<script src="/config.js"></script>
+<script>
+(function () {
+'use strict';
+var cfg = window.SUPABASE_CFG;
+var sb = window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+
+function $(s, r) { return (r || document).querySelector(s); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function nl(s) { /* minúsculo e sem acento, mantendo o MESMO tamanho (posições batem com o texto original) */
+  return String(s || '').split('').map(function (c) { var d = c.normalize('NFD').replace(/[̀-ͯ]/g, ''); return ((d || c).charAt(0).toLowerCase()) || c; }).join('');
+}
+function norm(s) { return nl(s).trim(); }
+function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'); }
+function uid() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function fmtM(n) { return (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' m'; }
+function fmtBRL(n) { return (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function hoje() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function dataBR(iso) { return String(iso || '').split('-').reverse().join('/'); }
+function numBR(v) { var s = String(v == null ? '' : v).trim(); if (!s) return null; if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.'); var n = parseFloat(s); return isFinite(n) ? n : null; }
+function zap(n) { var d = String(n || '').replace(/\D/g, ''); if (d.length === 10 || d.length === 11) d = '55' + d; return d; }
+var toastT;
+function toast(t) { var e = $('#toast'); e.textContent = t; e.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { e.hidden = true; }, 3200); }
+function por(tab, id) { return S[tab].find(function (x) { return x.id === id; }); }
+
+/* ---------- interpretação do pedido (regras; a versão com IA troca só esta função) ---------- */
+var NOME = "\\p{Lu}[\\p{L}'’.-]*(?:\\s+(?:d[aeo]s?\\s+)?\\p{Lu}[\\p{L}'’-]*){0,3}";
+var reCli1 = new RegExp("(?:\\bque\\s+(?:é|e)(?=\\s)|\\bcliente(?:\\s+(?:dele|dela))?\\s*(?::|é(?=\\s)|e(?=\\s))?)\\s*(?:o\\s+|a\\s+)?(" + NOME + ")", 'u');
+var reCli2 = new RegExp("(?:\\b[Pp]ara|\\b[Pp]ro|\\b[Pp]ra|\\b[Pp]\\/)\\s+(?:o\\s+|a\\s+|os\\s+|as\\s+)?(?:cliente\\s+)?(" + NOME + ")", 'u');
+var reRef = /(?<![A-Za-z0-9\/.,-])(\d{2,5}(?:\s?[\/-]\s?[A-Za-z0-9]{1,4})?)(?![A-Za-z0-9\/])/g;
+
+function chaveRef(s) { return norm(s).replace(/\s+/g, ''); }
+function resolverRef(texto, lojaId) {
+  var k = chaveRef(texto);
+  if (!k) return { cat: null, match: 'vazio' };
+  var ativos = S.catalogo.filter(function (c) { return c.ativo; });
+  function acha(lista) { return lista.find(function (c) { return chaveRef(c.referencia) === k || (c.apelidos || []).some(function (a) { return chaveRef(a) === k; }); }); }
+  var minha = ativos.filter(function (x) { return x.loja_id === lojaId; });
+  var c = acha(minha);
+  if (c) return { cat: c, match: 'ok' };
+  c = acha(ativos);
+  if (c) return { cat: c, match: 'outra_loja' };
+  /* artigo/cor: "1009/6" = artigo 1009, cor 6 (o preço é do artigo, a cor é só o código dentro dele) */
+  var t = String(texto).trim().replace(/\s*([\/-])\s*/g, '$1');
+  for (var i = t.search(/[\/-][^\/-]*$/); i > 0; i = t.slice(0, i).search(/[\/-][^\/-]*$/)) {
+    var kk = chaveRef(t.slice(0, i)), cor = t.slice(i + 1);
+    function acha2(lista) { return lista.find(function (x) { return chaveRef(x.referencia) === kk || (x.apelidos || []).some(function (a) { return chaveRef(a) === kk; }); }); }
+    var a = acha2(minha); if (a) return { cat: a, match: 'ok', cor: cor };
+    a = acha2(ativos); if (a) return { cat: a, match: 'outra_loja', cor: cor };
+  }
+  return { cat: null, match: 'desconhecido' };
+}
+function achaAncoras(linha, lojaId) {
+  var L = nl(linha), out = [];
+  var ativos = S.catalogo.filter(function (c) { return c.ativo; });
+  ativos.forEach(function (c) {
+    var pri = c.loja_id === lojaId ? 0 : 1;
+    [c.referencia].concat(c.apelidos || []).forEach(function (term) {
+      var tt = nl(term).trim(); if (!tt) return;
+      var re = new RegExp('(?<![a-z0-9/.,-])' + tt.split(/\s+/).map(escRe).join('\\s+') + '(?![a-z0-9/])', 'g'), m;
+      while ((m = re.exec(L))) out.push({ start: m.index, end: m.index + m[0].length, raw: linha.slice(m.index, m.index + m[0].length), pri: pri, len: m[0].length });
+    });
+  });
+  var m2; reRef.lastIndex = 0;
+  while ((m2 = reRef.exec(linha))) out.push({ start: m2.index, end: m2.index + m2[0].length, raw: m2[0], pri: 2, len: m2[0].length });
+  out.sort(function (a, b) { return a.start - b.start || a.pri - b.pri || b.len - a.len; });
+  var res = [], fim = -1;
+  out.forEach(function (a) { if (a.start >= fim) { res.push(a); fim = a.end; } });
+  return res;
+}
+function extrairMetragem(txt) {
+  var m = /(\d+(?:[.,]\d+)?)\s*(?:cm\b)/i.exec(txt);
+  if (m) { var cm = numBR(m[1]); if (cm) return Math.round(cm) / 100; }
+  m = /(\d+(?:[.,]\d+)?)\s*(?:m\b|mt\b|mts\b|metros?\b)/i.exec(txt);
+  if (m) return numBR(m[1]);
+  m = /(?<![\w\/])(\d{1,2}[.,]\d{1,2})(?![\w\/])/.exec(txt);
+  return m ? numBR(m[1]) : null;
+}
+function destinoDe(txt, padrao) {
+  var T = norm(txt), achado = null;
+  S.destinos.filter(function (d) { return d.ativo; }).forEach(function (d) {
+    var n = norm(d.nome); if (!n) return;
+    if (new RegExp('(?:^|[^a-z0-9])(?:para|pra|pro|na|no|ao|a|em)\\s+(?:o\\s+|a\\s+)?' + n.split(/\s+/).map(escRe).join('\\s+') + '(?![a-z0-9])').test(T)) achado = d;
+  });
+  if (!achado && /(?:^|[^a-z0-9])(?:para|pra|pro)\s+mim(?![a-z0-9])/.test(T)) achado = padrao || null;
+  return achado;
+}
+function interpretar(texto, lojaId) {
+  var padrao = S.destinos.find(function (d) { return d.ativo && d.padrao; }) || S.destinos.find(function (d) { return d.ativo; }) || null;
+  var linhas = String(texto || '').split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  var chunks = [], globalDest = null;
+  linhas.forEach(function (ln) {
+    var an = achaAncoras(ln, lojaId);
+    if (!an.length) {
+      var g = /(?:tudo|todos|todas)\s+(?:(?:para|pra|pro|na|no)\s+)?(?:o\s+|a\s+)?(.+)/i.exec(ln);
+      if (g) { var dd = destinoDe('para ' + g[1], padrao); if (dd) globalDest = dd; }
+      if (chunks.length) chunks[chunks.length - 1].extra += ' ' + ln;
+      return;
+    }
+    an.forEach(function (a, i) {
+      var ate = i + 1 < an.length ? an[i + 1].start : ln.length;
+      chunks.push({ anc: a, texto: (i === 0 ? ln.slice(0, a.start) + ' ' : '') + ln.slice(a.start, ate), extra: '' });
+    });
+  });
+  var avisos = [];
+  var itens = chunks.map(function (c) {
+    var t = c.texto + ' ' + c.extra;
+    var semAnc = t.replace(c.anc.raw, ' ');
+    var met = extrairMetragem(semAnc);
+    var cli = null, m = reCli1.exec(semAnc);
+    if (m) cli = m[1]; else { m = reCli2.exec(semAnc); if (m) cli = m[1]; }
+    var dest = destinoDe(t, padrao);
+    if (cli && S.destinos.some(function (d) { return d.ativo && norm(d.nome) === norm(cli); })) { if (!dest) dest = S.destinos.find(function (d) { return norm(d.nome) === norm(cli); }); cli = null; }
+    var assumido = false;
+    if (!dest) { dest = globalDest || padrao; assumido = !!dest; }
+    var r = resolverRef(c.anc.raw, lojaId);
+    return { referencia: r.cat ? (r.cor ? r.cat.referencia + '/' + r.cor : r.cat.referencia) : c.anc.raw.replace(/\s+/g, ''), catalogo_id: r.cat ? r.cat.id : null, match: r.match,
+      metragem: met, cliente_final: cli ? cli.replace(/[.,;:\s]+$/, '') : '', destino_id: dest ? dest.id : '', assumido: assumido };
+  });
+  if (!itens.length && String(texto || '').trim()) avisos.push('Não encontrei nenhum tecido no texto. Confira se a referência está escrita (ex.: 405/3) ou adicione o item manualmente.');
+  return { itens: itens, avisos: avisos };
+}
+function interpretarResposta(texto, itens) {
+  var out = [], linhas = String(texto || '').split(/\n|;/).map(function (x) { return x.trim(); }).filter(Boolean);
+  function classe(t) {
+    t = norm(t);
+    if (/(sem estoque|nao tem|nao temos|nao ha|acabou|esgotad|indisponi|em falta|nao consigo|nao chegou)/.test(t)) return { st: 'indisponivel' };
+    var p = /(?:so|apenas|somente|tenho|temos|sobrou|restam?|ficou)\s*(?:uns?\s*)?(\d+(?:[.,]\d+)?)\s*(?:m\b|mt|mts|metros?)/.exec(t);
+    if (p) return { st: 'parcial', met: numBR(p[1]) };
+    if (/(\bok\b|\btem\b|\btemos\b|dispon|separad|confirmad|\bcerto\b|beleza|pode\b|fechado|positivo|\bsim\b)/.test(t)) return { st: 'disponivel' };
+    return null;
+  }
+  linhas.forEach(function (ln) {
+    var g = /^(?:tudo|todos|todas)\b(.*)$/i.exec(ln);
+    if (g) { var c0 = classe(g[1] || 'ok'); if (c0) itens.forEach(function (it, i) { if (!out.some(function (o) { return o.i === i; })) out.push({ i: i, st: c0.st, met: c0.met }); }); return; }
+    var m = /^(?:item\s*)?(\d{1,2})\s*[).:\-–]?\s*(.*)$/i.exec(ln);
+    var idx = -1, resto = ln;
+    if (m && +m[1] >= 1 && +m[1] <= itens.length) { idx = +m[1] - 1; resto = m[2]; }
+    else { var n = norm(ln); idx = itens.findIndex(function (it) { return n.indexOf(norm(it.referencia)) >= 0; }); }
+    if (idx < 0) return;
+    var c = classe(resto || ln); if (!c) return;
+    out = out.filter(function (o) { return o.i !== idx; });
+    out.push({ i: idx, st: c.st, met: c.met });
+  });
+  return out;
+}
+
+/* ---------- mensagem para o vendedor ---------- */
+
+/* ---------- base ---------- */
+var S = { catalogo: [], destinos: [] };
+var X = { user: null, modo: '', emp: null, empNome: '', lojaEmp: null, lojaNome: '', lojaId: null, vinculo: null, vinculos: [] };
+var aba = '';
+var N = { etapa: 'texto', texto: '', itens: [], avisos: [], num: null };
+var cacheCli = null;
+var $app = $('#app');
+function ok(r) { if (r && r.error) throw r.error; return r.data; }
+function msg(e) {
+  var m = (e && (e.message || e.error_description)) || String(e || 'Erro');
+  if (/Invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.';
+  if (/Email not confirmed/i.test(m)) return 'Confirme seu e-mail pelo link que enviamos e depois entre.';
+  if (/User already registered/i.test(m)) return 'Este e-mail já tem cadastro. Use "Entrar".';
+  if (/duplicate key|unique/i.test(m)) return 'Este CPF/CNPJ já está cadastrado nesta loja.';
+  if (/Password should be/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+  return m;
+}
+function erro(e) { return '<div class="err" role="alert">' + esc(msg(e)) + '</div>'; }
+function chip(t, k) { return '<span class="c ' + (k || '') + '">' + esc(t) + '</span>'; }
+function maskDoc(d) { d = String(d || '').replace(/\D/g, ''); return d.length === 11 ? d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9) : d.length === 14 ? d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5, 8) + '/' + d.slice(8, 12) + '-' + d.slice(12) : d; }
+function dtBR(iso) { if (!iso) return ''; var d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+function stPed(s) { return { rascunho: ['Rascunho', ''], enviado: ['Aguardando confirmação', 'in'], parcial: ['Respondido em parte', 'wn'], concluido: ['Respondido', 'ok'], cancelado: ['Cancelado', 'cr'] }[s] || [s, '']; }
+function stIt(s) { return { pendente: ['Aguardando', 'in'], disponivel: ['Disponível', 'ok'], parcial: ['Parcial', 'wn'], indisponivel: ['Indisponível', 'cr'] }[s] || [s, '']; }
+function valPedido(its) { var tot = 0, conf = 0, met = 0, resp = 0; its.forEach(function (i) { var p = Number(i.preco_metro) || 0; tot += p * Number(i.metragem); met += Number(i.metragem); if (i.status !== 'pendente') resp++; if (i.status === 'disponivel') conf += p * Number(i.metragem); else if (i.status === 'parcial') conf += p * Number(i.metragem_confirmada || 0); }); return { tot: tot, conf: conf, met: met, resp: resp, n: its.length }; }
+
+/* ---------- entrada ---------- */
+function lojaParam() { var l = ''; try { l = new URLSearchParams(location.search).get('loja') || ''; if (l) sessionStorage.setItem('tec.loja', l); else l = sessionStorage.getItem('tec.loja') || ''; } catch (e) {} return /^[0-9a-f-]{36}$/i.test(l) ? l : ''; }
+function chrome(modo) {
+  $('#nav').innerHTML = ''; $('#who').innerHTML = ''; $('#bn').hidden = true; $app.className = '';
+  if (cfg.ambiente !== 'producao') { $('#hom').hidden = false; if (document.title.indexOf('[HOMOLOGAÇÃO]') !== 0) document.title = '[HOMOLOGAÇÃO] ' + document.title; }
+}
+async function telaEntrar(aviso, tab) {
+  chrome(); tab = tab || 'entrar';
+  var loja = lojaParam(), nomeLoja = '';
+  if (loja) { try { nomeLoja = ok(await sb.rpc('tec_loja_publica', { p_loja: loja })) || ''; } catch (e) {} }
+  $('#b-nome').textContent = nomeLoja || 'Alinhavo'; $('#b-sub').textContent = 'Pedido de tecido';
+  var cad = tab === 'cadastro';
+  $app.innerHTML = '<div class="cen"><div class="ey">' + (cad ? 'Primeiro acesso' : 'Bem-vindo') + '</div><h1>' + (cad ? 'Criar cadastro' : 'Entrar') + '</h1>' +
+    '<p class="sub">' + (cad ? (nomeLoja ? 'Seu cadastro é analisado pela ' + esc(nomeLoja) + '. Você só vê o catálogo e pede depois da liberação.' : 'Abra o link de cadastro que a loja enviou para você.') : 'Use o e-mail e a senha do seu cadastro.') + '</p>' +
+    (aviso || '') +
+    '<form id="f" class="pn">' + (cad ?
+      '<div class="seg2" id="tp"><button type="button" data-t="pf" class="on">Pessoa física</button><button type="button" data-t="pj">Empresa</button></div>' +
+      '<label id="l-nome">Nome completo<input id="nome" autocomplete="name" required></label>' +
+      '<label><span id="l-doc">CPF</span><input id="doc" inputmode="numeric" autocomplete="off" required></label>' +
+      '<label>Celular com DDD<input id="tel" type="tel" inputmode="tel" autocomplete="tel" required></label>' : '') +
+      '<label>E-mail<input id="em" type="email" autocomplete="username" required></label>' +
+      '<label>Senha<input id="pw" type="password" autocomplete="' + (cad ? 'new-password' : 'current-password') + '" minlength="6" required></label>' +
+      '<div id="e"></div><div style="margin-top:16px"><button class="btn full" id="ok">' + (cad ? 'Enviar cadastro' : 'Entrar') + '</button></div>' +
+      (cad ? '' : '<p class="m" style="margin:12px 0 0;text-align:center"><a href="#" id="esq">Esqueci a senha</a></p>') + '</form>' +
+    '<p class="m" style="text-align:center">' + (cad ? 'Já tem cadastro? <a href="#" id="troca">Entrar</a>' : (loja ? 'Primeira vez aqui? <a href="#" id="troca">Criar cadastro</a>' : 'Para criar o cadastro, use o link que a loja enviou.')) + '</p></div>';
+  var tipo = 'pf';
+  if (cad) $('#tp').onclick = function (ev) { var b = ev.target.closest('button'); if (!b) return; tipo = b.dataset.t; [].forEach.call($('#tp').children, function (x) { x.classList.toggle('on', x === b); }); $('#l-doc').textContent = tipo === 'pf' ? 'CPF' : 'CNPJ'; $('#l-nome').firstChild.textContent = tipo === 'pf' ? 'Nome completo' : 'Razão social ou nome fantasia'; };
+  var tr = $('#troca'); if (tr) tr.onclick = function (e) { e.preventDefault(); telaEntrar('', cad ? 'entrar' : 'cadastro'); };
+  var es = $('#esq'); if (es) es.onclick = async function (e) { e.preventDefault(); var em = $('#em').value.trim(); if (!em) { $('#e').innerHTML = erro('Digite seu e-mail acima.'); return; } try { ok(await sb.auth.resetPasswordForEmail(em, { redirectTo: location.origin + location.pathname })); $('#e').innerHTML = '<div class="call">Se este e-mail tiver cadastro, enviamos um link para criar nova senha.</div>'; } catch (x) { $('#e').innerHTML = erro(x); } };
+  $('#f').onsubmit = async function (ev) {
+    ev.preventDefault(); var b = $('#ok'); b.disabled = true; $('#e').innerHTML = '';
+    var em = $('#em').value.trim().toLowerCase(), pw = $('#pw').value;
+    try {
+      if (!cad) { ok(await sb.auth.signInWithPassword({ email: em, password: pw })); return boot(); }
+      var dados = { loja: loja, tipo: tipo, nome: $('#nome').value.trim(), doc: $('#doc').value.replace(/\D/g, ''), tel: $('#tel').value.trim() };
+      if (!loja) throw new Error('Abra o link de cadastro que a loja enviou.');
+      if (dados.nome.length < 2) throw new Error('Informe o nome.');
+      if ((tipo === 'pf' && dados.doc.length !== 11) || (tipo === 'pj' && dados.doc.length !== 14)) throw new Error(tipo === 'pf' ? 'O CPF precisa ter 11 números.' : 'O CNPJ precisa ter 14 números.');
+      localStorage.setItem('tec.cadastro', JSON.stringify(dados));
+      var r = await sb.auth.signUp({ email: em, password: pw });
+      if (r.error) throw r.error;
+      if (r.data && r.data.session) return boot();
+      $app.innerHTML = '<div class="cen"><h1>Confirme seu e-mail</h1><p class="sub">Enviamos uma mensagem para <b>' + esc(em) + '</b>. Abra o link dela e depois volte aqui para entrar. O pedido de acesso à loja segue na sua primeira entrada.</p></div>';
+    } catch (e) { b.disabled = false; $('#e').innerHTML = erro(e); }
+  };
+}
+
+/* ---------- menu do usuário + alternar entre sistemas ---------- */
+var NOMES_SIS = { atelie: ['Ateliê', 'Clientes, medidas e pedidos'], fabrica: ['Fábrica', 'Pedidos dos ateliês parceiros'], loja: ['Loja de tecidos', 'Catálogo e clientes'], cliente: ['Cliente de loja', 'Pedir tecido nas lojas'] };
+function menuUser(atual, rotulo) {
+  var who = $('#who'), sis = (X.sistemas || []).filter(function (s, i, a) { return a.findIndex(function (t) { return t.sistema === s.sistema; }) === i; });
+  var outros = sis.filter(function (s) { return s.sistema !== atual; });
+  var ini = String(X.user.email || '?').slice(0, 2).toUpperCase();
+  who.innerHTML = '<div class="um"><button type="button" class="umb" id="umb" aria-haspopup="true" aria-expanded="false"><span class="uma">' + esc(ini) + '</span><span class="umn">' + esc(rotulo) + '</span><span aria-hidden="true">▾</span></button>' +
+    '<div class="umd" id="umd" hidden><div class="umh"><div><b>' + esc(X.user.email) + '</b>' + (X.master ? ' <span class="umm">Master</span>' : '') + '</div></div>' +
+    '<div class="umc"><div class="ey2">Você está em</div><div><b>' + esc((NOMES_SIS[atual] || [atual])[0]) + '</b> <span class="m">· ' + esc(X.empNome) + '</span></div></div>' +
+    (outros.length ? '<div class="ey2" style="padding:8px 14px 2px">Alternar para</div>' + outros.map(function (s) { return '<button type="button" class="umi" data-s="' + esc(s.sistema) + '" data-e="' + esc(s.empresa_id) + '"><b>' + esc(NOMES_SIS[s.sistema][0]) + '</b><span class="m">' + esc(NOMES_SIS[s.sistema][1]) + '</span></button>'; }).join('') : '') +
+    '<button type="button" class="umi" id="sx"><b>Sair</b></button></div></div>';
+  var b = $('#umb'), d = $('#umd');
+  b.onclick = function (e) { e.stopPropagation(); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); };
+  document.onclick = function () { if (d) { d.hidden = true; b.setAttribute('aria-expanded', 'false'); } };
+  d.onclick = function (e) { e.stopPropagation(); };
+  $('#sx').onclick = sair;
+  [].forEach.call(d.querySelectorAll('[data-s]'), function (x) { x.onclick = function () { irPara(x.dataset.s, x.dataset.e); }; });
+}
+function irPara(sistema, empresa) {
+  if (sistema === 'atelie' || sistema === 'fabrica') { try { localStorage.setItem('durant.empresa.' + X.user.id, empresa); } catch (e) {} location.href = '/'; return; }
+  try { sessionStorage.setItem('tec.sis', sistema); } catch (e) {}
+  aba = ''; boot();
+}
+async function sair() { await sb.auth.signOut(); X = { user: null, modo: '', emp: null, empNome: '', lojaEmp: null, lojaNome: '', lojaId: null, vinculo: null, vinculos: [] }; telaEntrar(); }
+
+/* ---------- boot ---------- */
+async function boot() {
+  try {
+    var ses = ok(await sb.auth.getSession()).session;
+    if (!ses) return telaEntrar();
+    X.user = ses.user;
+    var mem = ok(await sb.from('membros').select('empresa_id,papel').eq('user_id', X.user.id));
+    var ids = mem.map(function (m) { return m.empresa_id; });
+    var emps = ids.length ? ok(await sb.from('empresas').select('id,nome,fornece_tecido,somente_tecidos').in('id', ids)) : [];
+    try { X.sistemas = ok(await sb.rpc('meus_sistemas')) || []; X.master = !!ok(await sb.rpc('sou_master')); } catch (e) { X.sistemas = []; X.master = false; }
+    var sis = ''; try { sis = sessionStorage.getItem('tec.sis') || ''; } catch (e) {}
+    var loja = sis === 'cliente' ? null : emps.filter(function (e) { return e.fornece_tecido; })[0];
+    if (loja) {
+      X.modo = 'loja'; X.emp = loja.id; X.empNome = loja.nome;
+      var lj = ok(await sb.from('tec_lojas').select('id,nome').eq('empresa_id', loja.id).order('criado_em').limit(1));
+      X.lojaId = lj[0] && lj[0].id; X.lojaEmp = loja.id; X.lojaNome = loja.nome;
+      aba = aba && /^(inicio|pedidos|clientes|catalogo)$/.test(aba) ? aba : 'inicio';
+      return renderLoja();
+    }
+    // cliente: pedido de acesso pendente guardado no aparelho
+    var pend = null; try { pend = JSON.parse(localStorage.getItem('tec.cadastro') || 'null'); } catch (e) {}
+    var cli = emps.filter(function (e) { return e.somente_tecidos; })[0] || emps.filter(function (e) { return !e.fornece_tecido; })[0] || null;
+    if (!cli && pend) {
+      try { ok(await sb.rpc('tec_pedir_acesso', { p_loja: pend.loja, p_tipo: pend.tipo, p_nome: pend.nome, p_documento: pend.doc, p_telefone: pend.tel })); localStorage.removeItem('tec.cadastro'); return boot(); }
+      catch (e) { return telaCadastroCompleto(msg(e)); }
+    }
+    if (!cli) return telaCadastroCompleto();
+    X.modo = 'cliente'; X.emp = cli.id; X.empNome = cli.nome;
+    X.vinculos = ok(await sb.rpc('tec_minhas_lojas', { p_cliente: cli.id }));
+    if (!X.vinculos.length && pend) {
+      try { ok(await sb.rpc('tec_pedir_acesso', { p_loja: pend.loja, p_tipo: pend.tipo, p_nome: pend.nome, p_documento: pend.doc, p_telefone: pend.tel, p_empresa: cli.id })); localStorage.removeItem('tec.cadastro'); return boot(); }
+      catch (e) { return telaCadastroCompleto(msg(e), cli.id); }
+    }
+    if (!X.vinculos.length) return telaCadastroCompleto('', cli.id);
+    var v = X.vinculos.filter(function (x) { return x.status === 'liberado'; })[0] || X.vinculos[0];
+    X.vinculo = v; X.lojaEmp = v.loja_empresa_id; X.lojaNome = v.loja_nome;
+    if (v.status !== 'liberado') return renderCliente();
+    var cat = ok(await sb.from('tec_catalogo').select('id,loja_id,referencia,nome,composicao,preco_metro,apelidos,ativo').eq('empresa_id', X.lojaEmp).eq('ativo', true).order('referencia'));
+    S.catalogo = cat.map(function (c) { c.apelidos = c.apelidos || []; return c; });
+    S.destinos = ok(await sb.from('tec_destinos').select('id,nome,ativo').eq('empresa_id', X.emp).eq('ativo', true)).map(function (d) { return { id: d.id, nome: d.nome, ativo: true, padrao: false }; });
+    aba = aba && /^(novo|meus|conta)$/.test(aba) ? aba : 'novo';
+    renderCliente();
+  } catch (e) { $app.innerHTML = '<div class="cen">' + erro(e) + '<p><button class="btn sec" id="rs">Tentar de novo</button> <button class="btn sec" id="sx">Sair</button></p></div>'; var a = $('#rs'); if (a) a.onclick = boot; var b = $('#sx'); if (b) b.onclick = sair; }
+}
+function telaCadastroCompleto(aviso, empId) {
+  chrome(); var loja = lojaParam(); $('#b-nome').textContent = 'Alinhavo'; $('#who').innerHTML = '<span>' + esc(X.user.email) + '</span><a id="sx">Sair</a>'; $('#sx').onclick = sair;
+  if (!loja) { $app.innerHTML = '<div class="cen"><h1>Falta o link da loja</h1><p class="sub">Para pedir acesso, abra o link de cadastro que a loja enviou para você.</p></div>'; return; }
+  sb.rpc('tec_loja_publica', { p_loja: loja }).then(function (r) {
+    var nome = r.data || 'a loja'; var tipo = 'pf';
+    $app.className = 'cli';
+    $app.innerHTML = '<div class="ey">Pedir acesso</div><h1>' + esc(nome) + '</h1><p class="sub">Complete seus dados. A loja analisa e libera o seu acesso.</p>' + (aviso ? erro(aviso) : '') +
+      '<form id="f" class="pn"><div class="seg2" id="tp"><button type="button" data-t="pf" class="on">Pessoa física</button><button type="button" data-t="pj">Empresa</button></div>' +
+      '<label>Nome<input id="nome" required></label><label><span id="l-doc">CPF</span><input id="doc" inputmode="numeric" required></label><label>Celular com DDD<input id="tel" type="tel" required></label><div id="e"></div>' +
+      '<div style="margin-top:16px"><button class="btn full">Pedir acesso</button></div></form>';
+    $('#tp').onclick = function (ev) { var b = ev.target.closest('button'); if (!b) return; tipo = b.dataset.t; [].forEach.call($('#tp').children, function (x) { x.classList.toggle('on', x === b); }); $('#l-doc').textContent = tipo === 'pf' ? 'CPF' : 'CNPJ'; };
+    $('#f').onsubmit = async function (ev) { ev.preventDefault(); try { var a = { p_loja: loja, p_tipo: tipo, p_nome: $('#nome').value.trim(), p_documento: $('#doc').value, p_telefone: $('#tel').value.trim() }; if (empId) a.p_empresa = empId; ok(await sb.rpc('tec_pedir_acesso', a)); boot(); } catch (e) { $('#e').innerHTML = erro(e); } };
+  });
+}
+
+/* ============ CLIENTE ============ */
+function renderCliente() {
+  chrome(); $app.className = 'cli';
+  $('#b-nome').textContent = X.lojaNome || 'Pedido de tecido'; $('#b-sub').textContent = 'Pedido de tecido';
+  menuUser('cliente', X.empNome);
+  var v = X.vinculo;
+  if (v.status !== 'liberado') {
+    var t = { pendente: ['Aguardando liberação', 'A ' + esc(X.lojaNome) + ' ainda precisa liberar o seu acesso. Assim que liberar, o catálogo e o pedido aparecem aqui. Você não precisa fazer mais nada.'], recusado: ['Acesso não liberado', 'A loja não liberou este cadastro. Fale com a ' + esc(X.lojaNome) + ' se acha que foi engano.'], bloqueado: ['Acesso suspenso', 'O seu acesso a esta loja está suspenso. Fale com a ' + esc(X.lojaNome) + '.'] }[v.status];
+    $app.innerHTML = '<div class="ey">' + esc(X.lojaNome) + '</div><h1>' + t[0] + '</h1><div class="call">' + t[1] + '</div><p><button class="btn sec" id="at">Verificar de novo</button></p>';
+    $('#at').onclick = boot; return;
+  }
+  var abas = [['novo', 'Novo pedido'], ['meus', 'Meus pedidos'], ['conta', 'Conta']];
+  var bn = $('#bn'); bn.hidden = false;
+  bn.innerHTML = abas.map(function (a) { return '<button data-a="' + a[0] + '"' + (aba === a[0] ? ' aria-current="page"' : '') + '>' + a[1] + '</button>'; }).join('');
+  bn.onclick = function (e) { var b = e.target.closest('button'); if (!b) return; aba = b.dataset.a; if (aba === 'novo' && N.etapa === 'enviado') N = { etapa: 'texto', texto: '', itens: [], avisos: [], num: null }; renderCliente(); };
+  ({ novo: vNovo, meus: vMeus, conta: vConta })[aba]();
+}
+function precoCat(id) { var c = S.catalogo.find(function (x) { return x.id === id; }); return c ? Number(c.preco_metro) || 0 : 0; }
+function vNovo() {
+  if (N.etapa === 'enviado') {
+    $app.innerHTML = '<div class="ey">Pedido enviado</div><h1>Pedido nº ' + N.num + '</h1><p class="sub">A ' + esc(X.lojaNome) + ' recebeu o pedido. O vendedor vai confirmar com você pelo WhatsApp. Acompanhe em “Meus pedidos”.</p>' +
+      '<p><button class="btn full" id="ver">Ver meus pedidos</button></p><p><button class="btn sec full" id="outro">Fazer outro pedido</button></p>';
+    $('#ver').onclick = function () { aba = 'meus'; renderCliente(); }; $('#outro').onclick = function () { N = { etapa: 'texto', texto: '', itens: [], avisos: [], num: null }; renderCliente(); }; return;
+  }
+  if (N.etapa === 'texto') {
+    $app.innerHTML = '<div class="ey">Boa tarde</div><h1>Novo pedido</h1><p class="sub">Escreva do jeito que você já manda no WhatsApp. O sistema separa tecido, metragem e cliente.</p>' +
+      '<label>Seu pedido<textarea id="tx" placeholder="Ex.: 1009/6, 1,50 m, para o João Paiva">' + esc(N.texto) + '</textarea></label><div id="e"></div>' +
+      '<div style="margin-top:14px"><button class="btn full" id="go">Entender pedido</button></div>' +
+      '<div class="call">Você confere tudo antes de enviar. Nada vai para a loja sem a sua confirmação.</div>';
+    $('#go').onclick = function () {
+      N.texto = $('#tx').value; if (!N.texto.trim()) { $('#e').innerHTML = erro('Escreva o pedido primeiro.'); return; }
+      var lojaRow = S.catalogo[0] && S.catalogo[0].loja_id; var r = interpretar(N.texto, lojaRow);
+      N.itens = r.itens.map(function (i) { return { referencia: i.referencia, catalogo_id: i.catalogo_id, metragem: i.metragem == null ? '' : i.metragem, cliente_final: i.cliente_final || '', destino_texto: '' }; });
+      var dst = {}; S.destinos.forEach(function (d) { dst[d.id] = d.nome; }); r.itens.forEach(function (i, k) { if (i.destino_id && dst[i.destino_id]) N.itens[k].destino_texto = dst[i.destino_id]; });
+      N.avisos = r.avisos; N.etapa = 'rever'; renderCliente();
+    }; return;
+  }
+  // rever
+  var pront = 0, total = 0;
+  N.itens.forEach(function (i) { if (i.catalogo_id && Number(numBR(i.metragem)) > 0) { pront++; total += precoCat(i.catalogo_id) * numBR(i.metragem); } });
+  var h = '<div class="ey">Passo 1 de 2</div><h1>O que entendi</h1><div class="pn m"><b>Seu texto</b><br>' + esc(N.texto).replace(/\n/g, '<br>') + '</div>' + N.avisos.map(function (a) { return '<div class="call">' + esc(a) + '</div>'; }).join('') +
+    '<div class="row sp"><b>' + N.itens.length + ' itens</b>' + (pront < N.itens.length ? chip((N.itens.length - pront) + ' precisa de você', 'in') : chip('Tudo certo', 'ok')) + '</div>';
+  N.itens.forEach(function (it, k) {
+    var bom = it.catalogo_id && Number(numBR(it.metragem)) > 0; var c = S.catalogo.find(function (x) { return x.id === it.catalogo_id; });
+    h += '<div class="it' + (bom ? '' : ' bad') + '" data-k="' + k + '"><div class="row sp"><b>' + (k + 1) + ' · ' + esc(it.referencia) + '</b>' + (bom ? chip('Reconhecido', 'ok') : chip(it.catalogo_id ? 'Falta a metragem' : 'Escolha o tecido', 'wn')) + '</div>' +
+      '<label>Tecido<select data-f="catalogo_id"><option value="">Escolher…</option>' + S.catalogo.map(function (x) { return '<option value="' + x.id + '"' + (x.id === it.catalogo_id ? ' selected' : '') + '>' + esc(x.referencia + ' · ' + (x.nome || '') + ' · ' + fmtBRL(x.preco_metro)) + '</option>'; }).join('') + '</select></label>' +
+      '<div class="row"><label style="flex:1;min-width:130px">Referência/cor<input data-f="referencia" value="' + esc(it.referencia) + '"></label><label style="flex:1;min-width:110px">Metros<input data-f="metragem" inputmode="decimal" value="' + esc(it.metragem) + '" placeholder="1,50"></label></div>' +
+      '<div class="row"><label style="flex:1;min-width:130px">Cliente final<input data-f="cliente_final" value="' + esc(it.cliente_final) + '"></label><label style="flex:1;min-width:130px">Entregar em<input data-f="destino_texto" list="dl" value="' + esc(it.destino_texto) + '" placeholder="Ex.: Ateliê"></label></div>' +
+      '<div class="row sp" style="margin-top:8px"><span class="m">' + (c ? fmtBRL(c.preco_metro) + ' por metro' : '') + '</span><span class="vl">' + (bom ? fmtBRL(precoCat(it.catalogo_id) * numBR(it.metragem)) : '—') + '</span></div>' +
+      '<button class="btn dg sm" data-rm="' + k + '" style="margin-top:8px">Remover item</button></div>';
+  });
+  h += '<datalist id="dl">' + S.destinos.map(function (d) { return '<option value="' + esc(d.nome) + '">'; }).join('') + '</datalist>' +
+    '<button class="btn sec sm" id="add">+ Adicionar item</button>' +
+    '<div class="pn"><div class="row sp"><span class="m">' + pront + ' de ' + N.itens.length + ' itens prontos</span><span class="vl" style="font-size:24px">' + fmtBRL(total) + '</span></div></div><div id="e"></div>' +
+    '<button class="btn full" id="env"' + (pront && pront === N.itens.length ? '' : ' disabled') + '>Enviar pedido para a ' + esc(X.lojaNome) + '</button>' +
+    '<p style="text-align:center"><button class="btn sec sm" id="vlt">Voltar e editar o texto</button></p>' +
+    '<div class="call"><b>O que acontece depois</b><br>1. O vendedor recebe o pedido em PDF.<br>2. Ele confirma com você pelo WhatsApp.<br>3. Você acompanha cada item em Meus pedidos.</div>';
+  $app.innerHTML = h;
+  $app.oninput = function (e) { var box = e.target.closest('.it'); if (!box || !e.target.dataset.f) return; N.itens[box.dataset.k][e.target.dataset.f] = e.target.value; };
+  $app.onchange = function (e) {
+    var box = e.target.closest('.it'); if (!box || !e.target.dataset.f) return; var it = N.itens[box.dataset.k];
+    if (e.target.dataset.f === 'catalogo_id') { var c = S.catalogo.find(function (x) { return x.id === e.target.value; }); it.catalogo_id = e.target.value || null; if (c && String(it.referencia).split(/[\/-]/)[0].toLowerCase() !== c.referencia.toLowerCase()) it.referencia = c.referencia; }
+    vNovo();
+  };
+  $app.onclick = function (e) {
+    var rm = e.target.closest('[data-rm]'); if (rm) { N.itens.splice(Number(rm.dataset.rm), 1); return vNovo(); }
+    if (e.target.id === 'add') { N.itens.push({ referencia: '', catalogo_id: null, metragem: '', cliente_final: '', destino_texto: '' }); return vNovo(); }
+    if (e.target.id === 'vlt') { N.etapa = 'texto'; return vNovo(); }
+    if (e.target.id === 'env') enviarPedido();
+  };
+}
+async function enviarPedido() {
+  var b = $('#env'); b.disabled = true; var ped = null;
+  try {
+    N.itens.forEach(function (i) { var c = S.catalogo.find(function (x) { return x.id === i.catalogo_id; }); if (!c) throw new Error('Escolha o tecido de todos os itens.'); if (!(numBR(i.metragem) > 0)) throw new Error('Informe os metros de todos os itens.'); if (String(i.referencia).split(/[\/-]/)[0].trim().toLowerCase() !== c.referencia.toLowerCase()) throw new Error('A referência “' + i.referencia + '” não é do tecido ' + c.referencia + '.'); });
+    ped = ok(await sb.from('tec_pedidos').insert({ empresa_id: X.emp, loja_empresa_id: X.lojaEmp, texto_original: N.texto }).select('id,numero').single());
+    var linhas = N.itens.map(function (i) { return { empresa_id: X.emp, pedido_id: ped.id, catalogo_loja_id: i.catalogo_id, referencia: String(i.referencia).trim(), metragem: numBR(i.metragem), cliente_final: i.cliente_final.trim() || null, destino_texto: i.destino_texto.trim() || null }; });
+    ok(await sb.from('tec_pedido_itens').insert(linhas));
+    ok(await sb.rpc('tec_enviar_pedido', { p_pedido: ped.id }));
+    N = { etapa: 'enviado', texto: '', itens: [], avisos: [], num: ped.numero }; vNovo();
+  } catch (e) {
+    if (ped) { try { await sb.from('tec_pedidos').delete().eq('id', ped.id); } catch (x) {} }
+    b.disabled = false; $('#e').innerHTML = erro(e);
+  }
+}
+async function vMeus() {
+  $app.innerHTML = '<div class="ey">Histórico</div><h1>Meus pedidos</h1><p class="sub">Carregando…</p>';
+  try {
+    var ps = ok(await sb.from('tec_pedidos').select('id,numero,status,enviado_em,confirmado_em,texto_original').eq('empresa_id', X.emp).eq('loja_empresa_id', X.lojaEmp).neq('status', 'rascunho').order('numero', { ascending: false }));
+    var its = ps.length ? ok(await sb.from('tec_pedido_itens').select('*').eq('empresa_id', X.emp).in('pedido_id', ps.map(function (p) { return p.id; })).order('criado_em')) : [];
+    if (!ps.length) { $app.innerHTML = '<div class="ey">Histórico</div><h1>Meus pedidos</h1><div class="pn" style="text-align:center;padding:36px 16px"><h2>Nenhum pedido ainda</h2><p class="sub">Quando você enviar o primeiro pedido, ele aparece aqui com andamento, metragem e valor.</p><p><button class="btn" id="n1">Fazer o primeiro pedido</button></p></div>'; $('#n1').onclick = function () { aba = 'novo'; renderCliente(); }; return; }
+    var ativos = ps.filter(function (p) { return p.status === 'enviado' || p.status === 'parcial'; }).length, mes = 0;
+    var h = '<div class="ey">Histórico</div><h1>Meus pedidos</h1><div class="kp"><div><b>' + ativos + '</b><span>em andamento</span></div><div><b id="mes"></b><span>pedido no total</span></div></div>';
+    ps.forEach(function (p) {
+      var ii = its.filter(function (i) { return i.pedido_id === p.id; }), v = valPedido(ii), st = stPed(p.status); mes += v.tot;
+      h += '<details class="pn"><summary style="cursor:pointer;list-style:none"><div class="row sp"><b style="font-size:16px">Pedido nº ' + p.numero + '</b>' + chip(st[0], st[1]) + '</div><div class="m">' + dtBR(p.enviado_em) + ' · ' + v.n + ' itens · ' + fmtM(v.met) + '</div><div class="pg"><i style="width:' + (v.n ? Math.round(100 * v.resp / v.n) : 0) + '%"></i></div><div class="row sp"><span class="m">' + (p.status === 'enviado' ? 'O vendedor vai confirmar com você' : v.resp + ' de ' + v.n + ' itens respondidos') + '</span><span class="vl">' + fmtBRL(v.tot) + '</span></div></summary>' +
+        ii.map(function (i) { var s = stIt(i.status); return '<div class="it"><div class="row sp"><b>' + esc(i.referencia) + ' · ' + fmtM(i.metragem) + '</b>' + chip(s[0], s[1]) + '</div><div class="m">' + esc(i.descricao || '') + (i.cliente_final ? ' · ' + esc(i.cliente_final) : '') + (i.destino_texto ? ' · ' + esc(i.destino_texto) : '') + '</div>' + (i.status === 'parcial' ? '<div class="m">Disponível: <b>' + fmtM(i.metragem_confirmada) + '</b></div>' : '') + '<div class="row sp"><span class="m">' + fmtBRL(i.preco_metro) + ' por metro</span><span class="vl">' + fmtBRL(Number(i.preco_metro) * Number(i.metragem)) + '</span></div></div>'; }).join('') +
+        (p.status !== 'enviado' ? '<div class="row sp"><span class="m">Valor confirmado</span><span class="vl">' + fmtBRL(v.conf) + '</span></div>' : '') + '</details>';
+    });
+    $app.innerHTML = h; $('#mes').textContent = fmtBRL(mes);
+  } catch (e) { $app.innerHTML = erro(e); }
+}
+async function vConta() {
+  var v = X.vinculo, d = '';
+  try { var r = ok(await sb.from('tec_loja_clientes').select('nome,documento,telefone,email,tipo').eq('cliente_empresa_id', X.emp).eq('loja_empresa_id', X.lojaEmp).limit(1)); d = r[0] || {}; } catch (e) {}
+  $app.innerHTML = '<div class="ey">Conta</div><h1>' + esc(d.nome || X.empNome) + '</h1><div class="pn"><div class="m">' + (d.tipo === 'pj' ? 'CNPJ' : 'CPF') + '</div><div>' + esc(maskDoc(d.documento)) + '</div><div class="m" style="margin-top:10px">Celular</div><div>' + esc(d.telefone || '—') + '</div><div class="m" style="margin-top:10px">E-mail</div><div>' + esc(d.email || X.user.email) + '</div><div class="m" style="margin-top:10px">Loja</div><div>' + esc(X.lojaNome) + ' ' + chip('Liberado', 'ok') + '</div></div><button class="btn sec full" id="sx2">Sair</button>';
+  $('#sx2').onclick = sair;
+}
+
+/* ============ LOJA ============ */
+function renderLoja() {
+  chrome(); $('#b-nome').textContent = X.lojaNome; $('#b-sub').textContent = 'Painel da loja';
+  var abas = [['inicio', 'Início'], ['pedidos', 'Pedidos'], ['clientes', 'Clientes'], ['catalogo', 'Catálogo']];
+  $('#nav').innerHTML = abas.map(function (a) { return '<button data-a="' + a[0] + '"' + (aba === a[0] ? ' aria-current="page"' : '') + '>' + a[1] + '</button>'; }).join('');
+  $('#nav').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; aba = b.dataset.a; openId = null; renderLoja(); };
+  menuUser('loja', X.empNome);
+  ({ inicio: lInicio, pedidos: lPedidos, clientes: lClientes, catalogo: lCatalogo })[aba]();
+}
+var openId = null;
+async function carregaLoja() {
+  var cl = ok(await sb.from('tec_loja_clientes').select('*').eq('loja_empresa_id', X.emp).order('criado_em', { ascending: false }));
+  var ps = ok(await sb.from('tec_pedidos').select('*').eq('loja_empresa_id', X.emp).neq('status', 'rascunho').order('enviado_em', { ascending: false }));
+  var its = ps.length ? ok(await sb.from('tec_pedido_itens').select('*').in('pedido_id', ps.map(function (p) { return p.id; })).order('criado_em')) : [];
+  var mapa = {}; cl.forEach(function (c) { mapa[c.cliente_empresa_id] = c; });
+  return { cl: cl, ps: ps, its: its, mapa: mapa };
+}
+async function lInicio() {
+  $app.innerHTML = '<p class="sub">Carregando…</p>';
+  try {
+    var D = await carregaLoja();
+    var novos = D.ps.filter(function (p) { return p.status === 'enviado'; }), emResp = D.ps.filter(function (p) { return p.status === 'parcial'; }), pend = D.cl.filter(function (c) { return c.status === 'pendente'; });
+    var mesTot = 0; D.ps.forEach(function (p) { mesTot += valPedido(D.its.filter(function (i) { return i.pedido_id === p.id; })).tot; });
+    var link = location.origin + '/tecidos/pedido?loja=' + X.emp;
+    $app.innerHTML = '<div class="ey">' + new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div><h1>Bom dia</h1>' +
+      '<div class="kp"><div><b>' + novos.length + '</b><span>pedidos novos para confirmar</span></div><div><b>' + emResp.length + '</b><span>pedidos em resposta</span></div><div><b>' + pend.length + '</b><span>clientes esperando liberação</span></div><div><b>' + fmtBRL(mesTot) + '</b><span>total pedido</span></div></div>' +
+      '<div class="pn"><h2>Link de cadastro dos clientes</h2><p class="sub">Envie este link aos seus clientes. Eles criam o cadastro e você libera aqui em Clientes.</p><label><input id="lk" readonly value="' + esc(link) + '"></label><p><button class="btn sec sm" id="cp">Copiar link</button></p></div>' +
+      '<div class="pn"><div class="row sp"><h2>Pedidos para confirmar</h2><button class="btn sec sm" id="vp">Ver todos</button></div>' + (novos.length ? '<div class="tw"><table class="t"><thead><tr><th>Nº</th><th>Cliente</th><th>Chegou</th><th>Itens</th><th style="text-align:right">Valor</th></tr></thead><tbody>' + novos.slice(0, 8).map(function (p) { var v = valPedido(D.its.filter(function (i) { return i.pedido_id === p.id; })); var c = D.mapa[p.empresa_id]; return '<tr><td><b>' + p.numero + '</b></td><td>' + esc(c ? c.nome : '—') + '</td><td>' + dtBR(p.enviado_em) + '</td><td>' + v.n + ' · ' + fmtM(v.met) + '</td><td style="text-align:right"><b>' + fmtBRL(v.tot) + '</b></td></tr>'; }).join('') + '</tbody></table></div>' : '<p class="sub">Nenhum pedido novo.</p>') + '</div>';
+    $('#cp').onclick = function () { $('#lk').select(); try { navigator.clipboard.writeText(link); toast('Link copiado'); } catch (e) { document.execCommand('copy'); toast('Link copiado'); } };
+    $('#vp').onclick = function () { aba = 'pedidos'; renderLoja(); };
+  } catch (e) { $app.innerHTML = erro(e); }
+}
+async function lPedidos() {
+  $app.innerHTML = '<p class="sub">Carregando…</p>';
+  try {
+    var D = await carregaLoja();
+    if (openId) { var p = D.ps.find(function (x) { return x.id === openId; }); if (p) return lPedido(p, D); }
+    var h = '<div class="ey">Recebidos</div><h1>Pedidos</h1>';
+    if (!D.ps.length) h += '<div class="pn"><p class="sub">Nenhum pedido recebido ainda.</p></div>';
+    else h += '<div class="pn tw"><table class="t"><thead><tr><th>Nº</th><th>Cliente</th><th>Chegou</th><th>Itens</th><th>Situação</th><th style="text-align:right">Valor</th></tr></thead><tbody>' + D.ps.map(function (p) { var v = valPedido(D.its.filter(function (i) { return i.pedido_id === p.id; })), c = D.mapa[p.empresa_id], st = stPed(p.status); return '<tr data-id="' + p.id + '" style="cursor:pointer"><td><b>' + p.numero + '</b></td><td>' + esc(c ? c.nome : '—') + '</td><td>' + dtBR(p.enviado_em) + '</td><td>' + v.n + ' · ' + fmtM(v.met) + '</td><td>' + chip(st[0], st[1]) + '</td><td style="text-align:right"><b>' + fmtBRL(v.tot) + '</b></td></tr>'; }).join('') + '</tbody></table></div>';
+    $app.innerHTML = h; $app.onclick = function (e) { var tr = e.target.closest('tr[data-id]'); if (tr) { openId = tr.dataset.id; lPedidos(); } };
+  } catch (e) { $app.innerHTML = erro(e); }
+}
+function lPedido(p, D) {
+  var c = D.mapa[p.empresa_id] || {}, ii = D.its.filter(function (i) { return i.pedido_id === p.id; }), v = valPedido(ii), st = stPed(p.status);
+  var msgZap = 'Olá, ' + (c.nome || '') + '! Acabei de receber esse pedido seu no sistema (nº ' + p.numero + ', ' + v.n + ' itens, ' + fmtM(v.met).replace(',00', '') + ', total de ' + fmtBRL(v.tot) + '). Posso confirmar?';
+  var h = '<p><a href="#" id="vlt" style="font-weight:600;color:var(--green)">← Todos os pedidos</a></p><div class="row sp"><div><div class="ey">' + esc(c.nome || '—') + ' · recebido ' + dtBR(p.enviado_em) + '</div><div class="row"><h1>Pedido nº ' + p.numero + '</h1>' + chip(st[0], st[1]) + (p.confirmado_em ? chip('Confirmado com o cliente', 'ok') : '') + '</div></div>' +
+    '<div class="row"><button class="btn sec" id="pdf">Baixar PDF</button>' + (c.telefone ? '<a class="btn" target="_blank" rel="noopener" href="https://wa.me/' + zap(c.telefone) + '?text=' + encodeURIComponent(msgZap) + '" id="wa">Confirmar no WhatsApp</a>' : '') + '</div></div>';
+  h += '<div class="pn"><h2>Itens</h2>' + ii.map(function (i) {
+    var s = stIt(i.status);
+    return '<div class="it" data-i="' + i.id + '"><div class="row sp"><b>' + esc(i.referencia) + ' · ' + fmtM(i.metragem) + '</b><span>' + chip(s[0], s[1]) + ' <span class="vl">' + fmtBRL(Number(i.preco_metro) * Number(i.metragem)) + '</span></span></div>' +
+      '<div class="m">' + esc(i.descricao || '') + ' · ' + fmtBRL(i.preco_metro) + ' por metro' + (i.cliente_final ? ' · para ' + esc(i.cliente_final) : '') + (i.destino_texto ? ' · entregar em ' + esc(i.destino_texto) : '') + '</div>' +
+      (p.status !== 'cancelado' ? '<div class="seg" style="margin-top:10px"><button data-r="disponivel" class="' + (i.status === 'disponivel' ? 'on-ok' : '') + '">Disponível</button><button data-r="parcial" class="' + (i.status === 'parcial' ? 'on-wn' : '') + '">Parcial</button><button data-r="indisponivel" class="' + (i.status === 'indisponivel' ? 'on-cr' : '') + '">Indisponível</button></div>' +
+        '<div class="row" data-par="' + i.id + '" style="margin-top:8px"' + (i.status === 'parcial' ? '' : ' hidden') + '><label style="margin:0;flex:1">Metros disponíveis<input inputmode="decimal" value="' + (i.status === 'parcial' ? String(i.metragem_confirmada).replace('.', ',') : '') + '" data-pm="' + i.id + '"></label><button class="btn sm" data-ok="' + i.id + '" style="margin-top:20px">Salvar</button></div>' : '') + '</div>';
+  }).join('') + '<div class="row sp" style="border-top:2px solid var(--green);padding-top:12px"><span class="m">' + v.resp + ' de ' + v.n + ' respondidos · ' + fmtM(v.met) + '</span><span class="vl" style="font-size:24px">' + fmtBRL(v.tot) + '</span></div>' + (v.resp ? '<div class="row sp"><span class="m">Valor confirmado</span><span class="vl">' + fmtBRL(v.conf) + '</span></div>' : '') + '</div><div id="e"></div>';
+  if (!p.confirmado_em) h += '<button class="btn sec" id="cf">Marcar como confirmado com o cliente</button>';
+  $app.innerHTML = h;
+  $('#vlt').onclick = function (e) { e.preventDefault(); openId = null; lPedidos(); };
+  $('#pdf').onclick = function () { imprimirPedido(p, c, ii, v); };
+  var cf = $('#cf'); if (cf) cf.onclick = async function () { try { ok(await sb.rpc('tec_confirmar_pedido', { p_pedido: p.id })); lPedidos(); } catch (e) { $('#e').innerHTML = erro(e); } };
+  async function resp(id, st, m) { try { ok(await sb.rpc('tec_responder_item', { p_item: id, p_status: st, p_metragem: m == null ? null : m })); lPedidos(); } catch (e) { $('#e').innerHTML = erro(e); } }
+  $app.onclick = function (e) {
+    var r = e.target.closest('[data-r]'); if (r) { var id = r.closest('.it').dataset.i; if (r.dataset.r === 'parcial') { r.closest('.it').querySelector('[data-par]').hidden = false; return; } return resp(id, r.dataset.r); }
+    var o = e.target.closest('[data-ok]'); if (o) { var inp = $('[data-pm="' + o.dataset.ok + '"]'); var m = numBR(inp.value); return resp(o.dataset.ok, 'parcial', m); }
+  };
+}
+function imprimirPedido(p, c, ii, v) {
+  var w = window.open('', '_blank'); if (!w) { toast('Libere pop-ups para baixar o PDF'); return; }
+  var linhas = ii.map(function (i, k) { return '<tr><td>' + (k + 1) + '</td><td><b>' + esc(i.referencia) + '</b><br><small>' + esc(i.descricao || '') + ' · ' + fmtBRL(i.preco_metro) + ' por metro</small></td><td>' + fmtM(i.metragem) + '</td><td>' + esc(i.cliente_final || '') + '<br><small>' + esc(i.destino_texto || '') + '</small></td><td style="text-align:right"><b>' + fmtBRL(Number(i.preco_metro) * Number(i.metragem)) + '</b></td></tr>'; }).join('');
+  w.document.write('<!doctype html><meta charset="utf-8"><title>Pedido nº ' + p.numero + '</title><style>body{font:13px Inter,Arial,sans-serif;color:#1B241E;margin:0}.h{background:#1F3A29;border-bottom:3px solid #B58A3A;color:#F6F2E9;padding:18px 40px;display:flex;justify-content:space-between;align-items:center}.h b{font:700 20px Georgia,serif;letter-spacing:.18em}.p{padding:22px 40px}table{width:100%;border-collapse:collapse;margin-top:14px}th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#5A6258;border-bottom:1.5px solid #1F3A29;padding:6px}td{padding:9px 6px;border-bottom:1px solid #E6E0CF;vertical-align:top}small{color:#5A6258}.t{display:flex;justify-content:space-between;border-top:2px solid #1F3A29;margin-top:10px;padding-top:12px;font:700 20px Georgia,serif}.c{border-left:3px solid #B58A3A;background:#EFE8D6;padding:10px 14px;margin-top:22px;font-size:12px}</style>' +
+    '<div class="h"><b>' + esc(X.lojaNome).toUpperCase() + '</b><div style="text-align:right"><small style="color:#D9C48F;letter-spacing:.14em;text-transform:uppercase">Pedido de tecido</small><br><b style="letter-spacing:0">Nº ' + p.numero + '</b></div></div><div class="p"><p><small>Cliente</small><br><b>' + esc(c.nome || '') + '</b> · ' + esc(maskDoc(c.documento)) + ' · ' + esc(c.telefone || '') + '<br><small>Enviado em ' + dtBR(p.enviado_em) + '</small></p><table><thead><tr><th>#</th><th>Tecido</th><th>Metragem</th><th>Cliente final / destino</th><th style="text-align:right">Valor</th></tr></thead><tbody>' + linhas + '</tbody></table><div class="t"><span style="font:13px Arial">' + fmtM(v.met) + ' em ' + v.n + ' itens</span><span>' + fmtBRL(v.tot) + '</span></div><div class="c"><b>Confirmação.</b> O vendedor confirma este pedido com o cliente pelo WhatsApp antes de separar o tecido.</div></div><script>setTimeout(function(){print()},300)<\/script>');
+  w.document.close();
+}
+async function lClientes() {
+  $app.innerHTML = '<p class="sub">Carregando…</p>';
+  try {
+    var D = await carregaLoja(); var f = lClientes.f || 'pendente';
+    var lista = D.cl.filter(function (c) { return f === 'todos' || c.status === f; });
+    var cont = function (s) { return D.cl.filter(function (c) { return c.status === s; }).length; };
+    var h = '<div class="ey">Quem pode pedir</div><h1>Clientes</h1><p class="sub">Só clientes liberados por você veem o catálogo, os preços e fazem pedidos.</p><div class="tabs">' + [['pendente', 'Aguardando liberação'], ['liberado', 'Liberados'], ['bloqueado', 'Bloqueados'], ['recusado', 'Recusados'], ['todos', 'Todos']].map(function (t) { return '<button data-f="' + t[0] + '"' + (f === t[0] ? ' class="on"' : '') + '>' + t[1] + (t[0] !== 'todos' ? ' · ' + cont(t[0]) : '') + '</button>'; }).join('') + '</div><div id="e"></div>';
+    h += lista.length ? '<div class="pn tw"><table class="t"><thead><tr><th>Cliente</th><th>CPF / CNPJ</th><th>Contato</th><th>Cadastro</th><th>Situação</th><th></th></tr></thead><tbody>' + lista.map(function (c) {
+      var k = { pendente: 'wn', liberado: 'ok', bloqueado: 'cr', recusado: 'cr' }[c.status];
+      var bt = c.status === 'pendente' ? '<button class="btn sm" data-d="liberar" data-id="' + c.id + '">Liberar</button> <button class="btn dg sm" data-d="recusar" data-id="' + c.id + '">Recusar</button>' : c.status === 'liberado' ? '<button class="btn dg sm" data-d="bloquear" data-id="' + c.id + '">Bloquear</button>' : '<button class="btn sec sm" data-d="liberar" data-id="' + c.id + '">Liberar</button>';
+      return '<tr><td><b>' + esc(c.nome) + '</b><br><span class="m">' + (c.tipo === 'pj' ? 'Empresa' : 'Pessoa física') + '</span></td><td>' + esc(maskDoc(c.documento)) + '</td><td>' + esc(c.telefone || '') + '<br><span class="m">' + esc(c.email || '') + '</span></td><td>' + dtBR(c.criado_em) + '</td><td>' + chip(c.status.charAt(0).toUpperCase() + c.status.slice(1), k) + '</td><td style="text-align:right;white-space:nowrap">' + bt + '</td></tr>';
+    }).join('') + '</tbody></table></div>' : '<div class="pn"><p class="sub">Ninguém nesta lista.</p></div>';
+    $app.innerHTML = h;
+    $app.onclick = async function (e) {
+      var t = e.target.closest('[data-f]'); if (t) { lClientes.f = t.dataset.f; return lClientes(); }
+      var d = e.target.closest('[data-d]'); if (d) { try { ok(await sb.rpc('tec_decidir_cliente', { p_vinculo: d.dataset.id, p_decisao: d.dataset.d })); toast('Cadastro atualizado'); lClientes(); } catch (x) { $('#e').innerHTML = erro(x); } }
+    };
+  } catch (e) { $app.innerHTML = erro(e); }
+}
+async function lCatalogo() {
+  $app.innerHTML = '<p class="sub">Carregando…</p>';
+  try {
+    var cat = ok(await sb.from('tec_catalogo').select('*').eq('empresa_id', X.emp).order('referencia')); var q = lCatalogo.q || '';
+    var vis = cat.filter(function (c) { return !q || norm(c.referencia + ' ' + (c.nome || '')).indexOf(norm(q)) >= 0; });
+    var h = '<div class="row sp"><div><div class="ey">Tabela de preços</div><h1>Catálogo</h1><p class="sub">O preço vale para o artigo. As cores ficam dentro de cada artigo (ex.: 1009/6).</p></div><button class="btn" id="novo">Novo artigo</button></div>' +
+      '<div class="pn" id="nv" hidden><h3>Novo artigo</h3><div class="row"><label style="flex:1;min-width:110px">Artigo<input id="n-ref"></label><label style="flex:2;min-width:160px">Descrição<input id="n-nome"></label><label style="flex:1;min-width:110px">Preço por metro<input id="n-pr" inputmode="decimal"></label></div><p><button class="btn" id="n-ok">Salvar artigo</button></p></div><div id="e"></div>' +
+      '<label style="max-width:360px"><input id="bq" placeholder="Buscar artigo ou nome" value="' + esc(q) + '"></label>' +
+      '<div class="pn tw"><table class="t"><thead><tr><th>Artigo</th><th>Descrição</th><th>Situação</th><th style="text-align:right">Preço por metro</th></tr></thead><tbody>' + vis.map(function (c) { return '<tr><td><b>' + esc(c.referencia) + '</b></td><td>' + esc(c.nome || '') + '</td><td><label style="margin:0;font-weight:500"><input type="checkbox" style="width:auto;margin-right:6px" data-at="' + c.id + '"' + (c.ativo ? ' checked' : '') + '>' + (c.ativo ? 'Ativo' : 'Inativo') + '</label></td><td style="text-align:right"><input style="width:110px;text-align:right;display:inline-block" inputmode="decimal" data-pr="' + c.id + '" value="' + (c.preco_metro == null ? '' : String(Number(c.preco_metro).toFixed(2)).replace('.', ',')) + '"></td></tr>'; }).join('') + '</tbody></table></div>' +
+      '<div class="call"><b>Preço alterado.</b> Pedidos já enviados mantêm o preço da data do envio. A mudança vale só para os próximos.</div>';
+    $app.innerHTML = h;
+    $('#novo').onclick = function () { $('#nv').hidden = !$('#nv').hidden; };
+    $('#bq').oninput = function () { lCatalogo.q = this.value; clearTimeout(lCatalogo.t); lCatalogo.t = setTimeout(lCatalogo, 250); };
+    $('#n-ok').onclick = async function () { try { var pr = numBR($('#n-pr').value); if (!$('#n-ref').value.trim() || pr == null) throw new Error('Informe o artigo e o preço.'); ok(await sb.from('tec_catalogo').insert({ empresa_id: X.emp, loja_id: X.lojaId, referencia: $('#n-ref').value.trim(), nome: $('#n-nome').value.trim() || null, preco_metro: pr })); toast('Artigo salvo'); lCatalogo(); } catch (e) { $('#e').innerHTML = erro(e); } };
+    $app.onchange = async function (e) {
+      try {
+        if (e.target.dataset.pr) { var pr = numBR(e.target.value); if (pr == null || pr < 0) throw new Error('Preço inválido.'); ok(await sb.from('tec_catalogo').update({ preco_metro: pr }).eq('id', e.target.dataset.pr)); toast('Preço atualizado'); }
+        if (e.target.dataset.at) { ok(await sb.from('tec_catalogo').update({ ativo: e.target.checked }).eq('id', e.target.dataset.at)); toast(e.target.checked ? 'Artigo ativo' : 'Artigo inativo'); lCatalogo(); }
+      } catch (x) { $('#e').innerHTML = erro(x); }
+    };
+  } catch (e) { $app.innerHTML = erro(e); }
+}
+
+sb.auth.onAuthStateChange(function (ev) { if (ev === 'PASSWORD_RECOVERY') telaNovaSenha(); });
+function telaNovaSenha() {
+  chrome(); $app.innerHTML = '<div class="cen"><h1>Nova senha</h1><form id="f" class="pn"><label>Nova senha<input id="pw" type="password" minlength="6" autocomplete="new-password" required></label><div id="e"></div><div style="margin-top:14px"><button class="btn full">Salvar senha</button></div></form></div>';
+  $('#f').onsubmit = async function (ev) { ev.preventDefault(); try { ok(await sb.auth.updateUser({ password: $('#pw').value })); history.replaceState(null, '', location.pathname); boot(); } catch (e) { $('#e').innerHTML = erro(e); } };
+}
+boot();
+})();
+</script>
+</body>
+</html>
