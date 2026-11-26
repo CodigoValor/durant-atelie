@@ -1,6 +1,6 @@
 /* Teste ponta a ponta com um Supabase simulado em memória (nada sai do computador).
    Uso: NODE_PATH=/opt/npm-tools/node_modules node tests/e2e.js */
-const { chromium } = require('playwright');
+const { launchBrowser, localContext } = require('../tools/browser-test.cjs');
 const http = require('http'), fs = require('fs'), path = require('path');
 
 const ROOT = path.join(__dirname, '..');
@@ -127,10 +127,10 @@ function novoBanco(cfg) {
 
 (async () => {
   const srv = await servidor(); const base = `http://localhost:${srv.address().port}/`;
-  const br = await chromium.launch({ executablePath: fs.existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined, args: ['--no-sandbox'] });
+  const br = await launchBrowser();
 
   async function abre(banco, ctx, qs) {
-    ctx = ctx || await br.newContext();
+    ctx = ctx || await localContext(br, base);
     const pg = await ctx.newPage(); const erros = [];
     pg.on('pageerror', e => erros.push(String(e))); pg.on('dialog', d => d.dismiss());
     await pg.route(SUPA + '/**', banco.handler);
