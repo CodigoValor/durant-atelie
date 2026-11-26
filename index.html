@@ -5216,7 +5216,7 @@ function exportar(){
 }
 const BKP_MAX=20,BKP_CHUNK=150000,BKP_HORAS=4;
 async function bkpAuto(force){
- if(!P.ready||P.state==='off'||!P.col||P.bkpBusy)return false;
+ if(!P.ready||P.state==='off'||!P.col||P.bkpBusy||PARC())return false;   /* parceiro não grava backup (o servidor nega) */
  if(!S.clientes.length&&!S.pedidos.length&&!S.orcamentos.length)return false;
  const ult=S.cfg.bkpAuto?new Date(S.cfg.bkpAuto).getTime():0;
  if(!force&&Date.now()-ult<BKP_HORAS*36e5)return false;
