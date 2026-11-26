@@ -5096,6 +5096,7 @@ async function boot(){
   if(m.exists){await loadAll()}
   else{
    limparOperacional({zerarPrecos:true});
+   if(window.SB&&window.SB.recemAceito)S.cfg.usuarios=[];   /* empresa nova criada por convite: sem o usuário de exemplo; a primeira pessoa entra pelo vínculo do servidor */
    P.ready=true;setState('saving');
    await flush();
    if(P.state==='error')throw {code:P.err};
@@ -5104,7 +5105,12 @@ async function boot(){
  }catch(e){P.ready=false;return gateErro(e)}
  P.ready=true;setState('ok');
  if(NUM.ativo())await NUM.preparar();
- const sid=sess.get(),u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));
+ const sid=sess.get();let u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));
+ if(!u&&window.SB&&(window.SB.recemAceito||window.SB.papel==='parceiro')){   /* quem acabou de aceitar um convite (ou é parceiro, que não lê a lista de usuários) ganha o cadastro de usuário com o grupo do papel */
+  const em=window.SB.email,adm=window.SB.papel==='admin';
+  u={id:nid(),nome:em.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),email:em,grupo:adm?'Administrador':'Atendimento e vendas',ativo:true};
+  S.cfg.usuarios.push(u);if(window.SB.papel!=='parceiro')await flush();
+ }
  if(u)entrar(u);else if(window.SB)window.SB.semUsuario();else gateLogin();
 }
 

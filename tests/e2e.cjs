@@ -42,6 +42,24 @@ function novoBanco(cfg) {
       return json(route, 200, st.cfg.membros || [{ empresa_id: 'E1', papel: 'admin' }]);
     }
     if (p === '/rest/v1/empresas') return json(route, 200, st.cfg.empresas || [{ id: 'E1', nome: 'Durant Alfaiataria', vende_cliente_final: true, produz: false }]);
+    if (p === '/rest/v1/rpc/convite_info') {
+      const b = JSON.parse(req.postData() || '{}'), c = (st.convites || {})[b.p_token];
+      return json(route, 200, c && c.status === 'pendente' ? [{ valido: true, email_mascarado: 'ma***@ex.com', empresa_nome: c.empresa_nome, papel: c.papel }] : [{ valido: false, email_mascarado: null, empresa_nome: null, papel: null }]);
+    }
+    if (p === '/auth/v1/signup') {
+      const b = JSON.parse(req.postData() || '{}'), c = Object.values(st.convites || {}).find(x => x.email === b.email && x.status === 'pendente');
+      if (!c) return json(route, 500, { code: 500, error_code: 'unexpected_failure', msg: 'Database error saving new user: Cadastro somente com convite.' });
+      st.emailLogado = b.email; const exp = Math.floor(Date.now() / 1000) + 3600;
+      return json(route, 200, { access_token: jwt(b.email), token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'r1',
+        user: { id: 'u1', aud: 'authenticated', role: 'authenticated', email: b.email, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } });
+    }
+    if (p === '/rest/v1/rpc/aceitar_convite') {
+      const b = JSON.parse(req.postData() || '{}'), c = (st.convites || {})[b.p_token]; st.aceites = (st.aceites || 0) + 1;
+      if (!c || c.status !== 'pendente') return json(route, 400, { code: 'P0001', message: 'convite inválido ou expirado' });
+      if (c.email !== st.emailLogado) return json(route, 400, { code: 'P0001', message: 'este convite é para outro e-mail' });
+      c.status = 'aceito'; st.cfg.membros = (st.cfg.membros || []).concat([{ empresa_id: c.empresa_id, papel: c.papel }]);
+      return json(route, 200, c.empresa_id);
+    }
     if (p === '/rest/v1/rpc/reservar_numeros') {   // mesma regra da migration 0006
       const b = JSON.parse(req.postData() || '{}'); st.contadores = st.contadores || {}; st.rpcs = (st.rpcs || 0) + 1;
       const ch = b.p_empresa + '|' + b.p_nome, linhas = [...st.reg.values()].filter(r => r.empresa_id === b.p_empresa);
@@ -80,12 +98,12 @@ function novoBanco(cfg) {
   const srv = await servidor(); const base = `http://localhost:${srv.address().port}/`;
   const br = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
 
-  async function abre(banco, ctx) {
+  async function abre(banco, ctx, qs) {
     ctx = ctx || await br.newContext();
     const pg = await ctx.newPage(); const erros = [];
     pg.on('pageerror', e => erros.push(String(e))); pg.on('dialog', d => d.dismiss());
     await pg.route(SUPA + '/**', banco.handler);
-    await pg.goto(base); return { pg, ctx, erros };
+    await pg.goto(base + (qs || '')); return { pg, ctx, erros };
   }
   const loginUi = async (pg, email, senha) => { await pg.fill('#g-u', email); await pg.fill('#g-p', senha); await pg.click('#g-f button[type=submit]'); };
 
@@ -194,6 +212,43 @@ function novoBanco(cfg) {
   ok(b5.rpcs >= 5 && b5.rpcs < 12, 'poucas chamadas ao servidor (' + b5.rpcs + ')');
   ok(A.erros.length === 0 && B.erros.length === 0, 'sem erros de JavaScript na página (' + A.erros.concat(B.erros).join(' | ') + ')');
   await A.ctx.close(); await B.ctx.close();
+
+  console.log('9) convite: o link leva à tela de aceite, cria a conta e entra na empresa certa');
+  const b9 = novoBanco({ membros: [], empresas: [{ id: 'E7', nome: 'Ateliê da Maria', vende_cliente_final: true, produz: true }] });
+  b9.convites = { TOK1: { email: 'maria@ex.com', papel: 'usuario', empresa_id: 'E7', empresa_nome: 'Ateliê da Maria', status: 'pendente' } };
+  const r9 = await abre(b9, null, '?convite=TOK1');
+  await r9.pg.waitForSelector('#g-p2', { timeout: 15000 });
+  ok((await r9.pg.textContent('body')).includes('Ateliê da Maria') && (await r9.pg.textContent('body')).includes('ma***@ex.com'), 'a tela mostra a empresa e o e-mail mascarado');
+  ok(!r9.pg.url().includes('convite='), 'o código sai do endereço do navegador');
+  await r9.pg.fill('#g-u', 'outra@ex.com'); await r9.pg.fill('#g-p', 'senhaNova123'); await r9.pg.fill('#g-p2', 'senhaNova123'); await r9.pg.click('#g-f button[type=submit]');
+  await r9.pg.waitForSelector('#g-e:not([hidden])', { timeout: 5000 });
+  ok((await r9.pg.textContent('#g-e')).includes('não é o do convite'), 'e-mail diferente do convite é recusado com mensagem clara');
+  await r9.pg.fill('#g-u', 'maria@ex.com'); await r9.pg.fill('#g-p2', 'diferente123'); await r9.pg.click('#g-f button[type=submit]');
+  ok((await r9.pg.textContent('#g-e')).includes('não são iguais'), 'senhas diferentes são recusadas');
+  await r9.pg.fill('#g-p2', 'senhaNova123'); await r9.pg.click('#g-f button[type=submit]');
+  await r9.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  ok(await r9.pg.evaluate(() => window.SB.empresa === 'E7' && window.SB.papel === 'usuario'), 'depois de criar a conta, a pessoa já está na empresa do convite com o papel certo');
+  ok(b9.convites.TOK1.status === 'aceito', 'o convite foi marcado como usado');
+  await r9.pg.reload(); await r9.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  ok(b9.aceites === 1, 'recarregar não tenta aceitar de novo');
+  ok(r9.erros.length === 0, 'sem erros de JavaScript na página (' + r9.erros.join(' | ') + ')');
+  await r9.ctx.close();
+  const r9b = await abre(b9, null, '?convite=TOK1');
+  await r9b.pg.waitForSelector('#g-ok', { timeout: 15000 });
+  ok((await r9b.pg.textContent('body')).includes('Convite inválido'), 'convite já usado mostra "Convite inválido"');
+  await r9b.pg.click('#g-ok'); await r9b.pg.waitForSelector('#g-u');
+  ok(true, 'e leva para a tela de entrada normal');
+  await r9b.ctx.close();
+  console.log('10) convite para quem já tem conta: entra e o convite é aceito');
+  const b10 = novoBanco({ membros: [{ empresa_id: 'E1', papel: 'admin' }], empresas: [{ id: 'E1', nome: 'Durant Alfaiataria', vende_cliente_final: true, produz: false }, { id: 'E7', nome: 'Ateliê da Maria', vende_cliente_final: true, produz: true }] });
+  b10.convites = { TOK2: { email: 'hd@henriquedurant.com', papel: 'parceiro', empresa_id: 'E7', empresa_nome: 'Ateliê da Maria', status: 'pendente' } };
+  const r10 = await abre(b10, null, '?convite=TOK2'); await r10.pg.waitForSelector('#g-ja', { timeout: 15000 });
+  await r10.pg.click('#g-ja'); await r10.pg.waitForSelector('#g-u');
+  await loginUi(r10.pg, 'hd@henriquedurant.com', 'senhaCerta123');
+  await r10.pg.waitForSelector('[data-emp], #userchip:not([hidden])', { timeout: 15000 });
+  ok(await r10.pg.evaluate(() => (window.SB.empresa === 'E7' && window.SB.papel === 'parceiro')), 'quem já tinha conta entra direto na empresa nova (a que aceitou agora), como parceiro');
+  ok(b10.convites.TOK2.status === 'aceito', 'convite marcado como usado');
+  await r10.ctx.close();
 
   await br.close(); srv.close();
   console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK');

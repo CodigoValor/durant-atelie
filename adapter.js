@@ -16,6 +16,17 @@
     sb.auth.getSession().then(function (r) { var u = r && r.data && r.data.session && r.data.session.user; if (u) lembrada(u.id, null); location.reload(); });
   };
   var vemDeRecuperacao = /type=recovery/.test(location.hash);
+  /* convite: o link traz ?convite=CÓDIGO. Guardamos o código (sobrevive a "confirme seu e-mail") e limpamos o endereço. */
+  var CONVITE = (function () {
+    var t = '';
+    try { t = (new URLSearchParams(location.search).get('convite') || '').trim(); } catch (e) {}
+    try {
+      if (t) { sessionStorage.setItem('alinhavo.convite', t); var u = new URL(location.href); u.searchParams.delete('convite'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); }
+      else t = sessionStorage.getItem('alinhavo.convite') || '';
+    } catch (e) {}
+    return t;
+  })();
+  function limpaConvite() { CONVITE = ''; try { sessionStorage.removeItem('alinhavo.convite'); } catch (e) {} }
 
   /* faixa fixa avisando que NÃO é o sistema real (impossível confundir homologação com produção) */
   if (cfg.ambiente === 'homologacao') {
@@ -112,6 +123,70 @@
       };
     });
   }
+  function mensagemConvite(e) {
+    var m = ((e && e.message) || '').toString(), c = ((e && e.code) || '').toString();
+    if (/somente com convite/i.test(m)) return 'Este e-mail não é o do convite. Use o mesmo e-mail que recebeu o convite.';
+    if (c === 'user_already_exists' || /already (registered|exists)/i.test(m)) return 'Este e-mail já tem conta. Use "Já tenho conta" para entrar.';
+    if (c === 'weak_password' || /password/i.test(m)) return 'Escolha uma senha mais forte (8 caracteres ou mais).';
+    if (e && (e.status === 429 || c === 'over_request_rate_limit')) return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
+    return 'Não consegui criar sua conta agora. Tente de novo em instantes.';
+  }
+  function telaConviteInvalido() {
+    return new Promise(function (resolve) {
+      limpaConvite();
+      mostra('<h1>Convite inválido</h1><p class="gmsg">Este convite não existe, já foi usado ou expirou. Peça um novo convite a quem convidou você.</p>' +
+        '<div class="gact"><button class="gbtn" id="g-ok">Ir para a entrada</button></div>');
+      document.getElementById('g-ok').onclick = function () { resolve(); };
+    });
+  }
+  /* Quem recebeu o link: cria a conta (ou diz que já tem) e devolve a sessão. null = foi para o login normal. */
+  function telaConvite(info) {
+    return new Promise(function (resolve) {
+      var papel = PAPEL_TXT[info.papel] || info.papel;
+      mostra('<p class="geyebrow">VOCÊ FOI CONVIDADO</p><h1>' + esc(info.empresa_nome || 'Alinhavo') + '</h1><p class="gsub">Convite para <b>' + esc(info.email_mascarado) + '</b>, como ' + esc(papel) + '. Crie sua senha para entrar.</p>' +
+        '<form id="g-f" class="gform"><label>Seu e-mail (o mesmo do convite)<input id="g-u" type="email" autocomplete="username"></label>' +
+        '<label>Crie uma senha<input id="g-p" type="password" autocomplete="new-password"></label>' +
+        '<label>Repita a senha<input id="g-p2" type="password" autocomplete="new-password"></label>' +
+        '<p class="gerr" id="g-e" role="alert" hidden></p><button class="gbtn" type="submit">Criar conta e entrar</button><button class="glink" type="button" id="g-ja">Já tenho conta</button></form>');
+      var er = document.getElementById('g-e'), btn = document.querySelector('#g-f .gbtn');
+      function erroTxt(t) { er.textContent = t; er.hidden = false; btn.disabled = false; }
+      document.getElementById('g-ja').onclick = function () { resolve(null); };
+      document.getElementById('g-f').onsubmit = function (ev) {
+        ev.preventDefault();
+        var em = document.getElementById('g-u').value.trim().toLowerCase(), p = document.getElementById('g-p').value, p2 = document.getElementById('g-p2').value;
+        if (!em) return erroTxt('Informe seu e-mail.');
+        if (p.length < 8) return erroTxt('A senha precisa ter pelo menos 8 caracteres.');
+        if (p !== p2) return erroTxt('As senhas não são iguais.');
+        btn.disabled = true; er.hidden = true;
+        sb.auth.signUp({ email: em, password: p }).then(function (r) {
+          if (r.error) return erroTxt(mensagemConvite(r.error));
+          if (r.data && r.data.session) return resolve(r.data.session);
+          mostra('<h1>Confirme seu e-mail</h1><p class="gmsg">Enviamos uma mensagem para ' + esc(em) + '. Abra o link dela e depois volte aqui para entrar. O convite será aceito na sua primeira entrada.</p>' +
+            '<div class="gact"><button class="gbtn" id="g-ok">Ir para a entrada</button></div>');
+          document.getElementById('g-ok').onclick = function () { resolve(null); };
+        }, function (e) { erroTxt(mensagemConvite(e)); });
+      };
+    });
+  }
+  /* Antes de entrar na empresa: se há convite guardado e a pessoa está logada, aceita. Devolve o id da empresa ou null. */
+  async function aceitarPendente() {
+    if (!CONVITE) return null;
+    var r = await sb.rpc('aceitar_convite', { p_token: CONVITE });
+    if (r.error) {
+      var m = r.error.message || '';
+      if (/outro e-mail/i.test(m)) {
+        await new Promise(function (resolve) {
+          mostra('<h1>Convite para outro e-mail</h1><p class="gmsg">Este convite foi enviado para outro e-mail. Você entrou como ' + esc(SB.email) + '. Saia e entre com o e-mail que recebeu o convite.</p><div class="gact"><button class="gbtn" id="g-out">Sair</button></div>');
+          document.getElementById('g-out').onclick = function () { limpaConvite(); SB.sair(); };
+        });
+        await new Promise(function () {});
+      }
+      limpaConvite();      // inválido, usado ou expirado: segue normal
+      return null;
+    }
+    limpaConvite();
+    return r.data || null;
+  }
   function telaSemUsuario() {
     mostra('<h1>Usuário não cadastrado</h1><p class="gmsg">O e-mail ' + esc(SB.email) + ' entrou, mas não está cadastrado como usuário no sistema. Peça ao administrador em Configurações, Usuários.</p>' +
       '<div class="gact"><button class="gbtn" id="g-out">Sair</button></div>');
@@ -151,9 +226,17 @@
     entrando = (async function () {
       var r = await sb.auth.getSession();
       var session = r && r.data && r.data.session;
+      if (!session && CONVITE) {
+        var ci = await sb.rpc('convite_info', { p_token: CONVITE });
+        var info = ci && ci.data && ci.data[0];
+        if (!info || !info.valido) await telaConviteInvalido();
+        else { info.nova = !!info.empresa_nome; session = await telaConvite(info); }
+      }
       while (!session) session = await telaLogin();
       if (vemDeRecuperacao) { await telaNovaSenha(); vemDeRecuperacao = false; }
       SB.email = String(session.user.email || '').toLowerCase();
+      var recemEntrou = await aceitarPendente();
+      if (recemEntrou) { lembrada(session.user.id, recemEntrou); SB.recemAceito = true; }
       var m = await sb.from('membros').select('empresa_id,papel').order('criado_em', { ascending: true });
       if (m.error) throw erro(m.error);
       if (!m.data || !m.data.length) { telaSemAcesso(SB.email); await new Promise(function () {}); }
