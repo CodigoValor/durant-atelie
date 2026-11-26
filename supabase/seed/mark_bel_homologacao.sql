@@ -111,9 +111,3 @@ begin
   ) as c(referencia, nome, composicao, largura_cm, cor, preco_metro, apelidos)
   on conflict do nothing;
 end $$;
-
--- Master (hd@henriquedurant.com): marcador + admin da Mark Bel, para alternar entre os sistemas.
-insert into public.usuarios_master (user_id) select id from auth.users where email = 'hd@henriquedurant.com' on conflict do nothing;
-insert into public.membros (empresa_id, user_id, papel)
-select '8f8e58cd-18cd-4a6a-bffd-725315478a3d', id, 'admin' from auth.users where email = 'hd@henriquedurant.com'
-on conflict do nothing;

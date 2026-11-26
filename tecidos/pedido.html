@@ -32,10 +32,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 .nav button[aria-current=page]{color:var(--bg);border-bottom-color:var(--brass)}
 .who{font-size:13px;color:#D9C8A0;display:flex;gap:12px;align-items:center;white-space:nowrap}
 .who a{color:#D9C8A0;cursor:pointer;text-decoration:underline}
-.um{position:relative}.umb{background:none;border:.5px solid #D9C8A055;color:#F6F2E9;border-radius:8px;padding:4px 8px;display:flex;gap:8px;align-items:center;cursor:pointer;font:inherit}.uma{width:22px;height:22px;border-radius:50%;background:#B58A3A;color:#1F3A29;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
-.umd{position:absolute;right:0;top:calc(100% + 6px);width:270px;background:#FFFDF8;color:#1F3A29;border:1px solid #D9C8A0;border-radius:10px;z-index:30;overflow:hidden;text-align:left;white-space:normal}.umh{padding:12px 14px;border-bottom:1px solid #E8E0CC;font-size:13px}.umm{font-size:11px;border:1px solid #B58A3A;border-radius:4px;padding:1px 6px}.umc{padding:10px 14px;background:#F6F2E9;border-bottom:1px solid #E8E0CC;font-size:14px}
-.ey2{font-size:11px;color:#6B6B5F}.umi{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:none;border:0;border-top:1px solid #F0EAD8;padding:10px 14px;cursor:pointer;font:inherit;color:#1F3A29}.umi:hover{background:#F6F2E9}.umi .m{font-size:12px}
-@media (max-width:700px){.who .umn{display:inline}}
 main{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:24px 18px 40px}
 main.cli{max-width:600px}
 .ey{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--brass-t)}
@@ -87,7 +83,7 @@ table.t td input{margin:0;padding:8px 10px;font-size:14px}
 .seg2 button.on{background:var(--green);color:var(--bg)}
 #toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:var(--green);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:99;max-width:92vw}
 footer{padding:14px;text-align:center;font-size:12px;color:var(--muted)}
-@media (max-width:700px){.who>span{display:none}.nav{gap:14px}}
+@media (max-width:700px){.who span{display:none}.nav{gap:14px}}
 @media print{.top,.bn,.hom,footer,#toast{display:none}}
 </style>
 </head>
@@ -324,30 +320,6 @@ async function telaEntrar(aviso, tab) {
     } catch (e) { b.disabled = false; $('#e').innerHTML = erro(e); }
   };
 }
-
-/* ---------- menu do usuário + alternar entre sistemas ---------- */
-var NOMES_SIS = { atelie: ['Ateliê', 'Clientes, medidas e pedidos'], fabrica: ['Fábrica', 'Pedidos dos ateliês parceiros'], loja: ['Loja de tecidos', 'Catálogo e clientes'], cliente: ['Cliente de loja', 'Pedir tecido nas lojas'] };
-function menuUser(atual, rotulo) {
-  var who = $('#who'), sis = (X.sistemas || []).filter(function (s, i, a) { return a.findIndex(function (t) { return t.sistema === s.sistema; }) === i; });
-  var outros = sis.filter(function (s) { return s.sistema !== atual; });
-  var ini = String(X.user.email || '?').slice(0, 2).toUpperCase();
-  who.innerHTML = '<div class="um"><button type="button" class="umb" id="umb" aria-haspopup="true" aria-expanded="false"><span class="uma">' + esc(ini) + '</span><span class="umn">' + esc(rotulo) + '</span><span aria-hidden="true">▾</span></button>' +
-    '<div class="umd" id="umd" hidden><div class="umh"><div><b>' + esc(X.user.email) + '</b>' + (X.master ? ' <span class="umm">Master</span>' : '') + '</div></div>' +
-    '<div class="umc"><div class="ey2">Você está em</div><div><b>' + esc((NOMES_SIS[atual] || [atual])[0]) + '</b> <span class="m">· ' + esc(X.empNome) + '</span></div></div>' +
-    (outros.length ? '<div class="ey2" style="padding:8px 14px 2px">Alternar para</div>' + outros.map(function (s) { return '<button type="button" class="umi" data-s="' + esc(s.sistema) + '" data-e="' + esc(s.empresa_id) + '"><b>' + esc(NOMES_SIS[s.sistema][0]) + '</b><span class="m">' + esc(NOMES_SIS[s.sistema][1]) + '</span></button>'; }).join('') : '') +
-    '<button type="button" class="umi" id="sx"><b>Sair</b></button></div></div>';
-  var b = $('#umb'), d = $('#umd');
-  b.onclick = function (e) { e.stopPropagation(); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); };
-  document.onclick = function () { if (d) { d.hidden = true; b.setAttribute('aria-expanded', 'false'); } };
-  d.onclick = function (e) { e.stopPropagation(); };
-  $('#sx').onclick = sair;
-  [].forEach.call(d.querySelectorAll('[data-s]'), function (x) { x.onclick = function () { irPara(x.dataset.s, x.dataset.e); }; });
-}
-function irPara(sistema, empresa) {
-  if (sistema === 'atelie' || sistema === 'fabrica') { try { localStorage.setItem('durant.empresa.' + X.user.id, empresa); } catch (e) {} location.href = '/'; return; }
-  try { sessionStorage.setItem('tec.sis', sistema); } catch (e) {}
-  aba = ''; boot();
-}
 async function sair() { await sb.auth.signOut(); X = { user: null, modo: '', emp: null, empNome: '', lojaEmp: null, lojaNome: '', lojaId: null, vinculo: null, vinculos: [] }; telaEntrar(); }
 
 /* ---------- boot ---------- */
@@ -359,9 +331,7 @@ async function boot() {
     var mem = ok(await sb.from('membros').select('empresa_id,papel').eq('user_id', X.user.id));
     var ids = mem.map(function (m) { return m.empresa_id; });
     var emps = ids.length ? ok(await sb.from('empresas').select('id,nome,fornece_tecido,somente_tecidos').in('id', ids)) : [];
-    try { X.sistemas = ok(await sb.rpc('meus_sistemas')) || []; X.master = !!ok(await sb.rpc('sou_master')); } catch (e) { X.sistemas = []; X.master = false; }
-    var sis = ''; try { sis = sessionStorage.getItem('tec.sis') || ''; } catch (e) {}
-    var loja = sis === 'cliente' ? null : emps.filter(function (e) { return e.fornece_tecido; })[0];
+    var loja = emps.filter(function (e) { return e.fornece_tecido; })[0];
     if (loja) {
       X.modo = 'loja'; X.emp = loja.id; X.empNome = loja.nome;
       var lj = ok(await sb.from('tec_lojas').select('id,nome').eq('empresa_id', loja.id).order('criado_em').limit(1));
@@ -371,7 +341,7 @@ async function boot() {
     }
     // cliente: pedido de acesso pendente guardado no aparelho
     var pend = null; try { pend = JSON.parse(localStorage.getItem('tec.cadastro') || 'null'); } catch (e) {}
-    var cli = emps.filter(function (e) { return e.somente_tecidos; })[0] || emps.filter(function (e) { return !e.fornece_tecido; })[0] || null;
+    var cli = emps.filter(function (e) { return e.somente_tecidos; })[0] || emps[0] || null;
     if (!cli && pend) {
       try { ok(await sb.rpc('tec_pedir_acesso', { p_loja: pend.loja, p_tipo: pend.tipo, p_nome: pend.nome, p_documento: pend.doc, p_telefone: pend.tel })); localStorage.removeItem('tec.cadastro'); return boot(); }
       catch (e) { return telaCadastroCompleto(msg(e)); }
@@ -413,7 +383,7 @@ function telaCadastroCompleto(aviso, empId) {
 function renderCliente() {
   chrome(); $app.className = 'cli';
   $('#b-nome').textContent = X.lojaNome || 'Pedido de tecido'; $('#b-sub').textContent = 'Pedido de tecido';
-  menuUser('cliente', X.empNome);
+  $('#who').innerHTML = '<span>' + esc(X.empNome) + '</span><a id="sx">Sair</a>'; $('#sx').onclick = sair;
   var v = X.vinculo;
   if (v.status !== 'liberado') {
     var t = { pendente: ['Aguardando liberação', 'A ' + esc(X.lojaNome) + ' ainda precisa liberar o seu acesso. Assim que liberar, o catálogo e o pedido aparecem aqui. Você não precisa fazer mais nada.'], recusado: ['Acesso não liberado', 'A loja não liberou este cadastro. Fale com a ' + esc(X.lojaNome) + ' se acha que foi engano.'], bloqueado: ['Acesso suspenso', 'O seu acesso a esta loja está suspenso. Fale com a ' + esc(X.lojaNome) + '.'] }[v.status];
@@ -524,7 +494,7 @@ function renderLoja() {
   var abas = [['inicio', 'Início'], ['pedidos', 'Pedidos'], ['clientes', 'Clientes'], ['catalogo', 'Catálogo']];
   $('#nav').innerHTML = abas.map(function (a) { return '<button data-a="' + a[0] + '"' + (aba === a[0] ? ' aria-current="page"' : '') + '>' + a[1] + '</button>'; }).join('');
   $('#nav').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; aba = b.dataset.a; openId = null; renderLoja(); };
-  menuUser('loja', X.empNome);
+  $('#who').innerHTML = '<span>' + esc(X.user.email) + '</span><a id="sx">Sair</a>'; $('#sx').onclick = sair;
   ({ inicio: lInicio, pedidos: lPedidos, clientes: lClientes, catalogo: lCatalogo })[aba]();
 }
 var openId = null;
