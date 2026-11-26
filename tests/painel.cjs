@@ -13,7 +13,7 @@ rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_empresa
   await pg.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '' }));
   await pg.goto(url); await pg.waitForSelector('.it');
   ok((await pg.locator('.it').count()) === 2, 'lista as empresas à esquerda');
-  ok(/Durant Alfaiataria/.test(await pg.locator('h2').innerText()) && (await pg.inputValue('#c-doc')) === '12.345.678/0001-90', 'abre a primeira empresa com o CNPJ no cadastro');
+  ok(/Durant Ltda/.test(await pg.locator('h2').innerText()) && /Durant Alfaiataria/.test(await pg.locator('.it.sel').innerText()) && (await pg.inputValue('#c-doc')) === '12.345.678/0001-90', 'abre a primeira empresa com o CNPJ no cadastro');
   ok(await pg.locator('.tp.on').innerText().then(t => /Alfaiataria/.test(t)), 'mostra o tipo Alfaiataria (ateliê e fábrica)');
   await pg.fill('#q', 'mark'); ok((await pg.locator('.it').count()) === 1, 'busca por nome filtra a lista');
   await pg.locator('.it').first().click(); await pg.waitForSelector('h2');
