@@ -70,7 +70,7 @@ function erro(x){var t=(x&&x.message)||String(x);return t.replace(/^.*?: /,'')}
 function telaLogin(aviso){
   app.innerHTML='<div class="login"><div class="logo" style="color:#243430">Alinhavo</div><div class="sub" style="margin-top:-8px">Painel de controle</div>'+
   '<label>E-mail<input id="em" type="email" autocomplete="username"></label><label>Senha<input id="pw" type="password" autocomplete="current-password"></label>'+
-  '<div id="msg" class="msg e">'+esc(aviso||'')+'</div><button class="btn" id="go">Entrar</button></div>';
+  '<div id="msg" class="msg e">'+esc(aviso||'')+'</div><button class="btn" id="go">Entrar</button><a href="/privacidade" target="_blank" rel="noopener" class="sub" style="text-align:center">Política de privacidade</a></div>';
   var go=async function(){
     $('go').disabled=true;msg('');
     var r=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});
