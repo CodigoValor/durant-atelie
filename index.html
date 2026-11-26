@@ -434,6 +434,9 @@ body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:h
 .ctl.cbx{padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b756f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 .pill.tg-alf,.ddi.tg-alf{background:#E2EFE4;color:#27503A}.pill.tg-cam,.ddi.tg-cam{background:#E0EBF8;color:#26466E}
 .ddi.tg-alf:hover{background:#D3E7D7}.ddi.tg-cam:hover{background:#CFE1F4}
+.nbadge{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:#B98332;color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:600}
+.dest-opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:0 0 8px;cursor:pointer}
+.dest-opt input{margin-top:3px}
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -530,6 +533,90 @@ async function carregarOrigens(){
 }
 setInterval(()=>{carregarOrigens()},60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)carregarOrigens()});
+/* ===== Parceiro: andamento do pedido (só leitura). O resultado vem do servidor (andamento_parceiro): a decisão do dono fica na configuração dele, que o parceiro não lê ===== */
+let ANDAM={};
+const andamDe=id=>ANDAM[id]||null;
+const andamSt=p=>(andamDe(p.id)||{}).st||'recebido';
+const partTrava=p=>PARC()&&['aceito','recusado'].includes(andamSt(p));
+function avisarMudancas(novo){
+ try{
+  const ch='durant.andam.'+window.SB.empresa+'.'+(window.SB.uid||''),ant=JSON.parse(localStorage.getItem(ch)||'null');
+  const vis={};Object.keys(novo).forEach(id=>vis[id]=novo[id].st);
+  localStorage.setItem(ch,JSON.stringify(vis));
+  if(!ant)return;
+  const a=Object.keys(vis).filter(id=>ant[id]&&ant[id]!==vis[id]&&vis[id]!=='recebido');
+  if(a.length)setTimeout(()=>toast(a.length===1?`Pedido ${a[0]}: ${vis[a[0]]==='aceito'?'aceito pelo produtor':'recusado pelo produtor'}.`:`${a.length} pedidos tiveram resposta do produtor.`),1200);
+ }catch(e){}
+}
+async function carregarAndamento(){
+ if(!window.SB||!window.SB.client||!window.SB.empresa||window.SB.papel!=='parceiro')return;
+ try{
+  const r=await window.SB.client.rpc('andamento_parceiro',{p_empresa:window.SB.empresa});
+  if(r.error||!Array.isArray(r.data))return;
+  const novo={};r.data.forEach(x=>{novo[String(x.id).replace(/^pedidos~/,'')]={st:x.st,em:x.em,motivo:x.motivo}});
+  avisarMudancas(novo);
+  if(JSON.stringify(novo)!==JSON.stringify(ANDAM)){ANDAM=novo;if(P.ready&&P.user&&!ui.draft&&!document.getElementById('mdl'))render()}
+ }catch(e){}
+}
+setInterval(carregarAndamento,60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)carregarAndamento()});
+/* pílula do estado, vista pelo parceiro (sem custos, prestadores nem produção interna) */
+function pillParceiro(p){
+ const st=andamSt(p);
+ if(st==='recusado')return '<span class="pill crit">Recusado pelo produtor</span>';
+ if(st==='recebido')return '<span class="pill warn">Aguardando aceite do produtor</span>';
+ return `<span class="pill ${p.st>=4?'ok':'info'}">${pedFin(p)?'Entregue':p.st>=4?'Pronto':!p.st?'Aceito · preparando':'Aceito · '+STATUS[p.st]}</span>`;
+}
+function andamCard(p){
+ if(!PARC()||p.status==='orcamento')return '';
+ const st=andamSt(p),a=andamDe(p.id)||{},quando=a.em?new Date(a.em).toLocaleDateString('pt-BR'):'';
+ const txt=st==='recebido'?'O produtor ainda não respondeu. Você pode alterar o pedido até ele aceitar.'
+  :st==='aceito'?`Aceito${quando?' em '+quando:''}. Daqui em diante só o produtor altera o andamento. Etapa atual: <b>${pedFin(p)?'Entregue':!p.st?'preparando o tecido':STATUS[p.st]}</b>.`
+  :`Recusado${quando?' em '+quando:''}. Motivo: ${esc(a.motivo||'não informado')}. Fale com o produtor para combinar o próximo passo.`;
+ return `<section class="card" style="border-color:${st==='recusado'?'var(--crit)':'#B98332'}"><div class="card-h"><h2>Resposta do produtor</h2>${pillParceiro(p)}</div><p class="d" style="margin:0;color:var(--ink-2)">${txt}</p></section>`;
+}
+/* ===== Destino da peça pronta (escolhido pelo parceiro ao lançar o pedido) ===== */
+const DEST_TIPOS={parceiro:'Enviar para mim (parceiro)',cliente:'Enviar direto ao cliente final',retirada:'Retirada'};
+const DEST_QUEM={parceiro:'Eu mesmo retiro',outra:'Outra pessoa retira',motoboy:'Motoboy retira'};
+const destVazio=()=>({tipo:'',nome:'',tel:'',cep:'',rua:'',num:'',comp:'',bairro:'',cidade:'',quem:'',quemNome:''});
+function destErro(d){
+ d=d||{};if(!d.tipo)return 'Escolha para onde a peça pronta deve ir (para você, direto ao cliente ou retirada).';
+ if(d.tipo==='cliente'){
+  if(!(d.nome||'').trim())return 'Informe o nome de quem recebe a peça.';
+  if((d.tel||'').replace(/\D/g,'').length<10)return 'Informe o telefone de quem recebe (com DDD).';
+  if(!(d.rua||'').trim()||!(d.num||'').trim()||!(d.bairro||'').trim()||!(d.cidade||'').trim())return 'Preencha o endereço de entrega: rua, número, bairro e cidade.';
+ }
+ if(d.tipo==='retirada'){
+  if(!d.quem)return 'Informe quem vai retirar a peça (você, outra pessoa ou motoboy).';
+  if(d.quem!=='parceiro'&&!(d.quemNome||'').trim())return d.quem==='motoboy'?'Informe o nome ou a empresa do motoboy.':'Informe o nome de quem vai retirar.';
+ }
+ return '';
+}
+function destResumo(d){
+ if(!d||!d.tipo)return '';
+ if(d.tipo==='parceiro')return 'Enviar a peça pronta para o parceiro.';
+ if(d.tipo==='cliente')return `Enviar direto ao cliente final: <b>${esc(d.nome||'')}</b>${d.tel?' · '+esc(d.tel):''}<br>${esc([d.rua,d.num,d.comp].filter(Boolean).join(', '))} — ${esc(d.bairro||'')}, ${esc(d.cidade||'')}${d.cep?' · CEP '+esc(d.cep):''}`;
+ return `Retirada: ${esc(DEST_QUEM[d.quem]||'quem retira a definir')}${d.quem&&d.quem!=='parceiro'&&d.quemNome?' — <b>'+esc(d.quemNome)+'</b>':''}.`;
+}
+function destinoCard(p){
+ if(!p.dest||!p.dest.tipo||p.status==='orcamento'&&!PARC())return '';
+ if(!PARC()&&!origemDe(p.id))return '';
+ return `<section class="card"><div class="card-h"><h2>Destino da peça pronta</h2></div><p class="d" style="margin:0;color:var(--ink-2)">${destResumo(p.dest)}</p></section>`;
+}
+function destinoHTML(dr){
+ const d=dr.dest=dr.dest||destVazio();
+ const inp=(k,l,extra='')=>`<label class="tf ${extra}">${l}<input class="ctl" data-dest="${k}" autocomplete="off" value="${esc(d[k]||'')}"></label>`;
+ const opt=(g,k,l)=>`<label class="dest-opt"><input type="radio" name="dest-${g}" data-destr="${g}|${k}" ${d[g]===k?'checked':''}><span>${l}</span></label>`;
+ return `<section class="card" id="dest-card"><div class="card-h"><h2>Para onde vai a peça pronta?</h2></div>
+  ${Object.entries(DEST_TIPOS).map(([k,l])=>opt('tipo',k,l)).join('')}
+  ${d.tipo==='cliente'?`<div class="pgrid4" style="margin-top:8px">${inp('nome','Nome de quem recebe')}${inp('tel','Telefone (com DDD)')}${inp('cep','CEP')}${inp('rua','Rua')}${inp('num','Número')}${inp('comp','Complemento')}${inp('bairro','Bairro')}${inp('cidade','Cidade')}</div><p class="hint">O produtor só vê estes dados de contato porque a peça vai direto ao cliente.</p>`:''}
+  ${d.tipo==='retirada'?`<div style="margin-top:8px">${Object.entries(DEST_QUEM).map(([k,l])=>opt('quem',k,l)).join('')}${d.quem==='outra'||d.quem==='motoboy'?`<div class="pgrid4">${inp('quemNome',d.quem==='motoboy'?'Nome ou empresa do motoboy':'Nome de quem retira')}</div>`:''}</div>`:''}
+ </section>`;
+}
+/* ===== Privacidade: o dono vê só o necessário do cliente final de um parceiro (nome e medidas) ===== */
+const cliOculto=c=>!!c&&!PARC()&&!!ORIGEM['clientes~'+c.id];
+const CLI_PRIV=['cpf','nasc','tel','cidade','prof','empresa','emp','optin','impObs','indicInformado'];
+const cliVisivel=c=>{if(!cliOculto(c))return c;const v=Object.assign({},c);CLI_PRIV.forEach(k=>{v[k]=k==='optin'?false:''});return v};
 /* Pedido de parceiro: o dono ACEITA antes de entrar na produção. O estado fica em S.cfg.aceites (só da empresa dona; o parceiro nunca lê cfg). */
 const aceiteDe=id=>(S.cfg&&S.cfg.aceites&&S.cfg.aceites[id])||null;
 const estadoParc=p=>{if(!origemDe(p.id))return null;const a=aceiteDe(p.id);return a?a.st:'recebido'};
@@ -827,9 +914,10 @@ const pecaCount=id=>{const M=mc(id);return Object.keys(TIPOS).reduce((a,t)=>a+PR
 const TOTALPECA=Object.keys(TIPOS).reduce((a,t)=>a+PRONTAS[t].length,0);
 
 /* ===== Navegação ===== */
-function navHTML(){return NAV.filter(v=>!PARC()||VIS_PARC.includes(v.id)).map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.label}</span></a>`).join('')}
+const nBadge=id=>{if(id!=='prodparc'||PARC())return '';const n=S.pedidos.filter(p=>estadoParc(p)==='recebido').length;return n?`<b class="nbadge" aria-label="${n} para aceitar">${n}</b>`:''};
+function navHTML(){return NAV.filter(v=>!PARC()||VIS_PARC.includes(v.id)).map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.label}</span>${nBadge(v.id)}</a>`).join('')}
 document.getElementById('nav').innerHTML=navHTML();
-const tabbarHTML=()=>NAV.filter(v=>!PARC()||VIS_PARC.includes(v.id)).map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.short||v.label}</span></a>`).join('');
+const tabbarHTML=()=>NAV.filter(v=>!PARC()||VIS_PARC.includes(v.id)).map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.short||v.label}</span>${nBadge(v.id)}</a>`).join('');
 document.getElementById('tabbar').innerHTML=tabbarHTML();
 function current(){const h=location.hash.slice(1);return VIEWS.some(v=>v.id===h)&&(!PARC()||VIS_PARC.includes(h))?h:'painel'}
 function render(){
@@ -846,6 +934,7 @@ function render(){
   bind[v]&&bind[v]();
   bindAceite();
  }finally{S.pedidos=pedTodos}
+ if(!PARC()&&NAV.some(n=>n.id==='prodparc')){const n=pedTodos.filter(p=>estadoParc(p)==='recebido').length;document.querySelectorAll('[data-v="prodparc"]').forEach(a=>{let b=a.querySelector('.nbadge');if(!n){if(b)b.remove();return}if(!b){b=document.createElement('b');b.className='nbadge';a.appendChild(b)}b.textContent=n})}
  document.querySelectorAll('[data-sc]').forEach(e=>{const s=sc[e.dataset.sc];if(s){e.scrollLeft=s[0];e.scrollTop=s[1]}});
  if(same)window.scrollTo(0,y);
  window.__rv=v;window.__rd=String(ui.det);
@@ -1129,7 +1218,7 @@ R.painel=()=>{
 R.clientes=()=>{
  const q=semAcento(ui.q.trim()),qd=q.replace(/\D/g,'');
  const nRev=S.clientes.filter(c=>c.revisar).length;
- const list=S.clientes.filter(c=>(!ui.soRev||!nRev||c.revisar)&&(!q||semAcento(c.nome).includes(q)||(qd&&(c.cpf||'').replace(/\D/g,'').includes(qd))));
+ const list=S.clientes.filter(c=>(!ui.soRev||!nRev||c.revisar)&&(!q||semAcento(c.nome).includes(q)||(qd&&!cliOculto(c)&&(c.cpf||'').replace(/\D/g,'').includes(qd))));
  list.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
  if(!S.clientes.length)ui.cli='novo';
  const novo=ui.cli==='novo';
@@ -1137,7 +1226,7 @@ R.clientes=()=>{
  if(c)ui.cli=c.id;
  if(novo)ui.tab='cadastro';
  if(ui._lockCli!==ui.cli||ui._lockTab!==ui.tab){ui.cadEdit=false;ui.medEdit=false;ui._medSnap=null;ui._lockCli=ui.cli;ui._lockTab=ui.tab}
- const sub=x=>x.nasc?`${fdFull(x.nasc)} · ${idade(x.nasc)} anos`:'Sem data de nascimento';
+ const sub=x=>cliOculto(x)?'Cliente de '+esc(ORIGEM['clientes~'+x.id]):x.nasc?`${fdFull(x.nasc)} · ${idade(x.nasc)} anos`:'Sem data de nascimento';
  const fld=(id,label,val,data,tags)=>`<div class="fld ${val!=null?'filled':''}"><label class="l" for="${id}">${label}</label><div class="in"><input id="${id}" inputmode="decimal" autocomplete="off" value="${fmtN(val)}" ${data} ${ui.medEdit?'':'disabled'}><span class="u">cm</span><div class="stp">${ui.medEdit?`<button type="button" class="stpb" data-stp="up" tabindex="-1" aria-label="Aumentar 0,5 cm">▲</button><button type="button" class="stpb" data-stp="down" tabindex="-1" aria-label="Diminuir 0,5 cm">▼</button>`:''}</div></div>${tags||''}</div>`;
  const medBar=`<span class="saved" id="saved" role="status" aria-live="polite"></span>`;
  const left=`<div class="card" style="padding:12px">
@@ -1159,12 +1248,12 @@ R.clientes=()=>{
   const grpHTML=g=>`<details class="grp" open><summary><span class="gt">${g.t}</span><span class="pill plain" data-cnt="g:${g.id}"></span></summary><div class="gb">${g.n?`<p class="gn">${g.n}</p>`:''}<div class="fgrid">${g.f.map(([k,l,uso])=>fld(`m-${c.id}-${k}`,l,M.corpo[k],`data-scope="corpo" data-key="${k}"`,uso?`<div class="tags">${uso.map(u=>`<span class="tag">${USO[u]}</span>`).join('')}</div>`:'')).join('')}</div></div></details>`;
   const secHTML=x=>`<details class="grp" open><summary><span class="gt">${x.t}</span><span class="pill plain" data-cnt="s:${x.id}"></span></summary><div class="gb">${x.n?`<p class="gn">${x.n}</p>`:''}<div class="fgrid">${x.f.map(k=>{const F=FLD[k];const outros=F.uso?F.uso.filter(u=>u!==x.id).map(u=>USO[u]):[];return fld(`mp-${c.id}-${x.id}-${k}`,F.l,M.corpo[k],`data-scope="corpo" data-key="${k}"`,outros.length?`<div class="tags"><span class="tag">Também: ${outros.join(' · ')}</span></div>`:'')}).join('')}</div></div></details>`;
   const actionBar=ui.tab==='cadastro'
-   ?(ui.cadEdit?`<button class="btn" type="submit" form="cad">Salvar alterações</button><button type="button" class="btn ghost" id="c-cancelar">Cancelar</button>`:`<button type="button" class="btn" id="c-editar">Editar</button>`)
+   ?(cliOculto(c)?'':ui.cadEdit?`<button class="btn" type="submit" form="cad">Salvar alterações</button><button type="button" class="btn ghost" id="c-cancelar">Cancelar</button>`:`<button type="button" class="btn" id="c-editar">Editar</button>`)
    :(ui.tab==='corpo'||ui.tab==='prontas')
    ?(ui.medEdit?`<button type="button" class="btn ghost" id="med-cancelar">Cancelar</button><button type="button" class="btn" id="med-salvar">Salvar alterações</button>`:`<button type="button" class="btn" id="med-editar">Editar</button>`)
    :'';
   let body;
-  if(ui.tab==='cadastro') body=`<div class="stack" style="margin-top:18px">${cadForm(c,!ui.cadEdit)}</div>`;
+  if(ui.tab==='cadastro') body=`<div class="stack" style="margin-top:18px">${cliOculto(c)?`<div class="note">Este cliente é de <b>${esc(ORIGEM['clientes~'+c.id])}</b>. Os dados de contato e documentos ficam só com o parceiro. Você vê o nome e as medidas para produzir.</div>`:''}${cadForm(c,!ui.cadEdit)}</div>`;
   else if(ui.tab==='pedidos') body=`<div class="stack" style="margin-top:18px">${histHTML(c)}${osCliHTML(c)}</div>`;
   else if(ui.tab==='corpo'){
    body=`<div class="stack" style="margin-top:18px">
@@ -1184,7 +1273,7 @@ R.clientes=()=>{
   }
   right=`<div class="card">
    <div class="cli-head">
-   <div class="profile"><span class="av">${initials(c.nome)}</span><div style="flex:1;min-width:0"><h2>${esc(c.nome)}</h2><div style="color:var(--ink-2);font-size:14px">${sub(c)}${c.cpf?` · CPF ${c.cpf}`:''}</div>${(()=>{const l=[vv(c.prof),vv(c.emp||c.empresa),origemTxt(c)].filter(Boolean).join(' · ');return l?`<div style="color:var(--ink-3);font-size:13px;margin-top:2px">${esc(l)}</div>`:''})()}</div>${c.club?'<span class="pill info">Gentlemen Club</span>':''}<button class="btn ghost" id="novo-os-cli" type="button">${ic('i-plus')}Ordem de serviço</button><button class="btn" id="novo-pedido-cli" type="button">${ic('i-plus')}Gerar novo pedido</button></div>
+   <div class="profile"><span class="av">${initials(c.nome)}</span><div style="flex:1;min-width:0"><h2>${esc(c.nome)}</h2><div style="color:var(--ink-2);font-size:14px">${cliOculto(c)?sub(c):sub(c)+(c.cpf?` · CPF ${c.cpf}`:'')}</div>${(()=>{const l=[vv(c.prof),vv(c.emp||c.empresa),origemTxt(c)].filter(Boolean).join(' · ');return l?`<div style="color:var(--ink-3);font-size:13px;margin-top:2px">${esc(l)}</div>`:''})()}</div>${c.club?'<span class="pill info">Gentlemen Club</span>':''}<button class="btn ghost" id="novo-os-cli" type="button">${ic('i-plus')}Ordem de serviço</button><button class="btn" id="novo-pedido-cli" type="button">${ic('i-plus')}Gerar novo pedido</button></div>
    ${c.revisar?`<div class="rev"><span class="dotrev" style="margin-top:5px"></span><div><b>Revisão pendente</b>Este cadastro foi importado das planilhas${c.impArq?' ('+esc(c.impArq)+')':''}. Confira os dados e as medidas e clique em Salvar no cadastro para concluir a revisão.${c.impObs?'<br>'+esc(c.impObs):''}${c.impDup?'<br><b style="display:inline">'+esc(c.impDup)+'</b>':''}${/^Já existia/.test(c.impObs||'')?'<br><button type="button" class="btn ghost sm" id="c-disp" style="margin-top:8px">Dispensar medidas da planilha</button>':''}</div></div>`:(c.impDup?`<div class="rev"><div><b>Atenção</b>${esc(c.impDup)}</div></div>`:'')}
    <div class="tabs-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
    <div class="tabs" role="tablist">${tab('cadastro','Cadastro')}${tab('pedidos','Pedidos',` <span class="mono" style="color:var(--ink-3)">${histDe(c.id).length}</span>`)}${tab('corpo','Medidas do corpo',` <span class="mono" style="color:var(--ink-3)" data-cnt="all"></span>`)}${tab('prontas','Medidas de peças prontas',` <span class="mono" style="color:var(--ink-3)" data-cnt="allp"></span>`)}</div>
@@ -1197,7 +1286,8 @@ R.clientes=()=>{
 };
 function evRow(e,locked){e=e||{desc:'',data:''};const ro=locked?'readonly':'';return `<div class="evrow"><label class="tf">Evento<input class="ev-d" autocomplete="off" placeholder="Ex.: Casamento, formatura, posse" value="${esc(e.desc)}" ${ro}></label><label class="tf">Data<input class="ev-t" type="date" value="${e.data||''}" ${ro}></label>${locked?'':'<button type="button" class="btn ghost sm" data-evx>Remover</button>'}</div>`}
 function cadForm(c,locked){
- const v=c||{nome:'',nasc:'',cpf:''};
+ const oc=cliOculto(c);if(oc)locked=true;
+ const v=oc?cliVisivel(c):(c||{nome:'',nasc:'',cpf:''});
  const g=k=>vv(v[k]);
  const outros=c?S.clientes.filter(x=>x.id!==c.id):S.clientes;
  const indNome=v.indicadoPor&&cli(v.indicadoPor)?cli(v.indicadoPor).nome:'';
@@ -1641,7 +1731,7 @@ function newPeca(tipo,grupo,cid){
  if(tipo==='paleto'&&cid!=null){const v=(mc(cid).corpo||{}).largura_lapela;if(v!=null&&v!==''){const opts=[7,8,9,10,11];const n=+v;car.lapela.largura=String(opts.reduce((a,b)=>Math.abs(b-n)<Math.abs(a-n)?b:a))}}
  return {uid:++pUid,tipo,grupo:grupo||null,prest:'',forn:'',etiq:ETIQ[0],tec:'',tecOrig:'comprar',forroForn:'',forroCod:'',metr:'',metrF:'',metrEdit:false,metrFEdit:false,metrNota:'',metrFNota:'',pad:false,op:true,notas:[],gid:null,dest:'',prova:['paleto','calca','colete'].includes(tipo),mono:'',info:'',prazo:'',prazoManual:false,prazoProd:'',prazoCheg:'',prazoChegManual:false,prazoAjusteProd:'',prazoAjusteCheg:'',prazoAjusteChegManual:false,car,open:{}};
 }
-function newDraft(cid){return {cli:cid,dped:hoje(),valor:'',forma:'Pix à vista',parc:1,pecas:[],prazoUnico:false,prazoUnicoData:'',descTipo:'valor',descVal:''}}
+function newDraft(cid){return {cli:cid,dped:hoje(),valor:'',forma:'Pix à vista',parc:1,pecas:[],prazoUnico:false,prazoUnicoData:'',descTipo:'valor',descVal:'',dest:destVazio()}}
 /* ===== Faturamento: desconto por peça (R$) + desconto do pedido (R$ ou %, sobre o subtotal já líquido) ===== */
 const descPeca=p=>numBR(p.descItem||0);
 const subtotalLiquido=pecas=>pecas.reduce((a,p)=>incluso(p)?a:a+Math.max(0,numBR(p.preco)-descPeca(p)),0);
@@ -1915,6 +2005,7 @@ function editorHTML(){
   <label class="tf" id="d-prazoUnicoWrap" ${dr.prazoUnico?'':'hidden'} style="margin-top:6px;max-width:260px">Prazo de entrega (todas as peças)<input class="ctl" type="date" id="d-prazoUnicoData" value="${dr.prazoUnicoData||''}"></label>
   <p class="hint">O pedido nasce como orçamento. Você envia ao cliente e, quando ele aprovar, o pedido entra na produção. O prazo de entrega é definido por produto (ou por peça), nas peças abaixo — a não ser que você marque o prazo único.${dr.prazoUnico?' Com prazo único marcado, essa data já vem preenchida em cada peça, mas o campo continua editável: se uma peça específica precisar de um prazo diferente, é só mudar direto nela — as outras continuam seguindo o prazo único normalmente.':''}</p>
  </section>
+ ${PARC()?destinoHTML(dr):''}
  ${dr.pecas.filter(p=>!p.lote).map((p,i)=>pecaHTML(p,i,dr)).join('')}
  <section class="card"><div class="card-h"><h2>Adicionar peça</h2></div>
   <div class="addp">${Object.entries(TIPOS_P).map(([k,l])=>`<button type="button" class="btn ghost" data-add="${k}">${ic('i-plus')}${l}</button>`).join('')}<span class="vsep"></span><button type="button" class="btn ghost" data-add="costume">${ic('i-plus')}Costume <small>paletó + calça</small></button><button type="button" class="btn ghost" data-add="terno">${ic('i-plus')}Terno <small>paletó + calça + colete</small></button></div>
@@ -2824,7 +2915,7 @@ function salvarEdicao(dr){
  dr.pecas.forEach(x=>{x.preco=numBR(x.preco);x.descItem=numBR(x.descItem||0);delete x.fechada});
  dr.pecas.forEach(x=>{if(x.tec&&!(S.tecidos[x.forn]||[]).includes(x.tec))(S.tecidos[x.forn]=S.tecidos[x.forn]||[]).push(x.tec);if(temForro(x)&&x.forroCod&&!(S.forros[x.forroForn]||[]).includes(x.forroCod))(S.forros[x.forroForn]=S.forros[x.forroForn]||[]).push(x.forroCod)});
  const prest=[...new Set(dr.pecas.map(x=>x.prest))];
- Object.assign(p,{item:resumo(dr.pecas),parc:dr.pecas[0].prest,mais:prest.length-1,valor:+String(dr.valor).replace(/\./g,'').replace(',','.')||0,dped:dr.dped,forma:dr.forma,parcelas:dr.parc,pecas:dr.pecas,prazoUnico:!!dr.prazoUnico,prazoUnicoData:dr.prazoUnicoData||'',descTipo:dr.descTipo||'valor',descVal:numBR(dr.descVal||0)});
+ Object.assign(p,{item:resumo(dr.pecas),parc:dr.pecas[0].prest,mais:prest.length-1,valor:+String(dr.valor).replace(/\./g,'').replace(',','.')||0,dped:dr.dped,forma:dr.forma,parcelas:dr.parc,pecas:dr.pecas,prazoUnico:!!dr.prazoUnico,prazoUnicoData:dr.prazoUnicoData||'',descTipo:dr.descTipo||'valor',descVal:numBR(dr.descVal||0),dest:dr.dest&&dr.dest.tipo?dr.dest:p.dest});
  const vivos=new Set(dr.pecas.map(x=>x.uid));Object.keys(p.atv||{}).forEach(u=>{if(!vivos.has(+u))delete p.atv[u]});
  if(p.status!=='orcamento')recalc(p);
  p.incompleto=faltantesPedido(p).length>0;
@@ -2837,14 +2928,14 @@ function criarOrcamento(dr){
  const id=nextId();
  dr.pecas.forEach(p=>{if(p.tec&&!(S.tecidos[p.forn]||[]).includes(p.tec))(S.tecidos[p.forn]=S.tecidos[p.forn]||[]).push(p.tec);if(temForro(p)&&p.forroCod&&!(S.forros[p.forroForn]||[]).includes(p.forroCod))(S.forros[p.forroForn]=S.forros[p.forroForn]||[]).push(p.forroCod)});
  const prest=[...new Set(dr.pecas.map(p=>p.prest))];
- const o={id,cli:dr.cli,item:resumo(dr.pecas),parc:dr.pecas[0].prest,mais:prest.length-1,st:0,valor:+String(dr.valor).replace(/\./g,'').replace(',','.')||0,dped:dr.dped,forma:dr.forma,parcelas:dr.parc,pecas:dr.pecas,atv:{},status:'orcamento',env:null,pagto:null,prova:null,prazo:addDias(dr.dped,7),prazoUnico:!!dr.prazoUnico,prazoUnicoData:dr.prazoUnicoData||'',descTipo:dr.descTipo||'valor',descVal:numBR(dr.descVal||0)};
+ const o={id,cli:dr.cli,item:resumo(dr.pecas),parc:dr.pecas[0].prest,mais:prest.length-1,st:0,valor:+String(dr.valor).replace(/\./g,'').replace(',','.')||0,dped:dr.dped,forma:dr.forma,parcelas:dr.parc,pecas:dr.pecas,atv:{},status:'orcamento',env:null,pagto:null,prova:null,prazo:addDias(dr.dped,7),prazoUnico:!!dr.prazoUnico,prazoUnicoData:dr.prazoUnicoData||'',descTipo:dr.descTipo||'valor',descVal:numBR(dr.descVal||0),dest:dr.dest&&dr.dest.tipo?dr.dest:undefined};
  o.incompleto=faltantesPedido(o).length>0;
  S.orcamentos.unshift(o);return o;
 }
 const podeAlt=()=>{const u=P.user;if(!u)return true;if(u.grupo==='Administrador')return true;const g=S.cfg.grupos.find(x=>x.nome===u.grupo);return !!(g&&g.altAprov)};
 const aprovadoPed=p=>p.status!=='orcamento'&&p.finOk!==false;
-const travado=p=>(aprovadoPed(p)&&!podeAlt())||!!origemDe(p.id);
-const msgTrava=p=>origemDe(p.id)?'Pedido lançado por um parceiro: os dados comerciais são dele. Você aceita, recusa e produz.':MSG_TRAVA;
+const travado=p=>(aprovadoPed(p)&&!podeAlt())||!!origemDe(p.id)||partTrava(p);
+const msgTrava=p=>partTrava(p)?'O produtor já respondeu a este pedido, então ele não pode mais ser alterado. Fale com o produtor.':origemDe(p.id)?'Pedido lançado por um parceiro: os dados comerciais são dele. Você aceita, recusa e produz.':MSG_TRAVA;
 const MSG_TRAVA='Pedido aprovado. Só quem tem permissão para alterar pedido aprovado pode mexer nele.';
 /* Log de eventos do pedido: registro simples de quem fez o quê e quando, direto no próprio pedido. Versão leve para o protótipo — a versão final (auditoria completa, por usuário autenticado) fica para a reconstrução no Lovable. */
 function logEvt(p,txt){let por='Sistema';try{por=(P.user&&P.user.nome)||'Sistema'}catch(e){}(p.log=p.log||[]).push({ts:Date.now(),dt:hoje(),txt,por})}
@@ -3751,6 +3842,7 @@ const WA={
 };
 function zap(pid,k){
  const p=[...S.pedidos,...S.orcamentos].find(x=>x.id===pid),c=cli(p.cli);
+ if(cliOculto(c)){toast('O contato deste cliente fica com o parceiro.');return}
  modal('Enviar WhatsApp para '+c.nome,`<label class="full">Para<input value="${esc(c.tel||'Sem WhatsApp cadastrado')}" readonly></label><label class="full">Mensagem<textarea id="wa-msg" rows="6">${esc(WA[k](c,p))}</textarea></label><p class="hint" style="margin:0">Protótipo: no sistema integrado, a mensagem sai pelo WhatsApp conectado ao seu CRM e fica registrada na conversa do cliente.</p>`,()=>{if(!c.tel)return 'Este cliente não tem WhatsApp cadastrado.';if(k==='orcamento'&&p.status==='orcamento')p.env=hoje();toast('Mensagem enviada pelo WhatsApp do CRM (simulação)')},'Enviar');
 }
 function agendar(pid){
@@ -3799,7 +3891,7 @@ function detalheHTML(){
  const stP=s=>s==='pago'?'<span class="pill ok">Pago</span>':s==='atrasado'?'<span class="pill crit">Atrasado</span>':'<span class="pill">Em aberto</span>';
  const itemOf=itemNums(p.pecas);
  return head(`${orc?'Orçamento':'Pedido'} ${p.id}${origemDe(p.id)?' · pedido de '+esc(origemDe(p.id)):''}`,esc(c.nome),`<button class="btn ghost" id="o-voltar">Pedidos</button><button class="btn ghost" id="o-cliente">${ic('i-users')}Ver cadastro do cliente</button><button class="btn ghost" id="o-editar-top">Editar ${orc?'orçamento':'pedido'}</button>${acoes}`,'sticky')+`<div class="stack">
- ${aceiteCard(p)}
+ ${aceiteCard(p)}${andamCard(p)}${destinoCard(p)}
  <section class="card"><div class="card-h"><h2>${esc(p.item)}</h2>${stBadge(p)}${incompletoPill(p)}</div>
  ${p.incompleto?`<p class="hint" style="margin:0 0 4px;color:var(--warn,#8a6300)">Preenchimento incompleto — falta: ${esc(faltantesPedido(p).join(', '))}.</p>`:''}
  ${p.recusado?`<p class="hint" style="margin:0 0 4px;color:var(--ink-2)">Recusado em ${fdFull(p.recusaData)}${p.recusaMotivo?' — '+esc(p.recusaMotivo):''}. Dá para reativar a qualquer momento.</p>`:''}
@@ -3855,7 +3947,7 @@ R.pedidos=()=>{
  return head('Vendas','Pedidos',`<a class="btn" href="#clientes">${ic('i-plus')}Gerar pedido pela ficha do cliente</a>`)+
  `${secHTML('orc','Orçamentos aguardando aprovação',orcAll.length,orcAll.filter(o=>daysTo(o.prazo||addDias(o.dped,7))<0).length,(orcAll.length?buscaHTML('ped-qo','Buscar por nome do cliente',ui.pedQo):'')+(orcAll.length?(orcList.length?`<div class="list">${orcList.map(o=>`<button class="row" data-open="${o.id}" style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:pointer"><div class="grow"><div class="t">${esc(cli(o.cli).nome)} <span class="mono" style="color:var(--ink-3)">${o.id}</span> ${origTag(o.id)}</div><div class="d">${esc(o.item)} · ${o.env?'enviado em '+fd(o.env):'ainda não enviado'}</div></div>${incompletoPill(o)}<b class="num">${brl(o.valor)}</b>${pz(o.prazo||addDias(o.dped,7))}</button>`).join('')}</div>`:'<p class="d" style="color:var(--ink-2);margin:0">Nenhum orçamento encontrado para essa busca.</p>'):'<p class="d" style="color:var(--ink-2);margin:0">Nenhum orçamento aguardando.</p>'))}
  ${orcRecusados.length?`<details class="grp sec-p" data-sec="orcrec" ${ui.sec.orcrec?'open':''}><summary><span class="gt">Orçamentos recusados</span><span class="pill plain">${orcRecusados.length}</span></summary><div class="gb"><div class="list">${orcRecusados.map(o=>`<button class="row" data-open="${o.id}" style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:pointer"><div class="grow"><div class="t">${esc(cli(o.cli).nome)} <span class="mono" style="color:var(--ink-3)">${o.id}</span></div><div class="d">${esc(o.item)} · recusado em ${fd(o.recusaData)}${o.recusaMotivo?' — '+esc(o.recusaMotivo):''}</div></div><b class="num">${brl(o.valor)}</b></button>`).join('')}</div></div></details>`:''}
- <div class="card"><div class="card-h"><h2>Pedidos aprovados</h2><span class="pill plain">${ps0.length}</span></div>${ps0.length?buscaHTML('ped-qa','Buscar por nome do cliente',ui.pedQa):''}${ps0.length?(ps.length?`<div class="list">${ps.map(p=>{const [a,b]=p.pecas?prog(p):[0,0];const ent=p.pecas?prazoPedido(p):p.entrega;const dl=daysTo(ent);return `<button class="row" ${p.pecas?`data-open="${p.id}"`:''} style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:${p.pecas?'pointer':'default'}"><div class="grow"><div class="t">${esc(cli(p.cli)?cli(p.cli).nome:'—')} <span class="mono" style="color:var(--ink-3)">${p.id}</span> ${origTag(p.id)}</div><div class="d">${esc(p.item||'')} · ${p.aprov?'aprovado em '+fd(p.aprov):'aprovação a registrar'} · ${ent?'entrega '+fd(ent):'entrega a definir'}${p.st<4&&ent&&dl<0?' · atrasado':''}</div></div>${incompletoPill(p)}<b class="num">${brl(p.valor)}</b><span class="pill ${p.st>=4?'ok':'info'}">${pedFin(p)?'Finalizado':p.st>=4?'Pronto, falta entregar':STATUS[p.st]}${b&&!pedFin(p)?' · '+a+'/'+b:''}</span></button>`}).join('')}</div>`:'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido encontrado para essa busca.</p>'):'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido aprovado ainda.</p>'}</div>`;
+ <div class="card"><div class="card-h"><h2>Pedidos aprovados</h2><span class="pill plain">${ps0.length}</span></div>${ps0.length?buscaHTML('ped-qa','Buscar por nome do cliente',ui.pedQa):''}${ps0.length?(ps.length?`<div class="list">${ps.map(p=>{const [a,b]=p.pecas?prog(p):[0,0];const ent=p.pecas?prazoPedido(p):p.entrega;const dl=daysTo(ent);return `<button class="row" ${p.pecas?`data-open="${p.id}"`:''} style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:${p.pecas?'pointer':'default'}"><div class="grow"><div class="t">${esc(cli(p.cli)?cli(p.cli).nome:'—')} <span class="mono" style="color:var(--ink-3)">${p.id}</span> ${origTag(p.id)}</div><div class="d">${esc(p.item||'')} · ${p.aprov?'aprovado em '+fd(p.aprov):'aprovação a registrar'} · ${ent?'entrega '+fd(ent):'entrega a definir'}${p.st<4&&ent&&dl<0?' · atrasado':''}</div></div>${incompletoPill(p)}<b class="num">${brl(p.valor)}</b>${PARC()?pillParceiro(p):`<span class="pill ${p.st>=4?'ok':'info'}">${pedFin(p)?'Finalizado':p.st>=4?'Pronto, falta entregar':STATUS[p.st]}${b&&!pedFin(p)?' · '+a+'/'+b:''}</span>`}</button>`}).join('')}</div>`:'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido encontrado para essa busca.</p>'):'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido aprovado ainda.</p>'}</div>`;
 };
 R.prodparc=()=>{
  const ord={recebido:0,aceito:1,recusado:2};
@@ -4373,7 +4465,7 @@ function bindDetalhe(){
  if(pg)pg.onclick=()=>modal('Confirmar pagamento',`<p class="full" style="margin:0;color:var(--ink-2)">Marca a primeira parcela como paga.</p><label class="full">Data do pagamento<input id="pg-d" type="date" value="${hoje()}" min="${p.aprov||''}" max="${hoje()}"></label>`,()=>{const d=val('pg-d');if(!d)return 'Informe a data do pagamento.';if(d>hoje())return 'A data não pode ser no futuro.';if(p.aprov&&d<p.aprov)return 'O pagamento não pode ser antes da aprovação.';confirmarPag(p,d);toast('Pagamento confirmado.')},'Confirmar');
  document.getElementById('o-excluir').onclick=()=>excluirPedido(p);
  const et=document.getElementById('o-editar-top');if(et){et.disabled=travado(p);et.onclick=()=>document.getElementById('o-editar').click()}
- document.getElementById('o-editar').onclick=()=>{if(travado(p)){toast(msgTrava(p));return}ui.draft={cli:p.cli,dped:p.dped,valor:String(p.valor).replace('.',','),forma:p.forma||'Pix à vista',parc:p.parcelas||1,pecas:clone(p.pecas).map((x,_,a)=>{x.preco=x.preco?txtN(x.preco):(a.length===1&&p.valor>0?txtN(p.valor):'');x.descItem=x.descItem?txtN(x.descItem):'';x.fechada=true;if(String(x.metr||'').trim())x.metrEdit=true;if(String(x.metrF||'').trim())x.metrFEdit=true;return x}),editId:p.id,prazoUnico:!!p.prazoUnico,prazoUnicoData:p.prazoUnicoData||'',descTipo:p.descTipo||'valor',descVal:p.descVal?txtN(p.descVal):''};ui.det=null;render();window.scrollTo(0,0)};
+ document.getElementById('o-editar').onclick=()=>{if(travado(p)){toast(msgTrava(p));return}ui.draft={cli:p.cli,dped:p.dped,valor:String(p.valor).replace('.',','),forma:p.forma||'Pix à vista',parc:p.parcelas||1,pecas:clone(p.pecas).map((x,_,a)=>{x.preco=x.preco?txtN(x.preco):(a.length===1&&p.valor>0?txtN(p.valor):'');x.descItem=x.descItem?txtN(x.descItem):'';x.fechada=true;if(String(x.metr||'').trim())x.metrEdit=true;if(String(x.metrF||'').trim())x.metrFEdit=true;return x}),editId:p.id,prazoUnico:!!p.prazoUnico,prazoUnicoData:p.prazoUnicoData||'',descTipo:p.descTipo||'valor',descVal:p.descVal?txtN(p.descVal):'',dest:Object.assign(destVazio(),p.dest||{})};ui.det=null;render();window.scrollTo(0,0)};
  document.querySelectorAll('[data-delpc]').forEach(b=>b.onclick=()=>excluirPeca(p,p.pecas.find(x=>x.uid===+b.dataset.delpc)));
  document.querySelectorAll('[data-ocor]').forEach(b=>b.onclick=()=>ocorrenciaModal(p,p.pecas.find(x=>x.uid===+b.dataset.ocor)));
  document.querySelectorAll('[data-subst]').forEach(b=>b.onclick=()=>substituirTecido(p,p.pecas.find(x=>x.uid===+b.dataset.subst)));
@@ -4528,8 +4620,15 @@ function corDD(el){
  });
  root.addEventListener('click',e=>{const h=e.target.closest('.pcard > .card-h');if(!h||e.target.closest('button,select,input,a'))return;h.querySelector('[data-tog]').click()});
  root.addEventListener('toggle',e=>{const el=e.target;if(el.dataset&&el.dataset.gd){const [u,g]=el.dataset.gd.split('|');P(u).open[g]=el.open;if(el.open)root.querySelectorAll(`[data-gd^="${u}|"]`).forEach(o=>{if(o!==el&&o.open){o.open=false;P(u).open[o.dataset.gd.split('|')[1]]=false}})}},true);
+ const dcard=document.getElementById('dest-card');
+ if(dcard){
+  dcard.addEventListener('input',e=>{const k=e.target.dataset&&e.target.dataset.dest;if(k)dr.dest[k]=e.target.value});
+  dcard.addEventListener('change',e=>{const r=e.target.dataset&&e.target.dataset.destr;if(!r)return;const [g,k]=r.split('|');dr.dest[g]=k;if(g==='tipo'&&k!=='retirada'){dr.dest.quem='';dr.dest.quemNome=''}render()});
+ }
+ const destOk=()=>{if(!PARC())return true;const e=destErro(dr.dest);if(e){toast(e);const c=document.getElementById('dest-card');if(c)c.scrollIntoView({block:'center'});return false}return true};
  document.getElementById('d-save').onclick=()=>{
   if(!dr.pecas.length){toast('Adicione ao menos uma peça.');return}
+  if(!destOk())return;
   syncLote(dr);dr.valor=txtN(valorFinalDr(dr));
   if(dr.editId){
    const o=salvarEdicao(dr);ui.draft=null;ui.det=o.id;render();window.scrollTo(0,0);
@@ -4545,6 +4644,7 @@ function corDD(el){
  const sa=document.getElementById('d-saveaprova');
  if(sa)sa.onclick=()=>{
   if(!dr.pecas.length){toast('Adicione ao menos uma peça.');return}
+  if(!destOk())return;
   syncLote(dr);dr.valor=txtN(valorFinalDr(dr));
   if(!(numBR(dr.valor)>0)){toast('Informe o valor do pedido. Para aprovar como bonificação/cortesia (R$ 0,00), salve como orçamento e aprove normalmente em seguida.');return}
   const o=dr.editId?salvarEdicao(dr):criarOrcamento(dr);
@@ -5279,7 +5379,7 @@ async function boot(){
   u={id:nid(),nome:em.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),email:em,grupo:adm?'Administrador':'Atendimento e vendas',ativo:true};
   S.cfg.usuarios.push(u);if(window.SB.papel!=='parceiro')await flush();
  }
- if(u){await carregarOrigens();entrar(u)}else if(window.SB)window.SB.semUsuario();else gateLogin();
+ if(u){await carregarOrigens();await carregarAndamento();entrar(u)}else if(window.SB)window.SB.semUsuario();else gateLogin();
 }
 
 /* backup, restauração e limpeza */

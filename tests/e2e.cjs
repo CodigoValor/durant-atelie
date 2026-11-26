@@ -72,6 +72,7 @@ function novoBanco(cfg) {
       return json(route, 200, t);
     }
     if (p === '/rest/v1/rpc/listar_origens') return json(route, 200, st.cfg.origens || []);
+    if (p === '/rest/v1/rpc/andamento_parceiro') return json(route, 200, st.cfg.andamento || []);
     if (p === '/rest/v1/rpc/definir_nome_parceiro') { st.nomesParceiro = (st.nomesParceiro || []).concat([JSON.parse(req.postData() || '{}')]); return json(route, 204, null); }
     if (p === '/rest/v1/rpc/remover_membro') { st.removidos = (st.removidos || []).concat([JSON.parse(req.postData() || '{}').p_user]); return json(route, 204, null); }
     if (p === '/rest/v1/rpc/reservar_numeros') {   // mesma regra da migration 0006
@@ -311,7 +312,7 @@ function novoBanco(cfg) {
   await r12.ctx.close();
 
   console.log('13) parceiro: entra sem ler o que não pode, vê só o que é dele e só grava o permitido');
-  const b13 = novoBanco({ parceiroVe: true, membros: [{ empresa_id: 'E7', papel: 'parceiro' }], empresas: [{ id: 'E7', nome: 'Ateliê da Maria', vende_cliente_final: true, produz: true }] });
+  const b13 = novoBanco({ andamento: [{ id: 'pedidos~P-26187', st: 'aceito', em: '2026-11-26T10:00:00Z', motivo: null }, { id: 'pedidos~P-26197', st: 'recusado', em: '2026-11-26T11:00:00Z', motivo: 'falta dados' }], parceiroVe: true, membros: [{ empresa_id: 'E7', papel: 'parceiro' }], empresas: [{ id: 'E7', nome: 'Ateliê da Maria', vende_cliente_final: true, produz: true }] });
   b13.reg.set('E7|pub~catalogo', { empresa_id: 'E7', id: 'pub~catalogo', k: 'pub', i: 'catalogo', j: JSON.stringify({ produtos: [{ id: 1, tipo: 'Terno', nome: 'Lã fria', valor: '4500', categoria: 'Alfaiataria', ativo: true }] }) });
   b13.reg.set('E7|clientes~5', { empresa_id: 'E7', id: 'clientes~5', k: 'clientes', i: '5', j: JSON.stringify({ id: 5, nome: 'Cliente do Luiz' }) });
   [['P-26187', true], ['P-26197', false]].forEach(([id, fin]) => b13.reg.set('E7|pedidos~' + id, { empresa_id: 'E7', id: 'pedidos~' + id, k: 'pedidos', i: id, j: JSON.stringify({ id, cli: 5, status: 'producao', item: 'Camisa', valor: 1500, dped: '2026-11-26', aprov: '2026-11-26', finOk: fin, pecas: [] }) }));
@@ -324,6 +325,25 @@ function novoBanco(cfg) {
   ok(await r13.pg.evaluate(() => JSON.stringify(prestAtivos('Alfaiataria')) === JSON.stringify([['hda', 'Ateliê da Maria']]) && prestAtivos('Camisaria').length === 1), 'em "Quem vai produzir" o parceiro vê a própria empresa dona como produtora');
   await r13.pg.evaluate(() => { location.hash = 'pedidos'; }); await r13.pg.waitForTimeout(400);
   ok(await r13.pg.evaluate(() => S.pedidos.length === 2 && ['P-26187', 'P-26197'].every(i => document.querySelector('main').textContent.includes(i))), 'parceiro vê na lista os dois pedidos, inclusive o que ainda aguarda aprovação do pedido (finOk=false)');
+  let t13 = await r13.pg.textContent('main');
+  ok(t13.includes('Aceito') && t13.includes('Recusado pelo produtor') && !t13.includes('Tecido a pedir') && !t13.includes('0/15'), 'parceiro vê "Aceito" e "Recusado pelo produtor" na lista, sem o andamento interno (0/15)');
+  await r13.pg.evaluate(() => { ui.det = 'P-26197'; render(); }); await r13.pg.waitForTimeout(300);
+  t13 = await r13.pg.textContent('main');
+  ok(t13.includes('Resposta do produtor') && t13.includes('falta dados'), 'no detalhe o parceiro vê a resposta do produtor e o motivo da recusa');
+  ok(await r13.pg.evaluate(() => travado(S.pedidos.find(p => p.id === 'P-26197')) && travado(S.pedidos.find(p => p.id === 'P-26187'))), 'pedido já respondido (aceito ou recusado) fica travado para o parceiro');
+  await r13.pg.evaluate(() => { ui.det = null; location.hash = 'painel'; render(); }); await r13.pg.waitForTimeout(300);
+  ok(!(await r13.pg.textContent('main')).includes('Felipe'), 'painel do parceiro não traz lembretes de exemplo da empresa');
+  await r13.pg.evaluate(() => { location.hash = 'pedidos'; ui.det = null; ui.draft = newDraft(5); render(); }); await r13.pg.waitForTimeout(300);
+  ok(await r13.pg.evaluate(() => !!document.getElementById('dest-card')), 'ao lançar pedido o parceiro vê "Para onde vai a peça pronta?"');
+  await r13.pg.click('[data-destr="tipo|cliente"]'); await r13.pg.waitForTimeout(200);
+  ok(await r13.pg.evaluate(() => !!document.querySelector('[data-dest="rua"]') && !!document.querySelector('[data-dest="tel"]')), 'escolher "direto ao cliente" pede o endereço e o telefone');
+  await r13.pg.click('[data-destr="tipo|retirada"]'); await r13.pg.waitForTimeout(200); await r13.pg.click('[data-destr="quem|motoboy"]'); await r13.pg.waitForTimeout(200);
+  ok(await r13.pg.evaluate(() => !!document.querySelector('[data-dest="quemNome"]') && !document.querySelector('[data-dest="rua"]')), 'retirada por motoboy pede o nome/empresa e some o endereço');
+  ok(await r13.pg.evaluate(() => destErro(ui.draft.dest).includes('motoboy') && destErro({ tipo: 'parceiro' }) === '' && destErro({}).includes('Escolha') && destErro({ tipo: 'cliente', nome: 'A', tel: '11999990000', rua: 'R', num: '1', bairro: 'B', cidade: 'C' }) === '' && destErro({ tipo: 'cliente', nome: 'A' }).includes('telefone')), 'validação do destino: exige o que falta em cada escolha');
+  await r13.pg.click('[data-add="camisa"]'); await r13.pg.waitForTimeout(300);
+  await r13.pg.evaluate(() => { ui.draft.dest = destVazio(); document.getElementById('d-save').click(); }); await r13.pg.waitForTimeout(300);
+  ok((await r13.pg.textContent('#toast, .toast, body')).includes('Escolha para onde a peça pronta'), 'não deixa salvar o pedido do parceiro sem escolher o destino');
+  await r13.pg.evaluate(() => { ui.draft = null; render(); });
   const itens = await r13.pg.$$eval('#nav a', a => a.map(x => x.dataset.v));
   ok(itens.join() === 'painel,clientes,pedidos', 'menu do parceiro: só Painel, Clientes e Pedidos (' + itens.join() + ')');
   await r13.pg.evaluate(() => { location.hash = 'financeiro'; }); await r13.pg.waitForTimeout(300);
@@ -337,15 +357,15 @@ function novoBanco(cfg) {
 
   console.log('15) dono vê a origem: pedido de parceiro leva a etiqueta com o nome da empresa dele');
   const b15 = novoBanco({ membros: [{ empresa_id: 'E7', papel: 'admin' }], empresas: [{ id: 'E7', nome: 'HDA Produção', vende_cliente_final: false, produz: true }],
-    origens: [{ id: 'pedidos~P-26188', nome: 'Durant Alfaiataria' }] });
-  const ped = { id: 'P-26188', cli: 5, status: 'aprovado', item: 'Camisa', valor: 1500, dped: '2026-11-26', aprov: '2026-11-26', pecas: [] };
-  b15.reg.set('E7|clientes~5', { empresa_id: 'E7', id: 'clientes~5', k: 'clientes', i: '5', j: JSON.stringify({ id: 5, nome: 'Cliente 0005' }) });
+    origens: [{ id: 'pedidos~P-26188', nome: 'Durant Alfaiataria' }, { id: 'clientes~5', nome: 'Durant Alfaiataria' }] });
+  const ped = { id: 'P-26188', cli: 5, status: 'aprovado', item: 'Camisa', valor: 1500, dped: '2026-11-26', aprov: '2026-11-26', pecas: [], dest: { tipo: 'cliente', nome: 'Maria Souza', tel: '(11) 98888-7777', rua: 'Rua das Flores', num: '10', bairro: 'Centro', cidade: 'Campinas' } };
+  b15.reg.set('E7|clientes~5', { empresa_id: 'E7', id: 'clientes~5', k: 'clientes', i: '5', j: JSON.stringify({ id: 5, nome: 'Cliente 0005', cpf: '123.456.789-09', tel: '(19) 99999-0000', nasc: '1980-05-05', cidade: 'Campinas' }) });
   b15.reg.set('E7|pedidos~P-26188', { empresa_id: 'E7', id: 'pedidos~P-26188', k: 'pedidos', i: 'P-26188', j: JSON.stringify(ped) });
   b15.reg.set('E7|pedidos~P-1', { empresa_id: 'E7', id: 'pedidos~P-1', k: 'pedidos', i: 'P-1', j: JSON.stringify({ ...ped, id: 'P-1' }) });
   b15.reg.set('E7|sys~meta', { empresa_id: 'E7', id: 'sys~meta', k: 'sys', i: 'meta', j: '{"v":1}' });
   const r15 = await abre(b15); await r15.pg.waitForSelector('#g-u'); await loginUi(r15.pg, 'durant.henrique@gmail.com', 'senhaCerta123');
   await r15.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
-  await r15.pg.waitForFunction(() => Object.keys(ORIGEM).length === 1, null, { timeout: 8000 });
+  await r15.pg.waitForFunction(() => Object.keys(ORIGEM).length === 2, null, { timeout: 8000 });
   ok(await r15.pg.evaluate(() => origemDe('P-26188') === 'Durant Alfaiataria' && origemDe('P-1') === ''), 'a origem vem do servidor só para o pedido do parceiro');
   await r15.pg.evaluate(() => { location.hash = 'pedidos'; }); await r15.pg.waitForTimeout(400);
   const lin = await r15.pg.$$eval('[data-open]', els => els.map(e => e.textContent.replace(/\s+/g, ' ')));
@@ -354,6 +374,15 @@ function novoBanco(cfg) {
   ok(await r15.pg.evaluate(() => !!document.querySelector('[data-v="prodparc"]')), 'menu do dono tem "Pedidos de produção"');
   await r15.pg.evaluate(() => { location.hash = 'prodparc'; }); await r15.pg.waitForTimeout(400);
   let tx = await r15.pg.textContent('main'); ok(tx.includes('P-26188') && tx.includes('Durant Alfaiataria') && tx.includes('Recebido') && !tx.includes('P-1 '), 'tela nova lista só o pedido do parceiro, com etiqueta e estado "Recebido"');
+  ok(await r15.pg.evaluate(() => document.querySelector('[data-v="prodparc"] .nbadge')?.textContent === '1'), 'menu do dono mostra o número de pedidos recebidos (1)');
+  await r15.pg.evaluate(() => { ui.det = 'P-26188'; location.hash = 'pedidos'; render(); }); await r15.pg.waitForTimeout(300);
+  let t15 = await r15.pg.textContent('main');
+  ok(t15.includes('Destino da peça pronta') && t15.includes('Maria Souza') && t15.includes('Rua das Flores'), 'dono vê o destino da peça (envio direto ao cliente) com o endereço informado pelo parceiro');
+  await r15.pg.evaluate(() => { ui.det = null; location.hash = 'clientes'; ui.cli = 5; ui.tab = 'cadastro'; render(); }); await r15.pg.waitForTimeout(300);
+  t15 = await r15.pg.textContent('main');
+  ok(t15.includes('Cliente 0005') && !t15.includes('123.456.789-09') && !t15.includes('99999-0000') && !t15.includes('1980') && !t15.includes('Campinas') && t15.includes('ficam só com o parceiro'), 'dono vê só o nome do cliente do parceiro: CPF, telefone, nascimento e cidade ficam ocultos');
+  ok(await r15.pg.evaluate(() => !document.getElementById('c-editar')), 'dono não edita o cadastro do cliente do parceiro');
+  await r15.pg.evaluate(() => { location.hash = 'prodparc'; render(); }); await r15.pg.waitForTimeout(300);
   await r15.pg.click('button[data-ac="recusar"]'); await r15.pg.fill('#rc-m', 'Sem tecido'); await r15.pg.click('#mform button[type=submit]'); await r15.pg.waitForTimeout(300);
   tx = await r15.pg.textContent('main'); ok(tx.includes('Recusado') && tx.includes('Sem tecido'), 'recusar grava o motivo e mostra "Recusado"');
   await r15.pg.click('button[data-ac="reabrir"]'); await r15.pg.waitForTimeout(200);

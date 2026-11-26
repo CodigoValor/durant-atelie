@@ -14,7 +14,8 @@ await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com')
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql']) await db.exec(sql(f));
 await db.exec(sql('0007_convites.sql'));      // 0007 roda duas vezes; só depois vem a 0008 (as migrações rodam sempre em ordem)
 await db.exec(sql('0008_origem_parceiro.sql')); await db.exec(sql('0008_origem_parceiro.sql'));
-ok(true, '0007 e 0008 rodam duas vezes sem quebrar');
+await db.exec(sql('0009_andamento_parceiro.sql')); await db.exec(sql('0009_andamento_parceiro.sql'));
+ok(true, '0007, 0008 e 0009 rodam duas vezes sem quebrar');
 
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.membros (user_id, empresa_id, papel) values ('${LUIZ}','${E1}','admin'),('${MARIA}','${E1}','usuario')`);
@@ -144,6 +145,24 @@ await como(MARIA, async () => {
   ok(o[0].nome === 'Durant Ateliê', 'admin corrige o nome e a origem acompanha');
   const m = (await db.query(`select * from public.listar_membros('${E1}')`)).rows.find(x => x.user_id === ANA);
   ok(m && m.nome_parceiro === 'Durant Ateliê', 'a lista de pessoas mostra o nome da empresa do parceiro');
+});
+
+console.log('Andamento do parceiro (0009)');
+await como(ANA, async () => { await db.query(`insert into public.reg (empresa_id,id,k,i,j) values ($1,'pedidos~P-10','pedidos','P-10','{}')`, [E1]); });
+await como(MARIA, async () => {
+  await db.query(`insert into public.reg (empresa_id,id,k,i,j) values ($1,'sing~cfg','sing','cfg',$2) on conflict (empresa_id,id) do update set j=excluded.j`, [E1, JSON.stringify({ aceites: { 'P-9': { st: 'aceito', em: '2026-11-26T10:00:00Z', por: 'Maria' }, 'P-10': { st: 'recusado', em: '2026-11-26T11:00:00Z', por: 'Maria', motivo: 'falta dados' }, 'P-1': { st: 'aceito' } } })]);
+  ok(/sem permissão/.test(await falha(`select * from public.andamento_parceiro('${E1}')`)), 'o dono não usa a função do parceiro');
+});
+await como(ANA, async () => {
+  const a = (await db.query(`select * from public.andamento_parceiro('${E1}') order by id`)).rows;
+  ok(a.length === 2 && a[0].id === 'pedidos~P-10' && a[0].st === 'recusado' && a[0].motivo === 'falta dados' && a[1].id === 'pedidos~P-9' && a[1].st === 'aceito', 'o parceiro recebe o estado e o motivo só dos pedidos dele');
+  ok(!a.some(x => x.id === 'pedidos~P-1'), 'não recebe o estado de pedido de outra pessoa da equipe');
+  ok(!JSON.stringify(a).includes('Maria'), 'não recebe quem decidiu nem outros dados da configuração');
+});
+await como(MARIA, async () => { await db.query(`delete from public.reg where empresa_id=$1 and id='sing~cfg'`, [E1]); });
+await como(ANA, async () => {
+  const a = (await db.query(`select * from public.andamento_parceiro('${E1}')`)).rows;
+  ok(a.length === 2 && a.every(x => x.st === 'recebido'), 'sem decisão do dono, todos aparecem como "recebido"');
 });
 
 if (falhas.length) { console.log('\n' + falhas.length + ' FALHA(S)'); process.exit(1); }
