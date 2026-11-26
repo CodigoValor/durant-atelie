@@ -12,7 +12,9 @@ A primeira extração modular move o JavaScript do painel administrativo para `p
 
 `PG_BIN=/caminho/postgresql/17/bin bash tools/ensaiar-recuperacao.sh` cria um servidor PostgreSQL descartável sem listener de rede, executa as migrations, sem o bootstrap operacional de administrador, e usa apenas dados sintéticos. Requer PostgreSQL 17, OpenSSL e execução como usuário não root. O tempo exibido mede somente esse ensaio. Ele verifica dump, criptografia, decriptação, restauração, identidade sintética, vínculo, documento, auditoria e RLS.
 
-O workflow `Backup diário do banco (produção)` referencia segredos de produção. O ensaio usa um dump dos esquemas `auth` e `public` e credenciais descartáveis. Ele não valida o catálogo, as permissões ou os artefatos dos backups remotos. Fluxos Supabase Auth, objetos do Storage, restauração ponto a ponto e recuperação num projeto Supabase descartável precisam de validações próprias antes de assumir metas de RPO/RTO.
+O ensaio restaura um dump completo dos esquemas sintéticos e também um backup em SQL somente de dados, compactado e criptografado no formato operacional. Esse segundo caso usa as tabelas selecionadas no workflow de backup e pressupõe schema e identidades preparados no destino. Os gatilhos de aplicação são desabilitados apenas durante a transação do banco descartável. As restrições de chaves estrangeiras ficam ativas. A verificação cobre dois administradores de empresas distintas, usuário comum e identidade sem vínculo.
+
+O ensaio usa credenciais descartáveis e não executa o workflow que referencia segredos de produção. A recuperação de identidades mantidas pelo Supabase Auth, objetos do Storage, mecanismos de restauração ponto a ponto e os artefatos remotos precisam de validações próprias antes de assumir metas de RPO/RTO.
 
 ## Validação comercial
 

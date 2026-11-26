@@ -39,8 +39,11 @@ create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
 $$;
 grant usage on schema auth to anon, authenticated;
--- Pessoa sintética pré-existente ao gatilho de cadastro por convite.
-insert into auth.users values ('55000000-0000-0000-0000-000000000001', 'restore@example.test');
+-- Identidades sintéticas pré-existentes ao gatilho de cadastro por convite.
+insert into auth.users values
+  ('55000000-0000-0000-0000-000000000001', 'restore@example.test'),
+  ('55000000-0000-0000-0000-000000000003', 'segundo@example.test'),
+  ('55000000-0000-0000-0000-000000000005', 'equipe@example.test');
 SQL
 
 for migration in "$root"/supabase/migrations/*.sql; do
@@ -53,12 +56,20 @@ for migration in "$root"/supabase/migrations/*.sql; do
   }
 done
 
+"$PG_BIN/createdb" --template=origem operacional
+operacional=("$PG_BIN/psql" -X -v ON_ERROR_STOP=1 -d operacional)
+
 "${origem[@]}" -q <<'SQL'
-insert into public.empresas (id, nome) values ('55000000-0000-0000-0000-000000000002', 'Empresa sintética');
-insert into public.membros (user_id, empresa_id, papel)
-  values ('55000000-0000-0000-0000-000000000001', '55000000-0000-0000-0000-000000000002', 'admin');
-insert into public.reg (empresa_id, id, k, i, n, j)
-  values ('55000000-0000-0000-0000-000000000002', 'recuperacao-1', 'clientes', '1', 1, '{}');
+insert into public.empresas (id, nome) values
+  ('55000000-0000-0000-0000-000000000002', 'Empresa sintética A'),
+  ('55000000-0000-0000-0000-000000000004', 'Empresa sintética B');
+insert into public.membros (user_id, empresa_id, papel) values
+  ('55000000-0000-0000-0000-000000000001', '55000000-0000-0000-0000-000000000002', 'admin'),
+  ('55000000-0000-0000-0000-000000000003', '55000000-0000-0000-0000-000000000004', 'admin'),
+  ('55000000-0000-0000-0000-000000000005', '55000000-0000-0000-0000-000000000002', 'usuario');
+insert into public.reg (empresa_id, id, k, i, n, j) values
+  ('55000000-0000-0000-0000-000000000002', 'recuperacao-1', 'clientes', '1', 1, '{"origem":"A"}'),
+  ('55000000-0000-0000-0000-000000000004', 'recuperacao-1', 'clientes', '1', 1, '{"origem":"B"}');
 SQL
 
 "$PG_BIN/pg_dump" --schema=auth --schema=public --format=custom --file="$work/backup.dump" origem
@@ -68,25 +79,36 @@ openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
   -in "$work/backup.dump" -out "$work/backup.enc" -pass env:ALINHAVO_DRILL_PASSPHRASE
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
   -in "$work/backup.enc" -out "$work/restore.dump" -pass env:ALINHAVO_DRILL_PASSPHRASE
-unset ALINHAVO_DRILL_PASSPHRASE
 cmp "$work/backup.dump" "$work/restore.dump"
 # A base recém-criada usa o esquema public padrão. O dump contém sua definição.
 "${destino[@]}" -q -c 'drop schema public'
 "$PG_BIN/pg_restore" --exit-on-error --single-transaction -d recuperacao "$work/restore.dump"
 
-"${destino[@]}" -q <<'SQL'
-do $$
-begin
-  if (select count(*) from public.reg where id = 'recuperacao-1') <> 1
-     or (select count(*) from public.audit_log where reg_id = 'recuperacao-1') <> 1
-     or (select count(*) from auth.users where email = 'restore@example.test') <> 1
-     or (select count(*) from public.membros where user_id = '55000000-0000-0000-0000-000000000001') <> 1 then
-    raise exception 'faltam dados, vínculo ou trilha de auditoria';
-  end if;
-  if has_table_privilege('anon', 'public.reg', 'select')
-     or not (select relrowsecurity from pg_class where oid = 'public.reg'::regclass) then
-    raise exception 'a restauração degradou o controle de acesso';
-  end if;
-end $$;
-SQL
-echo "Restauração sintética aprovada em $((SECONDS - started)) s"
+# Reutiliza a seleção do workflow operacional, sem executá-lo ou ler suas credenciais.
+mapfile -t tabelas < <(grep -oE -- '--table=public\.[a-z_][a-z0-9_]*' "$root/.github/workflows/backup.yml")
+if (( ${#tabelas[@]} == 0 )); then
+  echo 'Nenhuma tabela localizada no workflow de backup' >&2
+  exit 1
+fi
+"$PG_BIN/pg_dump" --data-only --no-owner --no-privileges "${tabelas[@]}" origem |
+  gzip -9 > "$work/operacional.sql.gz"
+openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt \
+  -in "$work/operacional.sql.gz" -out "$work/operacional.enc" -pass env:ALINHAVO_DRILL_PASSPHRASE
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
+  -in "$work/operacional.enc" -out "$work/operacional-restaurado.sql.gz" -pass env:ALINHAVO_DRILL_PASSPHRASE
+unset ALINHAVO_DRILL_PASSPHRASE
+cmp "$work/operacional.sql.gz" "$work/operacional-restaurado.sql.gz"
+
+nomes=("${tabelas[@]#--table=}")
+{
+  for tabela in "${nomes[@]}"; do printf 'alter table %s disable trigger user;\n' "$tabela"; done
+  (IFS=,; printf 'truncate %s restart identity;\n' "${nomes[*]}")
+  gzip -dc "$work/operacional-restaurado.sql.gz"
+  for tabela in "${nomes[@]}"; do printf 'alter table %s enable trigger user;\n' "$tabela"; done
+} | "${operacional[@]}" -q --single-transaction -f -
+
+for banco in origem recuperacao operacional; do
+  "$PG_BIN/psql" -X -v ON_ERROR_STOP=1 -q -d "$banco" -f "$root/tools/verificar-isolamento-recuperacao.sql"
+  echo "Registros, vínculos, auditoria e isolamento verificados em $banco"
+done
+echo "Restaurações sintéticas nos dois formatos aprovadas em $((SECONDS - started)) s"

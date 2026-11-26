@@ -4,7 +4,9 @@ on:
     branches: [homologacao]
     paths:
       - .github/workflows/recuperacao-homologacao.yml
+      - .github/workflows/backup.yml
       - tools/ensaiar-recuperacao.sh
+      - tools/verificar-isolamento-recuperacao.sql
       - 'supabase/migrations/**'
 permissions:
   contents: read
