@@ -16,7 +16,13 @@
     "test:subida": "node tests/subida.mjs",
     "test:tecidos": "node tests/tecidos.mjs",
     "test:tecidos-ui": "node tests/tecidos_ui.cjs",
-    "test:tecidos-loja": "node tests/tecidos_loja.mjs"
+    "test:tecidos-loja": "node tests/tecidos_loja.mjs",
+    "test:auditoria": "node tests/auditoria.mjs",
+    "test:empresa": "node tests/empresa.mjs",
+    "test:medidas": "node tests/medidas.cjs",
+    "test:painel": "node tests/painel.cjs",
+    "test:subida2": "node tests/subida2.mjs",
+    "test": "node tools/run-tests.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.6.0",

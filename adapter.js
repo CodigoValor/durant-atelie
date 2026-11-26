@@ -355,6 +355,7 @@
         var epoch = authEpoch;
         uidValidando = session.user.id;
         var validacao = await sb.auth.getUser();
+        conferirSessao(epoch);
         if (validacao.error) {
           uidValidando = null;
           if (validacao.error.status === 401 || validacao.error.status === 403 ||

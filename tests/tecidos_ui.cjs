@@ -1,6 +1,6 @@
 /* Teste da tela /tecidos num navegador real (nada sai do computador; sem banco: a demonstração guarda no navegador).
    Uso: node tests/tecidos_ui.cjs   (usa o Chrome do sistema se existir; senão o do Playwright) */
-const { chromium } = require('playwright');
+const { launchBrowser, localContext } = require('../tools/browser-test.cjs');
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.ico': 'image/x-icon' };
@@ -20,10 +20,8 @@ function servidor() {
 
 (async () => {
   const srv = await servidor(); const base = 'http://localhost:' + srv.address().port;
-  const exe = fs.existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined;
-  const br = await chromium.launch({ executablePath: exe, args: ['--no-sandbox'] });
-  const ctx = await br.newContext({ viewport: { width: 1280, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
-  await ctx.route(/^https?:\/\/(?!localhost)/, r => r.abort());   // sem internet: fontes externas não carregam
+  const br = await launchBrowser();
+  const ctx = await localContext(br, base, { viewport: { width: 1280, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
   const page = await ctx.newPage();
   const erros = []; page.on('pageerror', e => erros.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_FAILED/.test(m.text())) erros.push(m.text()); });
   let alertou = false; page.on('dialog', d => { alertou = true; d.dismiss(); });

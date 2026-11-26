@@ -1,0 +1,9 @@
+# Proposta: proprietário responsável pela revisão dos arquivos de governança.
+# A presença deste arquivo não ativa revisão obrigatória por si só.
+# Confirmar permissões, identidade distinta do autor e regras antes de exigir aprovação.
+* @Silva07Luiz-HD
+/AGENTS.md @Silva07Luiz-HD
+/.github/ @Silva07Luiz-HD
+/supabase/ @Silva07Luiz-HD
+/config.js @Silva07Luiz-HD
+/vercel.json @Silva07Luiz-HD
