@@ -5642,17 +5642,41 @@ function chipUser(){
 /* Deixa claro de que lado a pessoa está: ateliê parceiro ou fábrica (dona que recebe pedidos de ateliês) */
 function papelEmpresaTag(){const w=window.SB;if(!w||!w.empresa)return '';const t=PARC()?'Ateliê':(typeof ateliesLista==='function'&&ateliesLista().length?'Fábrica':'');return t?`<span style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;background:#D9A441;color:#243430;border-radius:8px;padding:1px 6px;margin-left:6px;font-weight:700">${t}</span>`:''}
 function sair(){if(window.SB)return window.SB.sair();sess.clr();P.user=null;chipUser();document.getElementById('modal-root').innerHTML='';gateLogin()}
+/* Menu do usuário (desenho "Alternar para"): nome, e-mail, empresas da pessoa, Minha conta e Sair */
+const TIPO_EMP={atelie:'Ateliê',alfaiataria:'Alfaiataria',loja:'Loja de tecido',cliente_loja:'Cliente da loja'};
+function menuUsuario(ev){
+ const u=P.user;if(!u)return;
+ const SBx=window.SB,emps=(SBx&&SBx.empresas)||[];
+ const velho=document.getElementById('umenu');if(velho){velho.remove();return}
+ if(!SBx||!SBx.email){contaModal();return}
+ if(ev&&ev.stopPropagation)ev.stopPropagation();
+ const cap=t=>t?t.charAt(0).toUpperCase()+t.slice(1):'';
+ const rot=x=>[x.tipo?TIPO_EMP[x.tipo]:(x.fornece?'Loja de tecido':(x.soTec?'Cliente da loja':'')),cap(x.papelTxt)].filter(Boolean).join(' · ');
+ const lad=n=>`<span style="width:30px;height:30px;border-radius:8px;background:#243430;color:#D9A441;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:16px;flex:none">${esc(String(n||'?').trim().charAt(0).toUpperCase())}</span>`;
+ const lista=emps.length>1?`<div style="height:1px;background:#E6E1D8;margin:4px 0"></div><div style="padding:8px 12px 4px;font-size:11px;letter-spacing:.8px;color:#8a6a26;font-weight:600">ALTERNAR PARA</div>${emps.map((x,i)=>{const at=x.id===SBx.empresa;return `<button type="button" data-alt="${i}" ${at?'aria-current="true"':''} style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:${at?'#F4EFE4':'transparent'};text-align:left;font:inherit;color:inherit;cursor:${at?'default':'pointer'}">${lad(x.nome)}<span style="flex:1;min-width:0"><span style="display:block;font-size:14px;font-weight:600">${esc(x.nome)}</span><span style="display:block;font-size:12px;color:#6b726f">${esc(rot(x))}</span></span>${at?'<span style="font-size:12px;color:#8a6a26;font-weight:600">Atual</span>':''}</button>`}).join('')}`:'';
+ const m=document.createElement('div');m.id='umenu';m.setAttribute('role','menu');
+ m.style.cssText='position:fixed;top:66px;right:16px;width:min(320px,calc(100vw - 24px));background:#fff;color:#243430;border:1px solid #E6E1D8;border-radius:14px;box-shadow:0 12px 30px rgba(36,52,48,.14);padding:8px;box-sizing:border-box;z-index:2000;font-family:Inter,system-ui,sans-serif';
+ m.innerHTML=`<div style="padding:10px 12px 8px"><div style="font-weight:600;font-size:14px">${esc(u.nome||'')}</div><div style="font-size:12.5px;color:#6b726f">${esc(SBx.email||u.email||'')}</div></div>${lista}<div style="height:1px;background:#E6E1D8;margin:4px 0"></div><button type="button" id="um-conta" style="display:block;width:100%;padding:10px 12px;border:0;background:none;text-align:left;font:inherit;font-size:14px;cursor:pointer;border-radius:10px">Minha conta</button><button type="button" id="um-sair" style="display:block;width:100%;padding:10px 12px;border:0;background:none;text-align:left;font:inherit;font-size:14px;color:#9b3d2e;cursor:pointer;border-radius:10px">Sair</button>`;
+ document.body.appendChild(m);
+ const fecha=()=>{m.remove();document.removeEventListener('click',fora,true);document.removeEventListener('keydown',tecla)};
+ const fora=e=>{if(!m.contains(e.target)&&e.target.id!=='userchip'&&!e.target.closest('#userchip'))fecha()};
+ const tecla=e=>{if(e.key==='Escape')fecha()};
+ setTimeout(()=>{document.addEventListener('click',fora,true);document.addEventListener('keydown',tecla)},0);
+ m.querySelectorAll('[data-alt]').forEach(b=>b.onclick=()=>{const x=emps[+b.dataset.alt];if(x.id===SBx.empresa)return;fecha();SBx.alternarPara(x.id)});
+ document.getElementById('um-conta').onclick=()=>{fecha();contaModal()};
+ document.getElementById('um-sair').onclick=()=>{fecha();sair()};
+}
 function contaModal(){
  const u=P.user;if(!u)return;
  modal('Sua conta',`<div class="full"><b>${esc(u.nome)}</b><div class="d" style="color:var(--ink-2);font-size:14px">${esc(u.email||'')} · ${esc(u.grupo||'')}</div></div>
  <label class="full">Nova senha<input id="ac-p" type="password" class="ctl" autocomplete="new-password" placeholder="Deixe em branco para manter a atual"></label>
- ${window.SB&&window.SB.empresaNome?`<div class="full" style="font-size:14px;color:var(--ink-2)">Empresa: <b>${esc(window.SB.empresaNome)}</b>${window.SB.empresas&&window.SB.empresas.length>1?` <button type="button" class="btn ghost sm" id="ac-troca">Trocar de empresa</button>`:''}</div>`:''}
+ ${window.SB&&window.SB.empresaNome?`<div class="full" style="font-size:14px;color:var(--ink-2)">Empresa: <b>${esc(window.SB.empresaNome)}</b></div>`:''}
  <div class="full"><button type="button" class="btn ghost" id="ac-out">Sair do sistema</button></div>`,()=>{
   const p=document.getElementById('ac-p').value;if(!p)return;
   const m=pwOk(p);if(m)return m;
   if(window.SB)window.SB.client.auth.updateUser({password:p}).then(r=>{toast(r.error?'Não consegui alterar a senha':'Senha alterada')});else setSenha(u,p).then(()=>{toast('Senha alterada');flush()});
  },'Salvar');
- document.getElementById('ac-out').onclick=sair;const trc=document.getElementById('ac-troca');if(trc)trc.onclick=()=>window.SB.trocarEmpresa();
+ document.getElementById('ac-out').onclick=sair;
 }
 async function boot(){
  gate(gBox('<p class="gmsg">Carregando seus dados…</p>'));
@@ -5861,7 +5885,7 @@ function bindDados(){
  window.addEventListener('resize',()=>fechar(false));
  document.addEventListener('scroll',e=>{if(P&&!P.contains(e.target))fechar(false)},true);
 })();
-chipUser();document.getElementById('userchip').onclick=contaModal;
+chipUser();document.getElementById('userchip').onclick=menuUsuario;
 boot();
 </script>
 

@@ -15,6 +15,11 @@
   SB.trocarEmpresa = function () {
     sb.auth.getSession().then(function (r) { var u = r && r.data && r.data.session && r.data.session.user; if (u) lembrada(u.id, null); location.reload(); });
   };
+  /* "Alternar para": entra direto na empresa escolhida, sem pedir senha de novo (vale uma vez; recarrega o sistema nela) */
+  SB.alternarPara = function (id) {
+    try { sessionStorage.setItem('alinhavo.alternar', id); } catch (e) {}
+    location.reload();
+  };
   var vemDeRecuperacao = /type=recovery/.test(location.hash);
   /* convite: o link traz ?convite=CÓDIGO. Guardamos o código (sobrevive a "confirme seu e-mail") e limpamos o endereço. */
   var CONVITE = (function () {
@@ -234,7 +239,7 @@
     if (!r || r.error || (r.data && r.data.length)) return;   // sem a função (ambiente antigo) ou já cadastrado
     await new Promise(function (resolve) {
       mostra('<p class="geyebrow">SEU CADASTRO</p><h1>Informe seu CPF</h1><p class="gmsg">Ele identifica você em todas as empresas e permite entrar usando só o CPF e a senha. Cada CPF vale para uma única conta.</p>' +
-        '<form id="g-f" class="gform"><label>CPF<input id="g-cpf" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00"></label>' +
+        '<form id="g-f" class="gform"><label>CPF<input id="g-cpf" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00"></label><label>Como quer ser chamado (opcional)<input id="g-nome" autocomplete="given-name" maxlength="60" placeholder="Ex.: Luiz"></label>' +
         '<p class="gerr" id="g-e" role="alert" hidden></p><button class="gbtn" type="submit">Salvar e continuar</button><button class="glink" type="button" id="g-agora">Agora não</button></form>');
       var cp = document.getElementById('g-cpf'), er = document.getElementById('g-e');
       cp.oninput = function () { cp.value = cpfMascara(cp.value); };
@@ -242,7 +247,7 @@
       document.getElementById('g-f').onsubmit = function (ev) {
         ev.preventDefault();
         if (!cpfValido(cp.value)) { er.textContent = 'CPF inválido. Confira os números.'; er.hidden = false; return; }
-        sb.rpc('salvar_minha_pessoa', { p_cpf: cp.value, p_nome: null }).then(function (x) {
+        sb.rpc('salvar_minha_pessoa', { p_cpf: cp.value, p_nome: document.getElementById('g-nome').value.trim() || null }).then(function (x) {
           if (x.error) { er.textContent = /já está cadastrado/.test(x.error.message || '') ? 'Este CPF já está cadastrado em outra conta.' : 'Não consegui salvar agora. Tente de novo.'; er.hidden = false; return; }
           resolve();
         }, function () { er.textContent = 'Não consegui salvar agora. Tente de novo.'; er.hidden = false; });
@@ -260,24 +265,41 @@
     document.getElementById('g-out').onclick = function () { SB.sair(); };
   }
 
-  function telaEscolherEmpresa(lista) {
+  var TIPO_TXT = { atelie: 'Ateliê', alfaiataria: 'Alfaiataria', loja: 'Loja de tecido', cliente_loja: 'Cliente da loja' };
+  function rotuloEmpresa(x) {
+    var t = x.tipo ? TIPO_TXT[x.tipo] : (x.fornece ? 'Loja de tecido' : (x.soTec ? 'Cliente da loja' : ''));
+    var p = PAPEL_TXT[x.papel] || x.papel; p = p ? p.charAt(0).toUpperCase() + p.slice(1) : '';
+    return (t ? t + ' · ' : '') + p;
+  }
+  function ladrilho(nome, tam) {
+    return '<span style="width:' + tam + 'px;height:' + tam + 'px;border-radius:10px;background:#243430;color:#D9A441;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:' + Math.round(tam / 2) + 'px;font-weight:600;flex:none">' + esc(String(nome || '?').trim().charAt(0).toUpperCase()) + '</span>';
+  }
+  /* Cartões das empresas, na mesma tela do login, depois da senha. Resolve { emp, lembrar }. */
+  function telaEscolherEmpresa(lista, nome, ultimoId) {
     return new Promise(function (resolve) {
-      var botoes = lista.map(function (x, i) {
-        var tipo = (x.vende ? 'vende ao cliente final' : '') + (x.vende && x.produz ? ' · ' : '') + (x.produz ? 'produz' : '');
-        return '<button class="gbtn" type="button" data-emp="' + i + '" style="display:block;width:100%;margin:0 0 10px;text-align:left">' +
-          esc(x.nome) + '<span style="display:block;font-size:12px;font-weight:400;opacity:.8">' + esc(x.papelTxt) + (tipo ? ' · ' + esc(tipo) : '') + '</span></button>';
+      var cartoes = lista.map(function (x, i) {
+        var ult = x.id === ultimoId;
+        return '<button type="button" data-emp="' + i + '" style="display:flex;align-items:center;gap:12px;width:100%;margin:0 0 10px;text-align:left;cursor:pointer;font:inherit;color:inherit;border-radius:12px;padding:14px;' +
+          (ult ? 'border:1.5px solid #D9A441;background:#F4EFE4' : 'border:1px solid #E6E1D8;background:#fff') + '">' + ladrilho(x.nome, 40) +
+          '<span style="flex:1;min-width:0"><span style="display:block;font-weight:600;font-size:15px">' + esc(x.nome) + '</span><span style="display:block;font-size:12.5px;color:#6b726f">' + esc(rotuloEmpresa(x)) + '</span></span>' +
+          (ult ? '<span style="font-size:12px;color:#8a6a26;font-weight:600">Último acesso</span>' : '') + '</button>';
       }).join('');
-      mostra('<h1>Escolha a empresa</h1><p class="gmsg">Sua conta tem acesso a mais de uma empresa. Você pode trocar depois em "Sua conta".</p>' +
-        '<div class="gform">' + botoes + '</div><div class="gact"><button class="glink" type="button" id="g-out">Sair</button></div>');
+      mostra('<h1>Como você quer entrar?</h1><p class="gmsg">' + (nome ? 'Olá, ' + esc(nome) + '. ' : '') + 'Escolha a empresa:</p>' +
+        '<div class="gform">' + cartoes + '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#4a524f;cursor:pointer"><input type="checkbox" id="g-lemb" style="width:16px;height:16px;accent-color:#B8893A">Lembrar esta escolha neste aparelho</label></div>' +
+        '<div class="gact"><button class="glink" type="button" id="g-out">Trocar conta</button></div>');
       Array.prototype.forEach.call(document.querySelectorAll('[data-emp]'), function (b) {
-        b.onclick = function () { resolve(lista[+b.getAttribute('data-emp')]); };
+        b.onclick = function () { resolve({ emp: lista[+b.getAttribute('data-emp')], lembrar: document.getElementById('g-lemb').checked }); };
       });
       document.getElementById('g-out').onclick = function () { SB.sair(); };
     });
   }
   var PAPEL_TXT = { admin: 'administrador', usuario: 'usuário', parceiro: 'ateliê' };
-  function lembrada(uid, v) {
-    try { if (v === undefined) return localStorage.getItem('durant.empresa.' + uid); if (v === null) localStorage.removeItem('durant.empresa.' + uid); else localStorage.setItem('durant.empresa.' + uid, v); } catch (e) {}
+  function lembrada(uid, v) {   // só existe se a pessoa marcou "Lembrar esta escolha neste aparelho"
+    try { if (v === undefined) return localStorage.getItem('alinhavo.lembrar.' + uid); if (v === null) localStorage.removeItem('alinhavo.lembrar.' + uid); else localStorage.setItem('alinhavo.lembrar.' + uid, v); } catch (e) {}
+    return null;
+  }
+  function ultimaEmpresa(uid, v) {   // sempre guardada, só para marcar "Último acesso"
+    try { if (v === undefined) return localStorage.getItem('alinhavo.ultima.' + uid); localStorage.setItem('alinhavo.ultima.' + uid, v); } catch (e) {}
     return null;
   }
 
@@ -312,10 +334,20 @@
           vende: e.vende_cliente_final !== false, produz: e.produz === true, fornece: e.fornece_tecido === true, soTec: e.somente_tecidos === true, tipo: e.tipo || null, cadastro: e.cadastro || {} };
       });
       SB.empresas = lista;
-      var uid = session.user.id, esc1 = null, lemb = lembrada(uid);
-      if (lemb) esc1 = lista.filter(function (x) { return x.id === lemb; })[0] || null;   // só vale se ainda for vínculo real
-      if (!esc1) esc1 = lista.length === 1 ? lista[0] : await telaEscolherEmpresa(lista);
-      lembrada(uid, esc1.id);
+      var uid = session.user.id, esc1 = null, lemb = lembrada(uid), alt = null;
+      try { alt = sessionStorage.getItem('alinhavo.alternar'); sessionStorage.removeItem('alinhavo.alternar'); } catch (e) {}
+      var achar = function (id) { return id ? (lista.filter(function (x) { return x.id === id; })[0] || null) : null; };   // só vale se ainda for vínculo real
+      esc1 = achar(alt) || achar(lemb);
+      if (!esc1) {
+        if (lista.length === 1) esc1 = lista[0];
+        else {
+          var pes = null; try { var rp = await sb.rpc('minha_pessoa'); pes = rp && rp.data && rp.data[0]; } catch (e) {}
+          var esc2 = await telaEscolherEmpresa(lista, pes && pes.nome ? String(pes.nome).split(' ')[0] : '', ultimaEmpresa(uid));
+          esc1 = esc2.emp;
+          if (esc2.lembrar) lembrada(uid, esc1.id); else lembrada(uid, null);
+        }
+      }
+      ultimaEmpresa(uid, esc1.id);
       SB.uid = uid; SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz, fornece: esc1.fornece, soTec: esc1.soTec, tipo: esc1.tipo }; SB.cadastro = esc1.cadastro;
       aplicaMarca();
     })();
