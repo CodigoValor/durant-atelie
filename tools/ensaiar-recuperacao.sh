@@ -17,7 +17,10 @@ started=$SECONDS
 
 "$PG_BIN/initdb" -D "$work/data" --username=postgres --auth=trust --no-locale --encoding=UTF8 >/dev/null
 "$PG_BIN/pg_ctl" -D "$work/data" -l "$work/postgres.log" \
-  -o "-c listen_addresses='' -k $PGHOST" -w start >/dev/null
+  -o "-c listen_addresses='' -k $PGHOST" -w start >/dev/null || {
+  cat "$work/postgres.log" >&2
+  exit 1
+}
 "$PG_BIN/createdb" origem
 "$PG_BIN/createdb" recuperacao
 origem=("$PG_BIN/psql" -X -v ON_ERROR_STOP=1 -d origem)

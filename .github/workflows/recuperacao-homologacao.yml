@@ -1,0 +1,27 @@
+name: Recuperação sintética (homologação)
+on:
+  pull_request:
+    branches: [homologacao]
+    paths:
+      - .github/workflows/recuperacao-homologacao.yml
+      - tools/ensaiar-recuperacao.sh
+      - 'supabase/migrations/**'
+permissions:
+  contents: read
+concurrency:
+  group: recuperacao-homologacao-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  recuperacao-sintetica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Ensaiar dump e restauração PostgreSQL 17 sem rede
+        run: |
+          docker run --rm --network none --user postgres \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --env PG_BIN=/usr/lib/postgresql/17/bin \
+            postgres:17-bookworm bash /repo/tools/ensaiar-recuperacao.sh
