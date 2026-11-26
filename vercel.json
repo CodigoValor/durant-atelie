@@ -22,7 +22,7 @@
       ]
     },
     {
-      "source": "/(index.html|painel.html|painel.js|config.js|adapter.js)",
+      "source": "/(index.html|painel.html|painel.js|config.js|adapter.js|versao.json)",
       "headers": [
         {
           "key": "Cache-Control",

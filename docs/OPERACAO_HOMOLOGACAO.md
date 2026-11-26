@@ -4,7 +4,7 @@
 
 ## Publicação estática e verificação
 
-`node tools/build-vercel.mjs` publica em `dist/` somente as páginas, scripts e imagens necessários. A aplicação e o painel devem retornar 200, carregar o JavaScript e apontar para o banco de homologação. Uma migration SQL usada como controle deve retornar 404 no deploy. Depois que os dois aliases apontarem para a nova versão, rode `node tools/smoke-homologacao.mjs`. Para reverter o build, reverta o commit em homologação e verifique novamente o deploy nessa branch.
+`node tools/build-vercel.mjs` publica em `dist/` somente as páginas, scripts e imagens necessários. A aplicação e o painel devem retornar 200, carregar o JavaScript e apontar para o banco de homologação. Uma migration SQL usada como controle deve retornar 404 no deploy. A cada atualização de `homologacao`, o GitHub Actions aguarda a versão esperada nos dois aliases e sinaliza falha se o deploy não passar. O check compara `versao.json` com o SHA do push. Execute `node tools/smoke-homologacao.mjs` para verificar manualmente a versão disponível. A entrega de notificações do GitHub depende das preferências dos mantenedores. Esse check é acionado por deploy e não mede disponibilidade entre publicações. Para reverter o build, reverta o commit em homologação e verifique novamente o deploy nessa branch.
 
 A primeira extração modular move o JavaScript do painel administrativo para `painel.js`. Preserve a ordem de carregamento de Supabase, configuração e painel. As próximas extrações devem manter contratos de armazenamento e autorização e entrar separadamente, começando por módulos que já tenham cobertura.
 

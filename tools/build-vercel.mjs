@@ -1,4 +1,4 @@
-import { cp, mkdir, rm } from 'node:fs/promises';
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 
 const output = new URL('../dist/', import.meta.url);
 const root = new URL('../', import.meta.url);
@@ -15,3 +15,9 @@ await Promise.all(
 for (const file of [...files, ...assets.map(id => `assets/entrada/${id}.jpg`)]) {
   await cp(new URL(file, root), new URL(file, output));
 }
+
+const commit = process.env.VERCEL_GIT_COMMIT_SHA;
+if (commit && !/^[a-f0-9]{40}$/.test(commit)) {
+  throw new Error('SHA de deploy inválido');
+}
+await writeFile(new URL('versao.json', output), JSON.stringify({ commit: commit || null }) + '\n');
