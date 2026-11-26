@@ -44,6 +44,7 @@
     var msg = (e && e.message) || 'erro';
     var x = new Error(msg);
     var st = e && e.status;
+    x.status = st;
     x.code = (st === 429 || st === 503 || st === 0 || /fetch|network/i.test(msg)) ? 'unavailable' : ((e && e.code) || 'erro');
     return x;
   }

@@ -353,6 +353,13 @@ function novoBanco(cfg) {
   ok(b13.reg.has('E7|clientes~9100') && !b13.negados, 'grava o cliente novo e NÃO tenta gravar configurações (nada negado pelo servidor)');
   ok(![...b13.reg.keys()].some(k => k.includes('sing~') || k === 'E7|sys~meta' && b13.reg.get(k).j !== '{"v":1}'), 'nenhuma configuração nem marcador foi escrito pelo parceiro');
   ok(r13.erros.length === 0, 'sem erros de JavaScript na página (' + r13.erros.join(' | ') + ')');
+  await r13.pg.evaluate(() => {
+    window.SB.client.auth.refreshSession = async () => ({ data: { session: null } });
+    const o = P.col.doc.bind(P.col); P.col.doc = id => { const d = o(id); d.set = async () => { throw Object.assign(new Error('permission denied for table reg'), { code: '42501' }); }; return d; };
+    S.clientes.push({ id: 9200, nome: 'Cliente sessão' }); persistSoon();
+  });
+  await r13.pg.waitForSelector('#mdl', { timeout: 15000 });
+  ok((await r13.pg.textContent('#mdl')).includes('Sua sessão expirou') && (await r13.pg.textContent('body')).includes('Sessão expirada'), 'sessão vencida: o sistema avisa em português (não mostra o código 42501) e diz que o que foi digitado não foi salvo');
   await r13.ctx.close();
 
   console.log('15) dono vê a origem: pedido de parceiro leva a etiqueta com o nome da empresa dele');

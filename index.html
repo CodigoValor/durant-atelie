@@ -4867,7 +4867,7 @@ const b64e=u=>btoa(String.fromCharCode(...u)),b64d=s=>Uint8Array.from(atob(s),c=
 const numId=x=>parseFloat(String(x.id).replace(/\D/g,''))||0;
 const ORD={clientes:(a,b)=>a.id-b.id,pedidos:(a,b)=>numId(a)-numId(b),orcamentos:(a,b)=>numId(b)-numId(a),os:(a,b)=>numId(a)-numId(b),receber:(a,b)=>String(a.venc).localeCompare(b.venc),pagar:(a,b)=>String(a.venc).localeCompare(b.venc),campanhas:(a,b)=>a.id-b.id,fornecedores:(a,b)=>String(a.fantasia).localeCompare(b.fantasia,'pt-BR'),club:(a,b)=>String(a.inicio).localeCompare(b.inicio),simulacoes:(a,b)=>String(b.data).localeCompare(String(a.data))};
 const SYNC_TXT={boot:'Carregando…',ok:'Salvo',saving:'Salvando…',error:'Erro ao salvar',off:'Sem salvamento'};
-const syncTxt=()=>P.state==='ok'&&P.at?`Salvo às ${P.at}`:P.state==='error'&&P.errId?`Erro ao salvar (${P.errId.split('~')[0]}: ${String(P.err||'').slice(0,40)})`:SYNC_TXT[P.state]||'';
+const syncTxt=()=>P.state==='ok'&&P.at?`Salvo às ${P.at}`:P.state==='error'&&P.sessao===false?'Sessão expirada — entre de novo':P.state==='error'&&P.errId?`Erro ao salvar (${P.errId.split('~')[0]}: ${String(P.err||'').slice(0,40)})`:SYNC_TXT[P.state]||'';
 const syncHTML=()=>`<span class="sync ${P.state}" data-sync title="${P.state==='error'&&P.errDet?P.errDet.replace(/"/g,''):P.state==='off'?'Os dados não estão sendo gravados. Abra pelo link publicado do sistema.':''}">${syncTxt()}</span>`;
 function setState(s){P.state=s;if(s==='ok'){const n=new Date();P.at=n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}document.querySelectorAll('[data-sync]').forEach(e=>{e.className='sync '+s;e.textContent=syncTxt()})}
 function snapshot(){
@@ -4899,8 +4899,17 @@ async function flush(){
     if(op==='set')P.last.set(id,v);else P.last.delete(id);
    }));
   }
-  P.errId=null;setState('ok');
- }catch(e){P.err=(e&&(e.code||e.message))||String(e);setState('error')}
+  P.errId=null;P.sessao=true;setState('ok');
+ }catch(e){
+  /* sessão vencida (ou trocada em outra aba): o servidor responde 401 / "permission denied for table". Tenta renovar; se não der, avisa em vez de mostrar um código */
+  const det=String((e&&(e.message||''))+' '+(P.errDet||'')),nega=(e&&e.status===401)||/permission denied for table|JWT/i.test(det);
+  if(nega&&window.SB&&window.SB.client){
+   let renovou=false;
+   try{const r=await window.SB.client.auth.refreshSession();renovou=!!(r&&r.data&&r.data.session)}catch(x){}
+   if(renovou){P.sessao=true;setState('saving')}   /* o próximo ciclo (2,5 s) grava de novo */
+   else{P.sessao=false;P.err='sessao';setState('error');if(!P.avisouSessao){P.avisouSessao=true;modal('Sua sessão expirou','<p class="full" style="margin:0">Você saiu do sistema (a sessão venceu, ou você entrou em outra conta em outra aba deste navegador). <b>O que você digitou ainda está na tela, mas ainda não foi salvo.</b></p><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Anote o que for importante, depois atualize a página e entre de novo. Para testar parceiro e dono ao mesmo tempo, use uma janela anônima para cada um.</p>',null)}}
+  }else{P.err=(e&&(e.code||e.message))||String(e);setState('error')}
+ }
  finally{P.busy=false}
 }
 const persistSoon=()=>{clearTimeout(P.t);P.t=setTimeout(flush,500)};
