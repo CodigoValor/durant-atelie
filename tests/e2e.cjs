@@ -315,6 +315,18 @@ function novoBanco(cfg) {
   ok(r13.erros.length === 0, 'sem erros de JavaScript na página (' + r13.erros.join(' | ') + ')');
   await r13.ctx.close();
 
+  console.log('14) Enter executa o login (e-mail e senha preenchidos)');
+  const b14 = novoBanco({}); const r14 = await abre(b14); await r14.pg.waitForSelector('#g-u');
+  await r14.pg.fill('#g-u', 'hd@henriquedurant.com'); await r14.pg.fill('#g-p', 'senhaCerta123'); await r14.pg.press('#g-p', 'Enter');
+  await r14.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  ok(b14.logins === 1, 'Enter no campo de senha entrou uma única vez (sem duplicar)');
+  await r14.ctx.close();
+  const r14b = await abre(novoBanco({})); await r14b.pg.waitForSelector('#g-u');
+  await r14b.pg.fill('#g-u', 'hd@henriquedurant.com'); await r14b.pg.fill('#g-p', 'senhaErrada'); await r14b.pg.press('#g-u', 'Enter');
+  await r14b.pg.waitForSelector('#g-e:not([hidden])', { timeout: 5000 });
+  ok((await r14b.pg.textContent('#g-e')).includes('incorretos') && await r14b.pg.isEnabled('#g-f .gbtn'), 'Enter no campo de e-mail também envia; erro aparece e o botão volta ao normal');
+  await r14b.ctx.close();
+
   await br.close(); srv.close();
   console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK');
   process.exit(falhas.length ? 1 : 0);

@@ -57,7 +57,17 @@
   }
 
   /* ---------- telas (usam as classes de estilo que o sistema já tem) ---------- */
-  function mostra(html) { gate(gBox(html)); }
+  function mostra(html) {
+    gate(gBox(html));
+    /* Enter em qualquer campo envia o formulário da tela (login, convite, senha), mesmo em navegadores que não fazem isso sozinhos */
+    [].forEach.call(document.querySelectorAll('#gate form'), function (f) {
+      f.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter' || ev.shiftKey || ev.isComposing || ev.target.tagName === 'BUTTON' || ev.target.tagName === 'TEXTAREA') return;
+        ev.preventDefault();
+        if (f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+      });
+    });
+  }
   function mensagemLogin(e) {
     var c = (e && (e.code || '')).toString(), m = (e && e.message) || '';
     if (c === 'invalid_credentials' || /invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
@@ -76,10 +86,14 @@
         ev.preventDefault();
         var em = document.getElementById('g-u').value.trim().toLowerCase(), pw = document.getElementById('g-p').value;
         if (!em || !pw) { er.textContent = 'Informe e-mail e senha.'; er.hidden = false; return; }
+        var bt = f.querySelector('.gbtn'), txt = bt.textContent;
+        if (bt.disabled) return;
+        bt.disabled = true; bt.textContent = 'Entrando…'; er.hidden = true;
+        var volta = function () { bt.disabled = false; bt.textContent = txt; };
         sb.auth.signInWithPassword({ email: em, password: pw }).then(function (r) {
-          if (r.error || !r.data || !r.data.session) { er.textContent = mensagemLogin(r.error); er.hidden = false; return; }
+          if (r.error || !r.data || !r.data.session) { volta(); er.textContent = mensagemLogin(r.error); er.hidden = false; return; }
           resolve(r.data.session);
-        }, function (e) { er.textContent = mensagemLogin(e); er.hidden = false; });
+        }, function (e) { volta(); er.textContent = mensagemLogin(e); er.hidden = false; });
       };
       document.getElementById('g-forgot').onclick = function () { telaEsqueci().then(function () { resolve(telaLogin()); }); };
     });
