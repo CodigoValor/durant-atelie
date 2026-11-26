@@ -3139,6 +3139,45 @@ function bindTec(){
   document.getElementById('mc-add').onclick=add;document.getElementById('mc-nova').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();add()}});bindDel();document.getElementById('mc-nova').focus()});
  document.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=()=>{const [k,n]=b.dataset.rdel.split('|');const r=lista(k)[+n];if(usado(k,r.ref,null)){toast('Referência usada em pedido. Não dá para remover.');return}lista(k).splice(+n,1);S[k][f.fantasia]=[];fim()});
 }
+/* ===== Acessos e convites (administrador da empresa; servidor decide quem pode) ===== */
+const PAPEL_NOME={admin:'Administrador',usuario:'Usuário',parceiro:'Parceiro'};
+const linkConvite=t=>location.origin+location.pathname+'?convite='+t;
+const ESTADO_CONV={valido:'Aguardando',expirado:'Expirado',cancelado:'Cancelado',usado:'Aceito'};
+function acessosView(){
+ return head('Configurações · Controle de acesso','Acessos e convites','')+'<div id="ac-box"><div class="card"><p style="margin:0;color:var(--ink-2)">Carregando…</p></div></div>';
+}
+async function bindAcessos(){
+ const box=document.getElementById('ac-box');if(!box||!window.SB)return;
+ const c=window.SB.client,emp=window.SB.empresa;
+ const rp=(f,a)=>c.rpc(f,a).then(r=>{if(r.error)throw r.error;return r.data});
+ const msg=e=>String((e&&e.message)||'Não consegui concluir. Tente de novo.');
+ let plat=window.SB.plataforma;
+ if(plat===undefined){try{await rp('listar_convites',{p_empresa:null});plat=true}catch(e){plat=false}window.SB.plataforma=plat}
+ const pintar=async(ultimoLink)=>{
+  let mem=[],conv=[],cvp=[];
+  try{[mem,conv]=await Promise.all([rp('listar_membros',{p_empresa:emp}),rp('listar_convites',{p_empresa:emp})]);if(plat)cvp=await rp('listar_convites',{p_empresa:null})}
+  catch(e){box.innerHTML='<div class="card"><p style="margin:0;color:var(--ink-2)">Não consegui carregar os acessos agora ('+esc(msg(e))+'). Se acabou de atualizar o sistema, confirme que a migração 0007 foi aplicada.</p></div>';return}
+  const sel=(v,id)=>`<select class="ctl" ${id}>${['admin','usuario','parceiro'].map(x=>`<option value="${x}" ${x===v?'selected':''}>${PAPEL_NOME[x]}</option>`).join('')}</select>`;
+  const linkBox=l=>l?`<div class="card" style="border-color:#B98332"><b>Link do convite</b><p style="margin:6px 0;color:var(--ink-2);font-size:14px">Envie esta mensagem para a pessoa (WhatsApp ou e-mail). O link vale 7 dias, serve só para o e-mail convidado e só funciona uma vez. Ele não será mostrado de novo.</p><input class="ctl" id="ac-link" readonly value="${esc(l)}" style="width:100%"><div style="margin-top:8px"><button class="btn" id="ac-copia">Copiar link</button></div></div>`:'';
+  box.innerHTML=linkBox(ultimoLink)+
+  `<div class="card"><b>Convidar uma pessoa para ${esc(window.SB.empresaNome)}</b><form id="ac-conv" class="form" style="margin-top:10px"><label class="full">E-mail da pessoa<input class="ctl" id="ac-em" type="email" autocomplete="off" required></label><label class="full">Papel${sel('usuario','id="ac-pp"')}</label><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Administrador: tudo, inclusive convidar e remover. Usuário: trabalha na empresa conforme o grupo de acesso. Parceiro: vê e edita só o que ele mesmo criou (clientes, medidas, pedidos e orçamentos).</p><div class="full"><button class="btn" type="submit">Gerar convite</button> <span id="ac-er" style="color:#B3261E;font-size:14px"></span></div></form></div>`+
+  `<div class="card"><b>Pessoas com acesso</b><div class="tbl-wrap"><table><thead><tr><th>E-mail</th><th>Papel</th><th></th></tr></thead><tbody>${mem.map(m=>`<tr><td>${esc(m.email)}${m.user_id===window.SB.uid?' <span class="pill">você</span>':''}</td><td>${sel(m.papel,`data-mp="${m.user_id}"`)}</td><td><button class="btn ghost sm" data-mrm="${m.user_id}" data-mem="${esc(m.email)}">Remover</button></td></tr>`).join('')}</tbody></table></div><p id="ac-er2" style="color:#B3261E;font-size:14px;margin:8px 0 0"></p></div>`+
+  `<div class="card"><b>Convites enviados</b>${conv.length?`<div class="tbl-wrap"><table><thead><tr><th>E-mail</th><th>Papel</th><th>Situação</th><th>Validade</th><th></th></tr></thead><tbody>${conv.map(v=>`<tr><td>${esc(v.email)}</td><td>${PAPEL_NOME[v.papel]||esc(v.papel)}</td><td>${ESTADO_CONV[v.estado]||esc(v.estado)}</td><td>${new Date(v.expira_em).toLocaleDateString('pt-BR')}</td><td>${v.estado==='valido'?`<button class="btn ghost sm" data-vc="${v.id}">Cancelar</button> `:''}${v.estado!=='usado'?`<button class="btn ghost sm" data-vr="${esc(v.email)}|${v.papel}">Gerar novo link</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<p style="margin:8px 0 0;color:var(--ink-2);font-size:14px">Nenhum convite ainda.</p>'}</div>`+
+  (plat?`<div class="card"><b>Nova empresa (administrador da plataforma)</b><p style="margin:6px 0;color:var(--ink-2);font-size:14px">Convida uma pessoa para criar uma empresa nova no Alinhavo. Ela vira administradora dessa empresa.</p><form id="ac-emp" class="form"><label class="full">E-mail do administrador da nova empresa<input class="ctl" id="ae-em" type="email" autocomplete="off" required></label><label class="full">Nome da empresa<input class="ctl" id="ae-nm" autocomplete="off" required minlength="2" maxlength="120"></label><label class="chk full"><input type="checkbox" id="ae-v" checked>Vende ao cliente final</label><label class="chk full"><input type="checkbox" id="ae-p">Produz (recebe pedidos de parceiros)</label><div class="full"><button class="btn" type="submit">Gerar convite de empresa</button> <span id="ae-er" style="color:#B3261E;font-size:14px"></span></div></form>${cvp.length?`<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>E-mail</th><th>Empresa</th><th>Situação</th><th></th></tr></thead><tbody>${cvp.map(v=>`<tr><td>${esc(v.email)}</td><td>${esc(v.empresa_nome||'')}</td><td>${ESTADO_CONV[v.estado]||esc(v.estado)}</td><td>${v.estado==='valido'?`<button class="btn ghost sm" data-vc="${v.id}">Cancelar</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:''}</div>`:'');
+  const cp=document.getElementById('ac-copia');if(cp)cp.onclick=()=>{const i=document.getElementById('ac-link');i.select();try{navigator.clipboard.writeText(i.value)}catch(e){document.execCommand('copy')}toast('Link copiado')};
+  const er=t=>{document.getElementById('ac-er').textContent=t||''};
+  document.getElementById('ac-conv').onsubmit=async e=>{e.preventDefault();er('');const em=document.getElementById('ac-em').value.trim();
+   try{const t=await rp('criar_convite',{p_empresa:emp,p_email:em,p_papel:document.getElementById('ac-pp').value});await pintar(linkConvite(t))}catch(x){er(msg(x))}};
+  document.querySelectorAll('[data-mp]').forEach(b=>b.onchange=async()=>{try{await rp('alterar_papel',{p_empresa:emp,p_user:b.dataset.mp,p_papel:b.value});toast('Papel alterado');await pintar()}catch(x){document.getElementById('ac-er2').textContent=msg(x);await pintar()}});
+  document.querySelectorAll('[data-mrm]').forEach(b=>b.onclick=()=>{
+   modal('Remover acesso',`<p class="full" style="margin:0">Remover <b>${esc(b.dataset.mem)}</b> desta empresa? A pessoa perde o acesso na hora. O que ela criou continua no sistema.</p>`,()=>{(async()=>{try{await rp('remover_membro',{p_empresa:emp,p_user:b.dataset.mrm});toast('Acesso removido');await pintar()}catch(x){document.getElementById('ac-er2').textContent=msg(x)}})()},'Remover')});
+  document.querySelectorAll('[data-vc]').forEach(b=>b.onclick=async()=>{try{await rp('cancelar_convite',{p_id:b.dataset.vc});toast('Convite cancelado');await pintar()}catch(x){toast(msg(x))}});
+  document.querySelectorAll('[data-vr]').forEach(b=>b.onclick=async()=>{const [em,pp]=b.dataset.vr.split('|');try{const t=await rp('criar_convite',{p_empresa:emp,p_email:em,p_papel:pp});await pintar(linkConvite(t))}catch(x){toast(msg(x))}});
+  const fe=document.getElementById('ac-emp');if(fe)fe.onsubmit=async e=>{e.preventDefault();const o=document.getElementById('ae-er');o.textContent='';
+   try{const t=await rp('criar_convite_empresa',{p_email:document.getElementById('ae-em').value.trim(),p_empresa_nome:document.getElementById('ae-nm').value.trim(),p_vende:document.getElementById('ae-v').checked,p_produz:document.getElementById('ae-p').checked});await pintar(linkConvite(t))}catch(x){o.textContent=msg(x)}};
+ };
+ await pintar();
+}
 R.config=()=>{
  const k=ui.cfg||'clientes';ui.cfg=k;
  const menu=`<aside class="cfgmenu" aria-label="Configurações">${CFGMENU.map(g=>`<div class="cfgg"><div class="cfgh">${g.g}</div>${g.i.map(i=>`<button data-cfg="${i[0]}" aria-current="${i[0]===k?'page':'false'}">${i[1]}</button>`).join('')}</div>`).join('')}</aside>
@@ -3149,6 +3188,7 @@ R.config=()=>{
  else if(k==='tecidos')body=tecView();
  else if(k==='grupos')body=grupoView();
  else if(k==='dados')body=dadosView();
+ else if(k==='acessos')body=acessosView();
  else body=crudView(k);
  return `<div class="cfgl ${k==='clientes'?'cfgsolo':''}">${menu}<div class="cfgbody">${body}</div></div>`;
 };
@@ -3157,7 +3197,7 @@ bind.config=()=>{
  document.querySelectorAll('[data-cfg]').forEach(b=>b.onclick=()=>go(b.dataset.cfg));
  document.getElementById('cfg-sel').onchange=e=>go(e.target.value);
  const k=ui.cfg;
- if(k==='clientes')bind.clientes();else if(k==='fornecedores')bind.fornecedores();else if(k==='tecidos')bindTec();else if(k==='grupos')bindGrupo();else if(k==='dados')bindDados();else bindCrud(k);
+ if(k==='clientes')bind.clientes();else if(k==='fornecedores')bind.fornecedores();else if(k==='tecidos')bindTec();else if(k==='grupos')bindGrupo();else if(k==='dados')bindDados();else if(k==='acessos')bindAcessos();else bindCrud(k);
 };
 
 /* ===== Fornecedores ===== */
@@ -5104,6 +5144,7 @@ async function boot(){
   }
  }catch(e){P.ready=false;return gateErro(e)}
  P.ready=true;setState('ok');
+ if(window.SB&&window.SB.papel==='admin'&&!CFGMENU[2].i.some(i=>i[0]==='acessos'))CFGMENU[2].i.push(['acessos','Acessos e convites']);
  if(NUM.ativo())await NUM.preparar();
  const sid=sess.get();let u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));
  if(!u&&window.SB&&(window.SB.recemAceito||window.SB.papel==='parceiro')){   /* quem acabou de aceitar um convite (ou é parceiro, que não lê a lista de usuários) ganha o cadastro de usuário com o grupo do papel */

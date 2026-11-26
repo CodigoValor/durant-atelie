@@ -60,6 +60,18 @@ function novoBanco(cfg) {
       c.status = 'aceito'; st.cfg.membros = (st.cfg.membros || []).concat([{ empresa_id: c.empresa_id, papel: c.papel }]);
       return json(route, 200, c.empresa_id);
     }
+    if (p === '/rest/v1/rpc/listar_membros') return json(route, 200, st.cfg.pessoas || [{ user_id: 'u1', email: st.emailLogado || 'hd@henriquedurant.com', papel: 'admin', desde: '2026-01-01' }]);
+    if (p === '/rest/v1/rpc/listar_convites') {
+      const b = JSON.parse(req.postData() || '{}');
+      if (b.p_empresa == null && !st.cfg.plataforma) return json(route, 403, { code: '42501', message: 'sem permissão' });
+      return json(route, 200, Object.entries(st.convites || {}).filter(([, c]) => (b.p_empresa == null) === (c.empresa_id == null)).map(([t, c], i) => ({ id: 'cv' + t, email: c.email, papel: c.papel, empresa_nome: c.empresa_nome, status: c.status, estado: c.status === 'pendente' ? 'valido' : c.status === 'aceito' ? 'usado' : 'cancelado', expira_em: '2030-01-01T00:00:00Z', criado_em: '2026-01-01T00:00:00Z' })));
+    }
+    if (p === '/rest/v1/rpc/criar_convite' || p === '/rest/v1/rpc/criar_convite_empresa') {
+      const b = JSON.parse(req.postData() || '{}'); st.convites = st.convites || {}; const t = 'NOVO' + Object.keys(st.convites).length;
+      st.convites[t] = { email: b.p_email, papel: b.p_papel || 'admin', empresa_id: p.endsWith('_empresa') ? null : b.p_empresa, empresa_nome: b.p_empresa_nome || null, status: 'pendente' };
+      return json(route, 200, t);
+    }
+    if (p === '/rest/v1/rpc/remover_membro') { st.removidos = (st.removidos || []).concat([JSON.parse(req.postData() || '{}').p_user]); return json(route, 204, null); }
     if (p === '/rest/v1/rpc/reservar_numeros') {   // mesma regra da migration 0006
       const b = JSON.parse(req.postData() || '{}'); st.contadores = st.contadores || {}; st.rpcs = (st.rpcs || 0) + 1;
       const ch = b.p_empresa + '|' + b.p_nome, linhas = [...st.reg.values()].filter(r => r.empresa_id === b.p_empresa);
@@ -249,6 +261,35 @@ function novoBanco(cfg) {
   ok(await r10.pg.evaluate(() => (window.SB.empresa === 'E7' && window.SB.papel === 'parceiro')), 'quem já tinha conta entra direto na empresa nova (a que aceitou agora), como parceiro');
   ok(b10.convites.TOK2.status === 'aceito', 'convite marcado como usado');
   await r10.ctx.close();
+
+  console.log('11) painel Acessos e convites (administrador)');
+  const b11 = novoBanco({ plataforma: true, pessoas: [{ user_id: 'u1', email: 'hd@henriquedurant.com', papel: 'admin', desde: '2026-01-01' }, { user_id: 'u2', email: 'maria@ex.com', papel: 'usuario', desde: '2026-01-02' }] });
+  const r11 = await abre(b11); await r11.pg.waitForSelector('#g-u'); await loginUi(r11.pg, 'hd@henriquedurant.com', 'senhaCerta123');
+  await r11.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  await r11.pg.evaluate(() => { ui.cfg = 'acessos'; location.hash = 'config'; });
+  await r11.pg.waitForSelector('#ac-conv', { timeout: 15000 });
+  ok((await r11.pg.textContent('#ac-box')).includes('maria@ex.com'), 'lista as pessoas com acesso');
+  await r11.pg.fill('#ac-em', 'ana@ex.com'); await r11.pg.selectOption('#ac-pp', 'parceiro'); await r11.pg.click('#ac-conv button[type=submit]');
+  await r11.pg.waitForSelector('#ac-link', { timeout: 5000 });
+  const lk = await r11.pg.inputValue('#ac-link');
+  ok(/\?convite=NOVO0$/.test(lk) && b11.convites.NOVO0.papel === 'parceiro' && b11.convites.NOVO0.email === 'ana@ex.com', 'gera o convite de parceiro e mostra o link: ' + lk);
+  ok((await r11.pg.textContent('#ac-box')).includes('ana@ex.com'), 'o convite aparece na lista de enviados');
+  ok(await r11.pg.$('#ac-emp') !== null, 'quem é administrador da plataforma vê o formulário de empresa nova');
+  await r11.pg.fill('#ae-em', 'dono@novo.com'); await r11.pg.fill('#ae-nm', 'Ateliê Novo'); await r11.pg.check('#ae-p'); await r11.pg.click('#ac-emp button[type=submit]');
+  await r11.pg.waitForFunction(() => /convite=NOVO1/.test(document.getElementById('ac-link')?.value || ''), null, { timeout: 5000 });
+  ok(b11.convites.NOVO1.empresa_id === null && b11.convites.NOVO1.empresa_nome === 'Ateliê Novo', 'gera o convite de empresa nova');
+  await r11.pg.click('[data-mrm="u2"]'); await r11.pg.waitForSelector('#mform');
+  await r11.pg.click('#mform button[type=submit]');
+  await r11.pg.waitForFunction(() => !document.querySelector('[data-mrm="u2"]') || true, null, { timeout: 2000 });
+  await r11.pg.waitForTimeout(500);
+  ok((b11.removidos || []).includes('u2'), 'remover pede confirmação e remove o acesso');
+  ok(r11.erros.length === 0, 'sem erros de JavaScript na página (' + r11.erros.join(' | ') + ')');
+  await r11.ctx.close();
+  const b12 = novoBanco({ membros: [{ empresa_id: 'E1', papel: 'usuario' }] });
+  const r12 = await abre(b12); await r12.pg.waitForSelector('#g-u'); await loginUi(r12.pg, 'hd@henriquedurant.com', 'senhaCerta123');
+  await r12.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  ok(await r12.pg.evaluate(() => !CFGMENU.flatMap(g => g.i).some(i => i[0] === 'acessos')), 'quem não é administrador não vê o painel de acessos');
+  await r12.ctx.close();
 
   await br.close(); srv.close();
   console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK');
