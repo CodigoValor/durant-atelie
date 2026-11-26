@@ -900,12 +900,59 @@ function novaVersaoCorpo(cid){const M=mc(cid);M.versCorpo=M.versCorpo||[];
 function novaVersaoPeca(cid){const M=mc(cid);M.versPeca=M.versPeca||[];
  M.versPeca.push({v:M.vPeca||1,data:M.vdataPeca||'',peca:JSON.parse(JSON.stringify(M.peca))});
  M.vPeca=(M.vPeca||1)+1;M.vdataPeca=hoje();return M.vPeca}
+
+/* ===== Histórico de alterações das medidas (cada salvamento com mudança vira registro: quem, quando, motivo, de → para) ===== */
+const medOrg=()=>PARC()?'ateliê':'fábrica';
+const medQuem=()=>({por:(P.user&&P.user.nome)||(window.SB&&window.SB.email)||'',org:medOrg()});
+const medFmt=v=>v==null||v===''?'—':fmtN(v);
+function medDiff(a,b){
+ const out=[],lab=k=>FLD[k]?FLD[k].l:k,ac=a.corpo||{},bc=b.corpo||{};
+ Object.keys(Object.assign({},ac,bc)).forEach(k=>{if(String(ac[k]==null?'':ac[k])!==String(bc[k]==null?'':bc[k]))out.push({t:'corpo',k,l:'Corpo · '+lab(k),de:ac[k]==null?null:ac[k],para:bc[k]==null?null:bc[k]})});
+ Object.keys(TIPOS).forEach(t=>{const x=(a.peca||{})[t]||{},y=(b.peca||{})[t]||{};Object.keys(Object.assign({},x,y)).forEach(k=>{if(String(x[k]==null?'':x[k])!==String(y[k]==null?'':y[k]))out.push({t:'peca',tp:t,k,l:TIPOS[t]+' · '+k,de:x[k]==null?null:x[k],para:y[k]==null?null:y[k]})})});
+ return out}
+const medVistoKey=()=>'durant.medvisto.'+((window.SB&&window.SB.empresa)||'')+'.'+((window.SB&&window.SB.uid)||'');
+const medVistos=()=>{try{return JSON.parse(localStorage.getItem(medVistoKey())||'{}')}catch(e){return {}}};
+const medMarcaVisto=cid=>{try{const v=medVistos(),M=S.medidas[cid],l=M&&(M.hist||[]).slice(-1)[0];if(l){v[cid]=l.em;localStorage.setItem(medVistoKey(),JSON.stringify(v))}}catch(e){}};
+function medAviso(cid){const M=S.medidas[cid],l=M&&(M.hist||[]).slice(-1)[0];
+ if(!l||l.org===medOrg()||l.em<=(medVistos()[cid]||''))return '';
+ const ch=(l.mudou||[]).slice(0,4).map(x=>`${esc(x.l)} ${medFmt(x.de)} → ${medFmt(x.para)}`).join(' · ');
+ return `<div class="note" id="med-aviso"><b>Medidas ajustadas pela ${esc(l.org)}</b> em ${fdFull(l.em.slice(0,10))}${l.por?' ('+esc(l.por)+')':''}${l.motivo?' — '+esc(l.motivo):''}.${ch?'<div class="d" style="margin-top:4px">'+ch+(l.mudou.length>4?' …':'')+'</div>':''}</div>`}
+function histMedHTML(M){const h=(M.hist||[]).slice().reverse();if(!h.length)return '';
+ return `<details class="grp"><summary><span class="gt">Histórico de alterações</span><span class="pill plain">${h.length}</span></summary><div class="gb">${h.slice(0,30).map(x=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>${fdFull(x.em.slice(0,10))}</b> <span class="d" style="color:var(--ink-3)">${esc(x.por||'')}${x.org?' · '+esc(x.org):''}</span> <span class="pill plain">${esc(x.motivo||'')}</span>${(x.mudou||[]).length?`<div class="d" style="font-size:13px;margin-top:4px">${(x.mudou||[]).slice(0,8).map(c=>`${esc(c.l)}: ${medFmt(c.de)} → ${medFmt(c.para)}`).join(' · ')}${x.mudou.length>8?' …':''}</div>`:''}${x.obs?`<div class="d" style="font-size:13px;color:var(--ink-2)">${esc(x.obs)}</div>`:''}</div>`).join('')}</div></details>`}
+const medTemValor=sn=>Object.values(sn.corpo||{}).some(v=>v!=null&&v!=='')||Object.values(sn.peca||{}).some(o=>Object.values(o||{}).some(v=>v!=null&&v!==''));
+const MED_MOTIVOS=['Ajuste após prova','Correção de medida','Nova medição','Outro'];
+async function medServidor(cid){   /* lê a versão que está no servidor agora, para não sobrescrever quem alterou antes */
+ try{const sb=window.SB&&window.SB.client;if(!sb||!window.SB.empresa)return null;
+  const r=await sb.from('reg').select('j').eq('empresa_id',window.SB.empresa).eq('id','med~'+cid).maybeSingle();
+  if(r&&r.data&&r.data.j)return JSON.parse(r.data.j)}catch(e){}return null}
+function medAplicar(cid,snap,motivo,obs){   /* grava a alteração: versão nova (do que mudou), histórico e contador de revisão */
+ const M=mc(cid),dif=medDiff(snap,M),q=medQuem();
+ const mudouCorpo=dif.some(x=>x.t==='corpo'),mudouPeca=dif.some(x=>x.t==='peca');
+ const temAntes=medTemValor(snap);
+ if(temAntes){
+  if(mudouCorpo){M.versCorpo=M.versCorpo||[];M.versCorpo.push({v:M.vCorpo||1,data:M.vdataCorpo||'',corpo:Object.assign({},snap.corpo)});M.vCorpo=(M.vCorpo||1)+1;M.vdataCorpo=hoje()}
+  if(mudouPeca){M.versPeca=M.versPeca||[];M.versPeca.push({v:M.vPeca||1,data:M.vdataPeca||'',peca:JSON.parse(JSON.stringify(snap.peca))});M.vPeca=(M.vPeca||1)+1;M.vdataPeca=hoje()}
+ }
+ (M.hist=M.hist||[]).push({n:M.hist.length+1,em:new Date().toISOString(),por:q.por,org:q.org,motivo,obs:obs||'',mudou:dif,vCorpo:M.vCorpo||1,vPeca:M.vPeca||1});
+ M.rev=(M.rev||0)+1;return dif}
+function medVoltar(cid,tipo,v){const M=mc(cid),q=medQuem();
+ if(tipo==='corpo'){const x=(M.versCorpo||[]).find(z=>z.v===v);if(!x)return 'Versão não encontrada.';
+  const antes={corpo:Object.assign({},M.corpo),peca:JSON.parse(JSON.stringify(M.peca))};
+  M.versCorpo.push({v:M.vCorpo||1,data:M.vdataCorpo||'',corpo:Object.assign({},M.corpo)});M.vCorpo=(M.vCorpo||1)+1;M.vdataCorpo=hoje();
+  M.corpo=Object.assign({},x.corpo);
+  const dif=medDiff(antes,M);(M.hist=M.hist||[]).push({n:M.hist.length+1,em:new Date().toISOString(),por:q.por,org:q.org,motivo:'Voltou à V'+v+' (corpo)',obs:'',mudou:dif,vCorpo:M.vCorpo,vPeca:M.vPeca||1});
+ }else{const x=(M.versPeca||[]).find(z=>z.v===v);if(!x)return 'Versão não encontrada.';
+  const antes={corpo:Object.assign({},M.corpo),peca:JSON.parse(JSON.stringify(M.peca))};
+  M.versPeca.push({v:M.vPeca||1,data:M.vdataPeca||'',peca:JSON.parse(JSON.stringify(M.peca))});M.vPeca=(M.vPeca||1)+1;M.vdataPeca=hoje();
+  M.peca=JSON.parse(JSON.stringify(x.peca));Object.keys(TIPOS).forEach(t=>{M.peca[t]=M.peca[t]||{}});
+  const dif=medDiff(antes,M);(M.hist=M.hist||[]).push({n:M.hist.length+1,em:new Date().toISOString(),por:q.por,org:q.org,motivo:'Voltou à V'+v+' (peça pronta)',obs:'',mudou:dif,vCorpo:M.vCorpo||1,vPeca:M.vPeca});}
+ M.rev=(M.rev||0)+1;return ''}
 function verHTMLCorpo(M){const v=M.vCorpo||1,vs=M.versCorpo||[];
  return `<div class="sum" style="gap:10px;flex-wrap:wrap"><div><b style="font-weight:600">Modelagem do corpo V${v}</b><div style="font-size:13px;color:var(--ink-2)">${M.vdataCorpo?'Medidas de '+fdFull(M.vdataCorpo):'Sem data ainda: passa a valer na primeira medida lançada'}. Versão independente da medida da peça pronta — veja a conversão da outra aba no rodapé, só como referência.</div></div><button type="button" class="btn ghost sm" id="nova-ver-corpo">${ic('i-plus')}Criar nova versão (V${v+1})</button></div>
- ${vs.length?`<details class="grp"><summary><span class="gt">Versões anteriores do corpo</span><span class="pill plain">${vs.length}</span></summary><div class="gb">${vs.slice().reverse().map(x=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>V${x.v}</b> <span class="d" style="color:var(--ink-3)">${x.data?fdFull(x.data):'sem data'}</span><div class="d" style="font-size:13px;margin-top:4px">${esc(Object.entries(x.corpo||{}).filter(([k,val])=>val!=null&&FLD[k]).map(([k,val])=>FLD[k].l+' '+val).join(' · ')||'—')}</div></div>`).join('')}</div></details>`:''}`}
+ ${vs.length?`<details class="grp"><summary><span class="gt">Versões anteriores do corpo</span><span class="pill plain">${vs.length}</span></summary><div class="gb">${vs.slice().reverse().map(x=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>V${x.v}</b> <span class="d" style="color:var(--ink-3)">${x.data?fdFull(x.data):'sem data'}</span><button type="button" class="btn ghost sm" data-volta="corpo|${x.v}" style="margin-left:10px">Voltar a esta versão</button><div class="d" style="font-size:13px;margin-top:4px">${esc(Object.entries(x.corpo||{}).filter(([k,val])=>val!=null&&FLD[k]).map(([k,val])=>FLD[k].l+' '+val).join(' · ')||'—')}</div></div>`).join('')}</div></details>`:''}`}
 function verHTMLPeca(M){const v=M.vPeca||1,vs=M.versPeca||[];
  return `<div class="sum" style="gap:10px;flex-wrap:wrap"><div><b style="font-weight:600">Modelagem da peça pronta V${v}</b><div style="font-size:13px;color:var(--ink-2)">${M.vdataPeca?'Medidas de '+fdFull(M.vdataPeca):'Sem data ainda: passa a valer na primeira medida lançada'}. Versão independente da medida do corpo — veja a conversão da outra aba no rodapé, só como referência.</div></div><button type="button" class="btn ghost sm" id="nova-ver-peca">${ic('i-plus')}Criar nova versão (V${v+1})</button></div>
- ${vs.length?`<details class="grp"><summary><span class="gt">Versões anteriores da peça pronta</span><span class="pill plain">${vs.length}</span></summary><div class="gb">${vs.slice().reverse().map(x=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>V${x.v}</b> <span class="d" style="color:var(--ink-3)">${x.data?fdFull(x.data):'sem data'}</span>${Object.keys(TIPOS).map(t=>{const vals=Object.entries((x.peca&&x.peca[t])||{}).filter(([k,val])=>val!=null);return vals.length?`<div class="d" style="font-size:13px"><b>${TIPOS[t]}:</b> ${esc(vals.map(([k,val])=>k+' '+val).join(' · '))}</div>`:''}).join('')}</div>`).join('')}</div></details>`:''}`}
+ ${vs.length?`<details class="grp"><summary><span class="gt">Versões anteriores da peça pronta</span><span class="pill plain">${vs.length}</span></summary><div class="gb">${vs.slice().reverse().map(x=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>V${x.v}</b> <span class="d" style="color:var(--ink-3)">${x.data?fdFull(x.data):'sem data'}</span><button type="button" class="btn ghost sm" data-volta="peca|${x.v}" style="margin-left:10px">Voltar a esta versão</button>${Object.keys(TIPOS).map(t=>{const vals=Object.entries((x.peca&&x.peca[t])||{}).filter(([k,val])=>val!=null);return vals.length?`<div class="d" style="font-size:13px"><b>${TIPOS[t]}:</b> ${esc(vals.map(([k,val])=>k+' '+val).join(' · '))}</div>`:''}).join('')}</div>`).join('')}</div></details>`:''}`}
 const num=v=>{const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n};
 const fmtN=v=>v==null?'':String(v).replace('.',',');
 const cpfMask=v=>{const x=v.replace(/\D/g,'').slice(0,11);return x.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')};
@@ -1265,7 +1312,7 @@ R.clientes=()=>{
   else if(ui.tab==='pedidos') body=`<div class="stack" style="margin-top:18px">${histHTML(c)}${osCliHTML(c)}</div>`;
   else if(ui.tab==='corpo'){
    body=`<div class="stack" style="margin-top:18px">
-    ${verHTMLCorpo(M)}
+    ${medAviso(c.id)}${verHTMLCorpo(M)}${histMedHTML(M)}
     <div class="sum"><div><b style="font-weight:600"><span data-cnt="all"></span> medidas preenchidas</b><div style="font-size:13px;color:var(--ink-2)">Tudo em centímetros. Enter passa para a próxima medida.${ui.medEdit?'':' Clique em Editar para alterar.'}</div></div>${medBar}</div>
     <div class="seg" role="group" aria-label="Visão das medidas" style="align-self:flex-start"><button data-visao="geral" aria-pressed="${ui.visao==='geral'}">Visão geral</button><button data-visao="peca" aria-pressed="${ui.visao==='peca'}">Visão por peça</button></div>
     ${ui.visao==='peca'?SECS.map(secHTML).join(''):GRUPOS.map(grpHTML).join('')}
@@ -1274,7 +1321,7 @@ R.clientes=()=>{
   } else {
    const pecaGrpHTML=t=>`<details class="grp" open><summary><span class="gt">${TIPOS[t]}</span><span class="pill plain" data-cnt="t:${t}"></span></summary><div class="gb"><div class="fgrid">${PRONTAS[t].map((l,j)=>fld(`pz-${c.id}-${t}-${j}`,esc(l),M.peca[t][l],`data-scope="peca" data-tipo="${t}" data-key="${esc(l)}"`)).join('')}</div>${t==='camisa'?corpoPreviewCamisa(M):''}</div></details>`;
    body=`<div class="stack" style="margin-top:18px">
-    ${verHTMLPeca(M)}
+    ${medAviso(c.id)}${verHTMLPeca(M)}${histMedHTML(M)}
     <div class="sum"><div><b style="font-weight:600"><span data-cnt="allp"></span> medidas da peça preenchidas</b><div style="font-size:13px;color:var(--ink-2)">Tudo em centímetros. Enter passa para a próxima medida. Preencha só os tipos de peça que o cliente realmente trouxe.${ui.medEdit?'':' Clique em Editar para alterar.'}</div></div>${medBar}</div>
     ${Object.keys(TIPOS).map(pecaGrpHTML).join('')}
    </div>`;
@@ -1526,8 +1573,24 @@ bind.clientes=()=>{
  if(cpf)cpf.addEventListener('input',()=>{cpf.value=cpfMask(cpf.value)});
  const cEditar=document.getElementById('c-editar');if(cEditar)cEditar.onclick=()=>{ui.cadEdit=true;render()};
  const cCancelar=document.getElementById('c-cancelar');if(cCancelar)cCancelar.onclick=()=>{ui.cadEdit=false;render();toast('Alterações descartadas')};
- const medEditar=document.getElementById('med-editar');if(medEditar)medEditar.onclick=()=>{const M=mc(ui.cli);ui._medSnap={corpo:{...M.corpo},peca:JSON.parse(JSON.stringify(M.peca))};ui.medEdit=true;render()};
- const medSalvar=document.getElementById('med-salvar');if(medSalvar)medSalvar.onclick=()=>{ui.medEdit=false;ui._medSnap=null;render();toast('Medidas salvas')};
+ const medEditar=document.getElementById('med-editar');if(medEditar)medEditar.onclick=()=>{const M=mc(ui.cli);ui._medSnap={corpo:{...M.corpo},peca:JSON.parse(JSON.stringify(M.peca)),rev:M.rev||0};ui.medEdit=true;render()};
+ const medSalvar=document.getElementById('med-salvar');if(medSalvar)medSalvar.onclick=async()=>{
+  const cid=ui.cli,M=mc(cid),snap=ui._medSnap||{corpo:{},peca:{},rev:0},dif=medDiff(snap,M);
+  if(!dif.length){ui.medEdit=false;ui._medSnap=null;render();toast('Nada mudou nas medidas');return}
+  const srv=await medServidor(cid);
+  if(srv&&(srv.rev||0)>(snap.rev||0)){   /* outra pessoa salvou enquanto esta tela estava aberta */
+   const l=(srv.hist||[]).slice(-1)[0]||{};
+   modal('Outra pessoa alterou estas medidas',`<p class="full" style="margin:0">As medidas foram alteradas${l.org?' pela <b>'+esc(l.org)+'</b>':''}${l.por?' ('+esc(l.por)+')':''}${l.em?' em '+fdFull(l.em.slice(0,10)):''} depois que você começou a editar. Para não apagar essa alteração, o sistema vai carregar a versão mais nova e descartar o que você digitou. Anote o que for preciso e edite de novo.</p>`,()=>{S.medidas[cid]=srv;ui.medEdit=false;ui._medSnap=null;mc(cid);return ''},'Carregar a versão nova');return}
+  const temAntes=medTemValor(snap);
+  const lista=dif.slice(0,8).map(x=>`<li>${esc(x.l)}: ${medFmt(x.de)} → ${medFmt(x.para)}</li>`).join('');
+  if(!temAntes){medAplicar(cid,snap,'Primeira medição','');ui.medEdit=false;ui._medSnap=null;render();toast('Medidas salvas');return}
+  modal('Salvar alterações das medidas',`<p class="full" style="margin:0">${dif.length} ${dif.length>1?'medidas mudaram':'medida mudou'}. A versão atual fica guardada no histórico e dá para voltar a ela.</p><ul class="full" style="margin:0;padding-left:18px;font-size:13.5px">${lista}${dif.length>8?'<li>…</li>':''}</ul><label class="full">Motivo<select class="ctl" id="ms-mot"><option value="">Escolha…</option>${MED_MOTIVOS.map(m=>`<option>${m}</option>`).join('')}</select></label><label class="full">Observação (opcional)<input class="ctl" id="ms-obs" maxlength="200" autocomplete="off" placeholder="Ex.: ombro direito mais baixo"></label>`,()=>{
+   const mot=document.getElementById('ms-mot').value;if(!mot)return 'Escolha o motivo da alteração.';
+   medAplicar(cid,snap,mot,document.getElementById('ms-obs').value.trim());ui.medEdit=false;ui._medSnap=null;toast('Medidas salvas · nova versão criada');return ''},'Salvar');
+ };
+ document.querySelectorAll('[data-volta]').forEach(b=>b.onclick=()=>{const [tp,v]=b.dataset.volta.split('|');
+  modal('Voltar a uma versão anterior',`<p class="full" style="margin:0">Os valores da <b>V${v}</b> voltam a valer. Nada é apagado: a versão atual vai para o histórico e o sistema cria uma versão nova com esses valores.</p>`,()=>{const e=medVoltar(ui.cli,tp,+v);if(e)return e;toast('Voltou à V'+v+' · nova versão criada');return ''},'Voltar a esta versão')});
+ if(ui.tab==='corpo'||ui.tab==='prontas')medMarcaVisto(ui.cli);
  const medCancelar=document.getElementById('med-cancelar');if(medCancelar)medCancelar.onclick=()=>{const M=mc(ui.cli);if(ui._medSnap){M.corpo=ui._medSnap.corpo;M.peca=ui._medSnap.peca}ui.medEdit=false;ui._medSnap=null;render();toast('Alterações descartadas')};
  const cad=document.getElementById('cad');
  if(cad){

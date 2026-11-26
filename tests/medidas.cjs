@@ -1,0 +1,36 @@
+/* Teste do histórico de medidas: versão automática, motivo, voltar versão, aviso da outra parte.
+   Uso: NODE_PATH=/opt/npm-tools/node_modules node tests/medidas.cjs */
+const { chromium } = require('playwright');
+const http = require('http'), fs = require('fs'), path = require('path');
+const ROOT = path.join(__dirname, '..');
+const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ') + m); if (!c) falhas.push(m); };
+(async () => {
+  const srv = await new Promise(res => { const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?')[0] === '/' ? 'index.html' : decodeURIComponent(q.url.split('?')[0])); if (!fs.existsSync(f)) { r.writeHead(404); return r.end(); } r.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(fs.readFileSync(f)); }).listen(0, () => res(s)); });
+  const br = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  const pg = await (await br.newContext()).newPage(); const erros = []; pg.on('pageerror', e => erros.push(String(e)));
+  await pg.route('https://*.supabase.co/**', r => r.abort());
+  await pg.goto(`http://localhost:${srv.address().port}/`); await pg.waitForTimeout(800);
+  
+  const r = await pg.evaluate(() => {
+    const cid = 9001, M = mc(cid), out = {};
+    const k = Object.keys(FLD)[0];
+    M.corpo[k] = 40; const s0 = { corpo: {}, peca: {}, rev: 0 };
+    medAplicar(cid, s0, 'Nova medição', ''); out.primeira = { v: M.vCorpo || 1, h: M.hist.length, vers: (M.versCorpo || []).length };
+    const s1 = { corpo: { ...M.corpo }, peca: JSON.parse(JSON.stringify(M.peca)), rev: M.rev };
+    M.corpo[k] = 42; const d = medDiff(s1, M); out.diff = d.length + ':' + d[0].de + '>' + d[0].para;
+    medAplicar(cid, s1, 'Ajuste após prova', 'ombro'); out.seg = { v: M.vCorpo, h: M.hist.length, rev: M.rev, ult: M.hist[M.hist.length - 1].motivo, vers: M.versCorpo.length, guard: M.versCorpo[M.versCorpo.length - 1].corpo[k] };
+    const antes = M.vCorpo; const e = medVoltar(cid, 'corpo', M.versCorpo[M.versCorpo.length - 1].v);
+    out.volta = { e, v: M.vCorpo, valor: M.corpo[k], antes, h: M.hist.length, mot: M.hist[M.hist.length - 1].motivo };
+    out.semMudar = medDiff({ corpo: { ...M.corpo }, peca: JSON.parse(JSON.stringify(M.peca)) }, M).length;
+    return out;
+  });
+  console.log(JSON.stringify(r));
+  ok(r.primeira.vers === 0 && r.primeira.h === 1, 'primeira medição entra no histórico sem criar versão antiga vazia');
+  ok(r.diff === '1:40>42', 'diferença mostra de 40 para 42');
+  ok(r.seg.v === 2 && r.seg.vers === 1 && r.seg.guard === 40 && r.seg.rev === 2 && r.seg.ult === 'Ajuste após prova', 'alteração guarda a versão anterior (40), cria versão nova e soma revisão');
+  ok(!r.volta.e && r.volta.v === r.volta.antes + 1 && r.volta.valor === 40 && /Voltou/.test(r.volta.mot), 'voltar a uma versão restaura 40 criando versão nova (nada apagado)');
+  ok(r.semMudar === 0, 'sem mudança, sem diferença');
+  ok(erros.length === 0, 'sem erros de JavaScript ' + erros.join('|'));
+  await br.close(); srv.close();
+  console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);
+})();
