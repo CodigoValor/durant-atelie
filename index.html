@@ -434,7 +434,8 @@ body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:h
 .ctl.cbx{padding-right:38px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b756f' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 .pill.tg-alf,.ddi.tg-alf{background:#E2EFE4;color:#27503A}.pill.tg-cam,.ddi.tg-cam{background:#E0EBF8;color:#26466E}
 .ddi.tg-alf:hover{background:#D3E7D7}.ddi.tg-cam:hover{background:#CFE1F4}
-.nbadge{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:#B98332;color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:600}
+#nav a,#tabbar a{position:relative}
+.nbadge{position:absolute;top:6px;left:calc(50% + 8px);min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#B98332;color:#fff;font-size:11px;line-height:18px;text-align:center;font-weight:600;pointer-events:none}
 .dest-row{display:flex;flex-wrap:wrap;gap:8px}
 .dest-opt{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border:1px solid var(--line);border-radius:999px;font-size:14px;cursor:pointer}
 .dest-opt:has(input:checked){border-color:#B98332;background:#F6EFE0}
@@ -4567,7 +4568,7 @@ function bindEditor(){
   else if(t.dataset.quickref){const [u,rf]=t.dataset.quickref.split('|');const p=P(u);const L=(S.cat.tecidos[p.forn]=S.cat.tecidos[p.forn]||[]);if(!L.some(x=>nzRef(x.ref)===nzRef(rf)))L.push({ref:rf,valor:0,cores:[],tipo:'',ind:'',comp:'',grupo:grupoPeca(p)});catSync();p.tec=rf;toast('Família cadastrada. Complete o tipo e o valor em Tecidos e forros.');keep(()=>{})}
   else if(t.dataset.newref){const [u,rf]=t.dataset.newref.split('|');const p=P(u);refModal('tecidos',null,p.forn,{grupo:grupoPeca(p),pre:{ref:rf,valor:0,cores:[],tipo:'',ind:'',comp:'',compo:[]},after:(a,cor)=>{p.tec=cor?codeDe(a,cor):a;keep(()=>{})}})}
   else if(t.dataset.pick){const [u,c,w]=t.dataset.pick.split('|');const p=P(u);if(w==='forro')p.forroCod=c;else p.tec=c;keep(()=>{})}
-  else if(t.dataset.newtec){const [u,c,w]=t.dataset.newtec.split('|');const p=P(u);if(w==='forro'){(S.forros[p.forroForn]=S.forros[p.forroForn]||[]).push(c);p.forroCod=c;toast(`Forro ${c} cadastrado em ${p.forroForn}`)}else{const [rf,...cr]=c.split(' · ');if(tecRef(p.forn,c,'tecidos')){(S.tecidos[p.forn]=S.tecidos[p.forn]||[]).push(c);p.tec=c;toast(`Tecido ${c} cadastrado em ${p.forn}`);keep(()=>{})}else refModal('tecidos',null,p.forn,{pre:{ref:rf,valor:0,cores:[],tipo:'',ind:'',comp:'',compo:[]},cor:cr.join(' · '),after:(a,cor)=>{p.tec=cor?`${a} · ${cor}`:a}})}}
+  else if(t.dataset.newtec){const [u,c,w]=t.dataset.newtec.split('|');const p=P(u);if(w==='forro'){(S.forros[p.forroForn]=S.forros[p.forroForn]||[]).push(c);p.forroCod=c;toast(`Forro ${c} cadastrado em ${p.forroForn}`);keep(()=>{})}else{const [rf,...cr]=c.split(' · ');if(tecRef(p.forn,c,'tecidos')){(S.tecidos[p.forn]=S.tecidos[p.forn]||[]).push(c);p.tec=c;toast(`Tecido ${c} cadastrado em ${p.forn}`);keep(()=>{})}else refModal('tecidos',null,p.forn,{pre:{ref:rf,valor:0,cores:[],tipo:'',ind:'',comp:'',compo:[]},cor:cr.join(' · '),after:(a,cor)=>{p.tec=cor?`${a} · ${cor}`:a}})}}
   loteCheck(_lsnap);
  });
  root.addEventListener('change',e=>{

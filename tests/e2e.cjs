@@ -406,6 +406,15 @@ function novoBanco(cfg) {
   ok((await r15.pg.textContent('body')).includes('pedido de Durant Alfaiataria'), 'no detalhe aparece "pedido de Durant Alfaiataria"');
   ok(![...b15.reg.values()].some(r => /Durant Alfaiataria/.test(r.j || '')), 'a origem nunca é gravada dentro dos dados');
   ok(r15.erros.length === 0, 'sem erros de JavaScript na página (' + r15.erros.join(' | ') + ')');
+  await r15.pg.evaluate(() => { location.hash = 'pedidos'; ui.det = null; ui.draft = newDraft(5); render(); }); await r15.pg.waitForTimeout(300);
+  await r15.pg.click('[data-add="paleto"]'); await r15.pg.waitForTimeout(300);
+  await r15.pg.evaluate(() => { const p = ui.draft.pecas[0]; p.forroForn = 'Imperiale'; p.forroCod = ''; p.fechada = false; render(); }); await r15.pg.waitForTimeout(300);
+  const fi = await r15.pg.$('[data-tec$="|forro"]');
+  if (fi) {
+    await fi.fill('42'); await r15.pg.waitForSelector('[data-newtec]', { timeout: 3000 });
+    await r15.pg.click('[data-newtec]'); await r15.pg.waitForTimeout(400);
+    ok(await r15.pg.evaluate(() => !document.querySelector('[data-newtec]') && ui.draft.pecas[0].forroCod === '42'), 'cadastrar forro novo pelo campo: o botão "+ Cadastrar" some e o código fica no campo');
+  } else ok(false, 'campo de código do forro não encontrado no teste');
   await r15.ctx.close();
 
   console.log('14) Enter executa o login (e-mail e senha preenchidos)');
