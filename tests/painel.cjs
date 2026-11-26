@@ -1,5 +1,5 @@
 // Painel de controle: tela com cliente Supabase de mentira (sem rede), confere lista, busca, detalhe, tipo, suspensão e convite.
-const { chromium } = require('playwright'); const http = require('http'); const fs = require('fs'); const path = require('path');
+const { launchBrowser, localContext } = require('../tools/browser-test.cjs'); const http = require('http'); const fs = require('fs'); const path = require('path');
 const raiz = path.join(__dirname, '..'); let falhas = 0; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ') + m); if (!c) falhas++; };
 const srv = http.createServer((q, r) => { const f = path.join(raiz, q.url.split('?')[0] === '/' ? 'painel.html' : q.url.split('?')[0]); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : f.endsWith('.png') ? 'image/png' : 'text/html' }); r.end(d); } }); });
 const STUB = `window.__chamadas=[];window.supabase={createClient:function(){var L=[{id:'a',nome:'Durant Alfaiataria',cnpj:'12345678000190',cadastro:{tipo:'PJ',razao:'Durant Ltda.',doc:'12.345.678/0001-90'},tipo:'alfaiataria',vende:true,produz:false,fornece:false,so_tecidos:false,ativa:true,criado_em:'2026-03-12T00:00:00Z',usuarios:2},{id:'b',nome:'Mark Bel',cnpj:null,cadastro:{},tipo:'loja',vende:false,produz:false,fornece:true,so_tecidos:false,ativa:true,criado_em:'2026-11-20T00:00:00Z',usuarios:1}];
@@ -7,7 +7,7 @@ var F=window.__f||(window.__f={nivel:'aal2',tem:true,ok:'123456',adm:true,ap:[]}
 functions:{invoke:async function(n,o){window.__chamadas.push(['fn:'+n,o&&o.body]);return{data:{ok:true}}}},rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_admin_cadastrado')return{data:F.adm};if(n==='plataforma_admins_listar')return{data:[{user_id:'u1',email:'hd@henriquedurant.com',eu:true},{user_id:'u2',email:'emergencia@x.com',eu:false}]};if(n==='plataforma_admin_adicionar'||n==='plataforma_admin_remover')return{data:null};if(n==='plataforma_empresas')return{data:L};if(n==='plataforma_usuarios')return{data:[{email:'luiz@x.com',papel:'admin'}]};if(n==='criar_convite_empresa')return{data:'TOKEN123'};if(n==='definir_tipo_empresa'){L.forEach(function(e){if(e.id===a.p_empresa){e.tipo=a.p_tipo;e.produz=a.p_tipo==='fabrica'?true:(a.p_tipo==='atelie'?false:a.p_area_atelies)}});return{}}if(n==='plataforma_definir_ativa'){L.forEach(function(e){if(e.id===a.p_empresa)e.ativa=a.p_ativa});return{}}return{}}}}};`;
 (async () => {
   await new Promise(r => srv.listen(0, r)); const url = 'http://localhost:' + srv.address().port + '/';
-  const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 760 } }); const erros = [];
+  const b = await launchBrowser(); const pg = await (await localContext(b, url, { viewport: { width: 1280, height: 760 } })).newPage(); const erros = [];
   pg.on('pageerror', e => erros.push(e.message)); pg.on('dialog', d => d.accept());
   await pg.route('**/vendor/supabase.js', r => r.fulfill({ contentType: 'text/javascript', body: STUB }));
   await pg.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '' }));
@@ -36,7 +36,7 @@ functions:{invoke:async function(n,o){window.__chamadas.push(['fn:'+n,o&&o.body]
   ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'fn:enviar-convite' && c[1] && c[1].token === 'TOKEN123')), 'ao criar o convite, o painel pede o envio do e-mail com o código do link');
   ok(/E-mail enviado/.test(await pg.locator('#n-env').innerText()), 'o painel avisa que o e-mail foi enviado');
   // --- segundo fator ---
-  const nova = async (f) => { const p = await b.newPage({ viewport: { width: 1280, height: 760 } }); const e = []; p.on('pageerror', x => e.push(x.message));
+  const nova = async (f) => { const p = await (await localContext(b, url, { viewport: { width: 1280, height: 760 } })).newPage(); const e = []; p.on('pageerror', x => e.push(x.message));
     await p.addInitScript(f => { window.__f = Object.assign({ nivel: 'aal1', tem: true, ok: '123456', adm: true, ap: [] }, f); }, f);
     await p.route('**/vendor/supabase.js', r => r.fulfill({ contentType: 'text/javascript', body: STUB })); await p.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '' })); await p.goto(url); return [p, e]; };
   { const [p] = await nova({ nivel: 'aal1', tem: true }); await p.waitForSelector('#cd');
