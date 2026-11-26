@@ -1,14 +1,14 @@
 /* Teste do histórico de medidas: versão automática, motivo, voltar versão, aviso da outra parte.
    Uso: NODE_PATH=/opt/npm-tools/node_modules node tests/medidas.cjs */
-const { chromium } = require('playwright');
+const { launchBrowser, localContext } = require('../tools/browser-test.cjs');
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ') + m); if (!c) falhas.push(m); };
 (async () => {
   const srv = await new Promise(res => { const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?')[0] === '/' ? 'index.html' : decodeURIComponent(q.url.split('?')[0])); if (!fs.existsSync(f)) { r.writeHead(404); return r.end(); } r.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(fs.readFileSync(f)); }).listen(0, () => res(s)); });
-  const br = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
-  const pg = await (await br.newContext()).newPage(); const erros = []; pg.on('pageerror', e => erros.push(String(e)));
-  await pg.route('https://*.supabase.co/**', r => r.abort());
+  const br = await launchBrowser();
+  const base = 'http://localhost:' + srv.address().port;
+  const pg = await (await localContext(br, base)).newPage(); const erros = []; pg.on('pageerror', e => erros.push(String(e)));
   await pg.goto(`http://localhost:${srv.address().port}/`); await pg.waitForTimeout(800);
   
   const r = await pg.evaluate(() => {
