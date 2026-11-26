@@ -1,0 +1,31 @@
+name: Regressão (homologação)
+on:
+  pull_request:
+    branches: [homologacao]
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+concurrency:
+  group: regressao-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  regressao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verificar runtime
+        run: node --version && npm --version
+      - name: Instalar dependências
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "::error::Lockfile ausente. Gere com npm install --package-lock-only --ignore-scripts em ambiente confiável e revise antes de continuar."
+            exit 1
+          fi
+          npm ci --ignore-scripts
+      - name: Instalar Chromium
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Executar regressão
+        run: npm test
