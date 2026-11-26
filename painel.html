@@ -242,6 +242,19 @@ async function suspender(){
   if(r.error){msg(erro(r.error));return}
   await carregar();desenhar();msg(ativar?'Empresa reativada.':'Empresa suspensa.','k');
 }
+async function enviarEmail(token){
+  try{
+    var r=await sb.functions.invoke('enviar-convite',{body:{token:token}});
+    if(r.error)throw r.error;
+    return '';
+  }catch(x){
+    var m='';
+    try{if(x&&x.context&&x.context.json){var j=await x.context.json();m=(j&&j.error)||''}}catch(_){}
+    if(m==='falha_no_envio')m='o serviço de e-mail recusou o envio';
+    else if(m==='envio_nao_configurado')m='o envio por e-mail ainda não está configurado';
+    return m||'não foi possível enviar agora';
+  }
+}
 function novaEmpresa(){
   var m=document.createElement('div');m.className='modal';
   m.innerHTML='<div class="box"><h1>Nova empresa</h1><label>Nome da empresa<input id="n-nome" maxlength="120"></label><label>E-mail do administrador<input id="n-em" type="email"></label>'+
@@ -257,8 +270,9 @@ function novaEmpresa(){
     $('n-ok').disabled=false;
     if(r.error){$('n-msg').textContent=erro(r.error);return}
     var link=SISTEMA+'/?convite='+r.data;
-    m.querySelector('.box').innerHTML='<h1>Convite criado</h1><div class="sub">Envie este link ao administrador. A empresa é criada, já com o tipo escolhido, quando ele aceitar. Depois preencha o CNPJ aqui no painel.</div><div class="lnk">'+esc(link)+'</div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="n-cp">Copiar link</button><button class="btn" id="n-fim">Fechar</button></div>';
+    m.querySelector('.box').innerHTML='<h1>Convite criado</h1><div class="sub" id="n-env">Enviando o e-mail…</div><div class="sub">A empresa é criada, já com o tipo escolhido, quando o administrador aceitar. Depois preencha o CNPJ aqui no painel. O link abaixo também pode ser enviado à mão.</div><div class="lnk">'+esc(link)+'</div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="n-cp">Copiar link</button><button class="btn" id="n-fim">Fechar</button></div>';
     $('n-cp').onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(link);this.textContent='Copiado'};
+    enviarEmail(r.data).then(function(erroEnvio){var el=$('n-env');if(!el)return;el.textContent=erroEnvio?'O e-mail não saiu ('+erroEnvio+'). Envie o link abaixo ao administrador.':'E-mail enviado ao administrador.';el.style.color=erroEnvio?'#B3261E':'#2E6B4A'});
     $('n-fim').onclick=async function(){m.remove();await carregar();desenhar()};
   };
 }
