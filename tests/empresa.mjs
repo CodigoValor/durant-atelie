@@ -14,6 +14,8 @@ const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
 await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0024_pessoas_cpf.sql')); await db.exec(sql('0024_pessoas_cpf.sql')); await db.exec(sql('0025_convite_empresa_tipo.sql')); await db.exec(sql('0025_convite_empresa_tipo.sql')); await db.exec(sql('0026_convite_envio_email.sql')); await db.exec(sql('0026_convite_envio_email.sql'));
+await db.exec(sql('0027_privilegios_minimos.sql'));
+await db.exec(sql('0027_privilegios_minimos.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
@@ -25,6 +27,25 @@ const falha = async (s, p) => { try { await db.query(s, p); return false; } catc
 const cad = d => JSON.stringify({ tipo: 'PJ', razao: 'Durant Alfaiataria Ltda.', fantasia: 'Durant', doc, resp: 'Luiz', ...d });
 let doc = '12.345.678/0001-90';
 await db.exec(`insert into public.plataforma_admins (user_id) values ('${LUIZ}') on conflict do nothing`);
+await como(ANA, async () => {
+  ok((await q1('select public.empresa_ativa($1) ativa', [E1])).ativa === false,
+    'empresa ativa permanece invisível para usuário sem vínculo');
+  ok((await q1('select public.empresa_ativa($1) ativa', [E2])).ativa === true,
+    'membro continua consultando sua empresa ativa');
+});
+await como(LUIZ, async () => {
+  ok(/permission denied/.test(await falha("select public.criar_convite_empresa('legado@example.test','Empresa Teste',true,false)")),
+    'assinatura legada não é executável pela API mesmo com MFA');
+});
+await db.query(`insert into public.tec_loja_clientes
+  (loja_empresa_id, cliente_empresa_id, tipo, nome, documento, status)
+  values ($1, $2, 'pj', 'Cliente sintético', '11222333000181', 'liberado')`, [E2, E1]);
+const liberado = () => q1('select public.tec_liberado($1, $2) acesso', [E1, E2]);
+await como(MARIA, async () => ok((await liberado()).acesso, 'equipe cliente vê se o cadastro está liberado'));
+await como(ANA, async () => ok((await liberado()).acesso, 'equipe da loja vê se o cadastro está liberado'));
+await como('00000000-0000-0000-0000-00000000000d', async () => {
+  ok(!(await liberado()).acesso, 'usuário sem vínculo não consulta liberação entre empresas');
+});
 const S = (e) => [e, cad({})];
 await como(MARIA, async () => ok(/sem permissão/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E1))), 'usuário comum não altera o cadastro'));
 await como(ANA, async () => ok(/sem permissão/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E1))), 'administrador de outra empresa não altera esta'));

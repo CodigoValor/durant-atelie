@@ -1,4 +1,7 @@
 {
+  "buildCommand": "node tools/build-vercel.mjs",
+  "installCommand": "",
+  "outputDirectory": "dist",
   "cleanUrls": true,
   "headers": [
     {
@@ -19,7 +22,7 @@
       ]
     },
     {
-      "source": "/(index.html|config.js|adapter.js)",
+      "source": "/(index.html|painel.html|painel.js|config.js|adapter.js)",
       "headers": [
         {
           "key": "Cache-Control",

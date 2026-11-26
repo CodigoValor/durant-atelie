@@ -4,3 +4,4 @@ sistema-gestao-alfaiataria-*.json
 *.env
 .env*
 node_modules
+/dist/
