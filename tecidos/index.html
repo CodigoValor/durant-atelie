@@ -136,12 +136,12 @@ function semente() {
   function t(loja, ref, nome, comp, larg, cor, preco, apel) { return { id: uid(), loja_id: loja, referencia: ref, nome: nome, composicao: comp, largura_cm: larg, cor: cor, preco_metro: preco, apelidos: apel || [], ativo: true }; }
   return {
     v: 1, seq: 0,
-    lojas: [{ id: ls, nome: 'LS Tecidos', whatsapp: '', ativo: true }, { id: imp, nome: 'Imperiale', whatsapp: '', ativo: true }, { id: mb, nome: 'Mark Bell', whatsapp: '', ativo: true }],
+    lojas: [{ id: ls, nome: 'LS Tecidos', whatsapp: '', ativo: true }, { id: imp, nome: 'Imperiale', whatsapp: '', ativo: true }, { id: mb, nome: 'Mark Bel', whatsapp: '', ativo: true }],
     vendedores: [
       { id: uid(), loja_id: ls, nome: 'Carlos (exemplo)', whatsapp: '', principal: true, ativo: true },
       { id: uid(), loja_id: ls, nome: 'Renata (exemplo)', whatsapp: '', principal: false, ativo: true },
       { id: uid(), loja_id: imp, nome: 'Vendedor Imperiale (exemplo)', whatsapp: '', principal: true, ativo: true },
-      { id: uid(), loja_id: mb, nome: 'Vendedor Mark Bell (exemplo)', whatsapp: '', principal: true, ativo: true }
+      { id: uid(), loja_id: mb, nome: 'Vendedor Mark Bel (exemplo)', whatsapp: '', principal: true, ativo: true }
     ],
     catalogo: [
       t(ls, '405/3', 'Azul marinho liso', '100% lã', 150, 'Azul marinho', 390, ['azul marinho da ls']),
