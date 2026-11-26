@@ -393,14 +393,35 @@ textarea.ctl{height:auto;padding:12px;line-height:1.5;resize:vertical;font-famil
 @media (max-width:760px){.userchip .un{display:none}.userchip{padding:3px}}
 .btn.danger{color:var(--crit);box-shadow:inset 0 0 0 1px var(--crit-bg)}.btn.danger:hover{background:var(--crit-bg)}
 .btn.dng{background:var(--crit);color:#fff;box-shadow:none}
-.gate{position:fixed;inset:0;z-index:200;background:#20312A;display:grid;place-items:center;padding:20px;overflow:auto}.gate[hidden]{display:none}
+.gate{position:fixed;inset:0;z-index:200;background:#fff;overflow:auto}.gate[hidden]{display:none}
 body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:hidden}
-.gbox{width:100%;max-width:380px;color:#F1EEDD}.gbrand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;margin-bottom:34px}.gbrand .emblem{width:92px;height:108px}.gbrand b{display:block;font-family:'Playfair Display',serif;letter-spacing:.16em;font-size:34px;line-height:1.1}.gbrand small{display:block;margin-top:8px;letter-spacing:.42em;font-size:14px;color:#C9A66B}.gbox>.gmsg{text-align:center}.gbox{max-width:400px}
-.gbox h1{font-family:'Cormorant Garamond',serif;font-size:32px;margin:0 0 8px;font-weight:600}.gmsg{color:#C9D0C6;font-size:14.5px;line-height:1.5;margin:0 0 18px}
-.gform{display:grid;gap:14px}.gform label{display:grid;gap:6px;font-size:13px;color:#C9D0C6}
-.gform input{height:44px;border-radius:8px;border:1px solid #3F5449;background:#27392F;color:#F1EEDD;padding:0 12px;font:inherit;font-size:16px}.gform input:focus{outline:2px solid #FFAA57;outline-offset:1px}.gform input[readonly]{opacity:.7}
-.gbtn{height:46px;border:0;border-radius:8px;background:#FFAA57;color:#20312A;font:inherit;font-weight:700;font-size:15px;cursor:pointer;padding:0 18px}.gbtn:hover{filter:brightness(1.07)}
-.glink{background:none;border:0;color:#C9D0C6;font:inherit;font-size:13.5px;text-decoration:underline;cursor:pointer;padding:6px}.gerr{margin:0;color:#FFB4B0;font-size:13.5px}.gact{display:flex;gap:10px;flex-wrap:wrap}
+.gsplit{display:grid;grid-template-columns:47% minmax(0,1fr);min-height:100%}
+.gpanel{position:relative;min-height:100vh;overflow:hidden;color:#F1EEDD;background:radial-gradient(120% 90% at 0% 0%,#34463C 0,#243029 55%,#1B2621 100%);display:flex;flex-direction:column;justify-content:space-between;padding:44px 48px 40px}
+.gpanel::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(242,172,96,.055) 22px 23px);pointer-events:none}
+.gpanel>*{position:relative}
+.gp-brand,.gmbrand{display:flex;align-items:center;gap:11px;font-family:'Playfair Display',serif;font-weight:700;font-size:34px;line-height:1}
+.gp-brand svg,.gmbrand svg{width:30px;height:30px;flex-shrink:0;color:#F2AC60}
+.gp-eyebrow{font-size:11px;font-weight:600;letter-spacing:.16em}
+.gp-copy h2{font-family:'Cormorant Garamond',serif;font-size:48px;line-height:1.1;font-weight:600;margin:19px 0 0}
+.gp-line{width:90px;height:2px;background:#F2AC60;margin-top:28px}
+.gp-foot{font-size:12px;color:#C9D0C6}
+.gmain{display:flex;flex-direction:column;padding:38px 54px 28px;min-width:0;min-height:100vh;background:#fff;color:#202F29}
+.gtop,.gfoot{display:flex;justify-content:space-between;gap:16px;color:#8A9890;font-size:10px;letter-spacing:.08em}.gtop b{color:#202F29}
+.gbox{width:100%;max-width:400px;margin:auto;padding:45px 0;color:#202F29}
+.gmbrand{display:none;color:#243029;margin-bottom:34px;font-size:27px}.gmbrand svg{color:#B98332}
+.geyebrow{font-size:10px;font-weight:600;letter-spacing:.18em;color:#8A9890;margin:0 0 7px}
+.gbox h1{font-family:'Cormorant Garamond',serif;font-size:44px;line-height:1.08;font-weight:700;margin:0 0 14px}
+.gbox h1::after{content:'';display:block;width:90px;height:2px;background:#B98332;margin-top:17px}
+.gsub,.gmsg{color:#5C6B63;font-size:14px;line-height:1.6;margin:0 0 22px}
+.gform{display:grid;gap:18px}.gform label{display:grid;gap:8px;font-size:13px;font-weight:600;color:#202F29}
+.gform input{height:46px;border-radius:10px;border:1px solid #DDE3DB;background:#fff;color:#202F29;padding:0 14px;font:inherit;font-weight:400;font-size:16px}
+.gform input::placeholder{color:#9AA69E}.gform input:focus{outline:2px solid #243029;outline-offset:1px}.gform input[readonly]{background:#F4F6F2;opacity:.8}
+.gbtn{height:47px;border:0;border-radius:10px;background:#243029;color:#F1EEDD;font:inherit;font-weight:600;font-size:14px;cursor:pointer;padding:0 19px}.gbtn:hover{filter:brightness(1.18)}
+.glink{background:none;border:0;color:#5C6B63;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:6px;justify-self:start}.glink:hover{color:#202F29}
+.gerr{margin:0;color:#B3382C;font-size:13px}.gact{display:flex;gap:10px;flex-wrap:wrap}
+.gsec{border-top:1px solid #DDE3DB;margin-top:30px;padding-top:22px;display:flex;align-items:center;justify-content:center;gap:8px;color:#5C6B63;font-size:11px}.gsec svg{width:14px;height:14px;flex-shrink:0}
+@media(max-width:1023px){.gmain{padding:32px}.gp-copy h2{font-size:40px}}
+@media(max-width:700px){.gsplit{display:block}.gpanel{display:none}.gmain{padding:26px 24px}.gmbrand{display:flex}.gbox{padding:40px 0}.gbox h1{font-size:40px}.gfoot{font-size:9px}}
 .subtabs{display:flex;gap:4px;margin:0 0 14px;border-bottom:1px solid var(--line)}
 .subtabs a{padding:9px 14px;font-size:14px;font-weight:600;color:var(--ink-3);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
 .subtabs a:hover{color:var(--ink)}.subtabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--amber,#FFAA57)}
@@ -4998,7 +5019,7 @@ const pwOk=pw=>pw.length>=8?'':'A senha precisa ter pelo menos 8 caracteres.';
 
 /* telas de entrada */
 function gate(html){const g=document.getElementById('gate');g.hidden=!html;g.innerHTML=html||'';document.body.classList.toggle('gated',!!html);const f=g.querySelector('input:not([readonly]),button');f&&f.focus()}
-const gBox=inner=>`<div class="gbox"><div class="gbrand"><span class="emblem" aria-hidden="true"></span><div><b>DURANT</b><small>ALFAIATARIA</small></div></div>${inner}</div>`;
+const gBox=inner=>`<div class="gsplit"><aside class="gpanel"><div class="gp-brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg><span>alinhavo</span></div><div class="gp-copy"><span class="gp-eyebrow">CADA DETALHE IMPORTA.</span><h2>A excelência começa<br>no seu ateliê.</h2><div class="gp-line"></div></div><span class="gp-foot">O cuidado de sempre. Uma nova forma de organizar.</span></aside><div class="gmain" role="main"><div class="gtop"><span>GESTÃO DE ALFAIATARIAS</span><b>ALINHAVO</b></div><div class="gbox"><div class="gmbrand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg><span>alinhavo</span></div>${inner}<div class="gsec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg><span>Acesso seguro. Dados exclusivos da sua empresa.</span></div></div><footer class="gfoot"><span>© ${new Date().getFullYear()} Alinhavo</span><span>Feito para quem faz sob medida.</span></footer></div></div>`;
 function gateErro(e){
  gate(gBox(`<h1>Não consegui carregar os dados</h1><p class="gmsg">Por segurança, nada foi gravado. Código: ${esc((e&&(e.code||e.message))||String(e))}</p><div class="gact"><button class="gbtn" id="g-retry">Tentar de novo</button></div>`));
  document.getElementById('g-retry').onclick=()=>boot();

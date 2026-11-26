@@ -49,10 +49,10 @@
   }
   function telaLogin(aviso) {
     return new Promise(function (resolve) {
-      mostra('<h1>Entrar</h1><form id="g-f" class="gform"><label>Usuário (e-mail)<input id="g-u" type="email" autocomplete="username"></label>' +
+      mostra('<p class="geyebrow">SEU ATELIÊ, EM BOAS MÃOS</p><h1>Bem-vindo de volta.</h1><p class="gsub">Entre para continuar o trabalho no seu ateliê.</p><form id="g-f" class="gform"><label>E-mail<input id="g-u" type="email" autocomplete="username" placeholder="voce@seuatelie.com.br"></label>' +
         '<label>Senha<input id="g-p" type="password" autocomplete="current-password"></label>' +
         '<p class="gerr" id="g-e" role="alert" ' + (aviso ? '' : 'hidden') + '>' + esc(aviso || '') + '</p>' +
-        '<button class="gbtn" type="submit">Entrar</button><button class="glink" type="button" id="g-forgot">Esqueci minha senha</button></form>');
+        '<button class="gbtn" type="submit">Entrar no meu ateliê</button><button class="glink" type="button" id="g-forgot">Esqueceu a senha?</button></form>');
       var f = document.getElementById('g-f'), er = document.getElementById('g-e');
       f.onsubmit = function (ev) {
         ev.preventDefault();
@@ -69,7 +69,7 @@
   function telaEsqueci() {
     return new Promise(function (resolve) {
       mostra('<h1>Esqueci minha senha</h1><p class="gmsg">Informe seu e-mail. Enviamos um link para criar uma nova senha.</p>' +
-        '<form id="g-f" class="gform"><label>Usuário (e-mail)<input id="g-u" type="email" autocomplete="username"></label>' +
+        '<form id="g-f" class="gform"><label>E-mail<input id="g-u" type="email" autocomplete="username" placeholder="voce@seuatelie.com.br"></label>' +
         '<p class="gerr" id="g-e" role="alert" hidden></p><button class="gbtn" type="submit">Enviar link</button><button class="glink" type="button" id="g-back">Voltar</button></form>');
       var er = document.getElementById('g-e');
       document.getElementById('g-back').onclick = function () { resolve(); };
