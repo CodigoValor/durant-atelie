@@ -657,6 +657,15 @@ function bindAceite(){
  const f1=document.getElementById('pp-parc'),f2=document.getElementById('pp-est');
  if(f1)f1.onchange=()=>{ui.ppParc=f1.value;render()};
  if(f2)f2.onchange=()=>{ui.ppEst=f2.value;render()};
+ const ff=document.getElementById('pp-fech');if(ff)ff.onclick=()=>{
+  const parcs=[...new Set(S.pedidos.filter(p=>origemDe(p.id)).map(p=>origemDe(p.id)))].sort();
+  let parc=ui.ppParc||parcs[0],mes=hoje().slice(0,7);
+  modal('Fechamento do mês',`<div class="full" style="display:flex;gap:8px;flex-wrap:wrap"><select class="ctl" id="fc-p" aria-label="Ateliê">${parcs.map(x=>`<option ${x===parc?'selected':''}>${esc(x)}</option>`).join('')}</select><input class="ctl" type="month" id="fc-m" value="${mes}" aria-label="Mês"></div><div class="full" id="fc-out">${fechamentoHTML(parc,mes)}</div><div class="full"><button type="button" class="btn ghost sm" id="fc-print">Imprimir ou salvar em PDF</button></div>`,null,'Fechar');
+  const at=()=>{document.getElementById('fc-out').innerHTML=fechamentoHTML(document.getElementById('fc-p').value,document.getElementById('fc-m').value||mes)};
+  document.getElementById('fc-p').onchange=at;document.getElementById('fc-m').onchange=at;
+  document.getElementById('fc-print').onclick=()=>{const w=window.open('','_blank');if(!w){toast('Libere pop-ups para imprimir');return}
+   w.document.write('<html><head><meta charset="utf-8"><title>Fechamento</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#222}td,th{padding:6px 4px}</style></head><body>'+document.getElementById('fc-out').innerHTML+'</body></html>');w.document.close();w.focus();setTimeout(()=>w.print(),300)};
+ };
 }
 /* o item "Pedidos de produção" só existe para quem produz para parceiros (empresa que produz, ou que já recebeu pedido de parceiro) */
 function navProdParc(){
@@ -3992,7 +4001,7 @@ function detalheHTML(){
  ${p.recusado?`<p class="hint" style="margin:0 0 4px;color:var(--ink-2)">Recusado em ${fdFull(p.recusaData)}${p.recusaMotivo?' — '+esc(p.recusaMotivo):''}. Dá para reativar a qualquer momento.</p>`:''}
   <div class="kv">
    <div><span>Data do pedido</span><b>${fdFull(p.dped)}</b></div>
-   ${va?'<div><span>Valor da fábrica</span><b>a definir</b></div>':`<div><span>Valor</span><b>${brl(p.valor)}</b>${p.bonifMotivo?`<div class="d" style="font-size:12.5px;color:var(--ink-3);margin-top:2px">Bonificação/cortesia: ${esc(p.bonifMotivo)}</div>`:''}</div>
+   ${va?`<div><span>Valor cobrado do ateliê</span><b>${p.valorFab!=null?brl2(p.valorFab):'a definir'}</b><div style="display:flex;gap:6px;margin-top:6px"><input class="ctl" id="vf-in" inputmode="decimal" placeholder="0,00" value="${p.valorFab!=null?String(p.valorFab).replace('.',','):''}" style="height:38px;font-size:14px;max-width:130px" aria-label="Valor cobrado do ateliê"><button type="button" class="btn ghost sm" id="vf-ok">Salvar</button></div></div>`:PARC()&&p.valorFab!=null?`<div><span>Valor da fábrica</span><b>${brl2(p.valorFab)}</b></div><div><span>Valor</span><b>${brl(p.valor)}</b></div>`:`<div><span>Valor</span><b>${brl(p.valor)}</b>${p.bonifMotivo?`<div class="d" style="font-size:12.5px;color:var(--ink-3);margin-top:2px">Bonificação/cortesia: ${esc(p.bonifMotivo)}</div>`:''}</div>
    <div><span>Pagamento</span><b>${p.forma}${p.forma==='Pix parcelado'||p.forma==='Cartão de crédito'?` · ${p.parcelas}x`:''}</b></div>`}
    ${orc?`<div><span>Envio ao cliente</span><b>${p.env?fdFull(p.env):'Ainda não enviado'}</b></div><div><span>Prazo para aprovação</span><input class="ctl" type="date" id="o-prazo" value="${p.prazo||addDias(p.dped,7)}" style="height:38px;font-size:14px"></div>`:(()=>{
     /* Com prazo único, mostra a data consolidada só enquanto ela ainda vale pra todas as peças; assim
@@ -4044,6 +4053,12 @@ R.pedidos=()=>{
  ${orcRecusados.length?`<details class="grp sec-p" data-sec="orcrec" ${ui.sec.orcrec?'open':''}><summary><span class="gt">Orçamentos recusados</span><span class="pill plain">${orcRecusados.length}</span></summary><div class="gb"><div class="list">${orcRecusados.map(o=>`<button class="row" data-open="${o.id}" style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:pointer"><div class="grow"><div class="t">${esc(cli(o.cli).nome)} <span class="mono" style="color:var(--ink-3)">${o.id}</span></div><div class="d">${esc(o.item)} · recusado em ${fd(o.recusaData)}${o.recusaMotivo?' — '+esc(o.recusaMotivo):''}</div></div>${vendaAtelie(o)?'':`<b class="num">${brl(o.valor)}</b>`}</button>`).join('')}</div></div></details>`:''}
  <div class="card"><div class="card-h"><h2>Pedidos aprovados</h2><span class="pill plain">${ps0.length}</span></div>${ps0.length?buscaHTML('ped-qa','Buscar por nome do cliente',ui.pedQa):''}${ps0.length?(ps.length?`<div class="list">${ps.map(p=>{const [a,b]=p.pecas?prog(p):[0,0];const ent=p.pecas?prazoPedido(p):p.entrega;const dl=daysTo(ent);return `<button class="row" ${p.pecas?`data-open="${p.id}"`:''} style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:${p.pecas?'pointer':'default'}"><div class="grow"><div class="t">${esc(cli(p.cli)?cli(p.cli).nome:'—')} <span class="mono" style="color:var(--ink-3)">${p.id}</span> ${origTag(p.id)}</div><div class="d">${esc(p.item||'')} · ${p.aprov?'aprovado em '+fd(p.aprov):'aprovação a registrar'} · ${ent?'entrega '+fd(ent):'entrega a definir'}${p.st<4&&ent&&dl<0?' · atrasado':''}</div></div>${incompletoPill(p)}${vendaAtelie(p)?'':`<b class="num">${brl(p.valor)}</b>`}${PARC()?pillParceiro(p):`<span class="pill ${p.st>=4?'ok':'info'}">${pedFin(p)?'Finalizado':p.st>=4?'Pronto, falta entregar':STATUS[p.st]}${b&&!pedFin(p)?' · '+a+'/'+b:''}</span>`}</button>`}).join('')}</div>`:'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido encontrado para essa busca.</p>'):'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido aprovado ainda.</p>'}</div>`;
 };
+function fechamentoHTML(parc,mes){
+ const L=S.pedidos.filter(p=>origemDe(p.id)===parc&&estadoParc(p)==='aceito'&&String((aceiteDe(p.id)||{}).em||p.aprov||p.dped||'').slice(0,7)===mes).sort((a,b)=>String(a.aprov||a.dped).localeCompare(String(b.aprov||b.dped)));
+ const tot=L.reduce((a,p)=>a+(p.valorFab||0),0),sem=L.filter(p=>p.valorFab==null).length;
+ return `<div id="fech-doc"><h3 style="margin:0 0 4px">Fechamento · ${esc(parc)}</h3><div class="d" style="color:var(--ink-2);margin-bottom:10px">${mes.slice(5)}/${mes.slice(0,4)} · ${esc(SB_NOME())}</div>
+ ${L.length?`<table style="width:100%;border-collapse:collapse;font-size:13.5px"><thead><tr><th align="left">Pedido</th><th align="left">Cliente</th><th align="left">Peças</th><th align="right">Valor</th></tr></thead><tbody>${L.map(p=>`<tr style="border-top:1px solid #ddd"><td>${esc(p.id)}</td><td>${esc((cli(p.cli)||{}).nome||'—')}</td><td>${esc(p.item||'')}</td><td align="right">${p.valorFab!=null?brl2(p.valorFab):'a definir'}</td></tr>`).join('')}</tbody><tfoot><tr style="border-top:2px solid #333"><td colspan="3"><b>Total</b></td><td align="right"><b>${brl2(tot)}</b></td></tr></tfoot></table>${sem?`<p class="d" style="color:#8A5A00;margin:8px 0 0">${sem} pedido(s) sem valor definido ficam de fora do total.</p>`:''}`:'<p class="d">Nenhum pedido aceito neste mês para este ateliê.</p>'}</div>`}
+const SB_NOME=()=>(window.SB&&window.SB.empresaNome)||'Fábrica';
 R.prodparc=()=>{
  const ord={recebido:0,aceito:1,recusado:2};
  const todos=S.pedidos.filter(p=>origemDe(p.id)).sort((a,b)=>(ord[estadoParc(a)]-ord[estadoParc(b)])||String(b.aprov||b.dped||'').localeCompare(String(a.aprov||a.dped||'')));
@@ -4056,6 +4071,7 @@ R.prodparc=()=>{
  `<div class="card"><div class="card-h"><h2>Pedidos dos ateliês</h2><span class="pill ${n('recebido')?'warn':'plain'}">${n('recebido')} ${n('recebido')===1?'recebido':'recebidos'}</span></div>
   <div class="docrow" style="gap:10px;flex-wrap:wrap;margin:0 0 10px"><select class="ctl" id="pp-parc" aria-label="Ateliê"><option value="">Todos os ateliês</option>${parcs.map(x=>`<option value="${esc(x)}" ${x===fp?'selected':''}>${esc(x)}</option>`).join('')}</select>
   <select class="ctl" id="pp-est" aria-label="Estado"><option value="">Todos os estados</option><option value="recebido" ${fe==='recebido'?'selected':''}>Recebidos (${n('recebido')})</option><option value="aceito" ${fe==='aceito'?'selected':''}>Aceitos (${n('aceito')})</option><option value="recusado" ${fe==='recusado'?'selected':''}>Recusados (${n('recusado')})</option></select></div>
+  ${todos.length?`<div class="docrow" style="margin:0 0 10px"><button type="button" class="btn ghost sm" id="pp-fech">Fechamento do mês</button></div>`:''}
   ${L.length?`<div class="list">${L.map(linha).join('')}</div>`:`<p class="d" style="color:var(--ink-2);margin:0">${todos.length?'Nenhum pedido com esse filtro.':'Nenhum pedido de ateliê ainda. Quando um ateliê lançar um pedido, ele aparece aqui como "recebido".'}</p>`}</div>`;
 };
 R.producao=()=>{
@@ -4502,6 +4518,9 @@ bind.pedidos=()=>{
 function bindDetalhe(){
  const p=[...S.orcamentos,...S.pedidos].find(x=>x.id===ui.det);
  document.getElementById('o-voltar').onclick=()=>{ui.det=null;render();window.scrollTo(0,0)};
+ const vfok=document.getElementById('vf-ok');if(vfok)vfok.onclick=()=>{const t=document.getElementById('vf-in').value.trim();
+  if(t===''){delete p.valorFab;logEvt(p,'Valor cobrado do ateliê removido');toast('Valor removido');render();return}
+  const v=numBR(t);if(!(v>=0)){toast('Valor inválido');return}p.valorFab=v;logEvt(p,'Valor cobrado do ateliê definido: '+brl2(v));toast('Valor salvo');render()};
  const musar=document.getElementById('med-usar-atual');if(musar)musar.onclick=()=>modal('Usar as medidas atuais neste pedido',`<p class="full" style="margin:0">O pedido passa a usar as medidas mais recentes do cliente (corpo V${mc(p.cli).vCorpo||1}, peça pronta V${mc(p.cli).vPeca||1}). A cópia antiga continua registrada no histórico do pedido.</p>`,()=>{const a=p.medUsadas;p.medUsadas=medFoto(p.cli);logEvt(p,`Medidas do pedido atualizadas: corpo V${a.vCorpo}→V${p.medUsadas.vCorpo}, peça pronta V${a.vPeca}→V${p.medUsadas.vPeca}`);toast('Pedido atualizado com as medidas atuais');return ''},'Usar as medidas atuais');
  document.getElementById('o-cliente').onclick=()=>{ui.cli=p.cli;ui.tab='corpo';ui.det=null;ui.draft=null;location.hash='clientes';render();window.scrollTo(0,0)};
  document.querySelectorAll('[data-zap2]').forEach(b=>b.onclick=()=>zap(p.id,b.dataset.zap2));

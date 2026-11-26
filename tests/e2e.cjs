@@ -406,7 +406,7 @@ function novoBanco(cfg) {
   ok((await r15.pg.textContent('body')).includes('pedido de Durant Alfaiataria'), 'no detalhe aparece "pedido de Durant Alfaiataria"');
   ok(![...b15.reg.values()].some(r => /Durant Alfaiataria/.test(r.j || '')), 'a origem nunca é gravada dentro dos dados');
   const d15 = await r15.pg.textContent('main');
-  ok(!d15.includes('1.500') && d15.includes('Valor da fábrica') && d15.includes('a definir') && !d15.includes('Financeiro do pedido') && !d15.includes('Pagamento'), 'fábrica não vê valor, pagamento nem financeiro do pedido do ateliê (mostra "Valor da fábrica: a definir")');
+  ok(!d15.includes('1.500') && d15.includes('Valor cobrado do ateliê') && d15.includes('a definir') && !d15.includes('Financeiro do pedido') && !d15.includes('Pagamento'), 'fábrica não vê valor, pagamento nem financeiro do pedido do ateliê (mostra "Valor cobrado do ateliê: a definir")');
   ok(await r15.pg.evaluate(() => !document.getElementById('o-aprovped') && !document.getElementById('o-pag') && !document.querySelector('[data-zap2]')), 'fábrica não tem botões de aprovar pedido, confirmar pagamento nem WhatsApp ao cliente no pedido do ateliê');
   await r15.pg.evaluate(() => { ui.det = null; location.hash = 'pedidos'; render(); }); await r15.pg.waitForTimeout(300);
   const l15 = await r15.pg.$$eval('[data-open]', els => els.map(e => e.textContent.replace(/\s+/g, ' ')));
@@ -427,6 +427,14 @@ function novoBanco(cfg) {
     await r15.pg.click('[data-newtec]'); await r15.pg.waitForTimeout(400);
     ok(await r15.pg.evaluate(() => !document.querySelector('[data-newtec]') && ui.draft.pecas[0].forroCod === '42'), 'cadastrar forro novo pelo campo: o botão "+ Cadastrar" some e o código fica no campo');
   } else ok(false, 'campo de código do forro não encontrado no teste');
+  const vf = await r15.pg.evaluate(() => { const p = S.pedidos.find(x => origemDe(x.id)); p.valorFab = 700; p.aprov = hoje();
+    S.cfg.aceites = S.cfg.aceites || {}; S.cfg.aceites[p.id] = { st: 'aceito', em: new Date().toISOString(), por: 't' };
+    const h = fechamentoHTML(origemDe(p.id), hoje().slice(0, 7)); window.__pid = p.id;
+    return { h: h.slice(0,200), pend: p.id, tem: h.includes('700,00') && h.includes('Total') }; });
+  await r15.pg.evaluate(() => { location.hash = 'pedidos'; }); await r15.pg.waitForTimeout(400);
+  vf.campo = await r15.pg.evaluate(() => { ui.draft = null; ui.det = window.__pid; render(); return !!document.getElementById('vf-in') || document.querySelector('main').textContent.replace(/\s+/g,' ').slice(0,300); });
+  if (vf.campo !== true) console.log('DBG', String(vf.campo));
+  ok(vf.campo === true && vf.tem, 'fábrica define o valor cobrado do ateliê e o fechamento do mês soma esse valor (R$ 700)');
   const fl = await r15.pg.evaluate(() => { const id = S.clientes[0].id; ORIGEM['clientes~' + id] = 'Ateliê Teste'; ui.det = null; ui.draft = null; ui.cli = null; ui.cOrig = ''; location.hash = 'clientes'; render();
     const chips = [...document.querySelectorAll('[data-corig]')].map(b => b.dataset.corig); const todos = document.querySelectorAll('.citem[data-cli]').length;
     document.querySelector('[data-corig="Ateliê Teste"]').click(); const soAt = document.querySelectorAll('.citem[data-cli]').length;
