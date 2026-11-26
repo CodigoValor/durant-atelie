@@ -17,7 +17,7 @@ rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_empresa
   ok(await pg.locator('.tp.on').innerText().then(t => /Alfaiataria/.test(t)), 'mostra o tipo Alfaiataria (ateliê e fábrica)');
   await pg.fill('#q', 'mark'); ok((await pg.locator('.it').count()) === 1, 'busca por nome filtra a lista');
   await pg.locator('.it').first().click(); await pg.waitForSelector('h2');
-  ok(/Mark Bel/.test(await pg.locator('h2').innerText()) && (await pg.locator('.tp[data-tipo]:disabled').count()) === 2, 'empresa de tecidos abre com o tipo travado');
+  ok(/Mark Bel/.test(await pg.locator('h2').innerText()) && (await pg.locator('.tp[data-tipo]:disabled').count()) === 0 && (await pg.locator('.tp.on[data-tipo="loja"]').count()) === 1, 'loja de tecido abre com o tipo Loja de tecido marcado');
   await pg.fill('#q', ''); await pg.locator('.it').first().click();
   await pg.fill('#c-doc', '11111111111111'); await pg.click('#salvar');
   ok(/CNPJ inválido/.test(await pg.locator('#msg').innerText()), 'CNPJ inválido é barrado antes de enviar');

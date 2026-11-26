@@ -12,7 +12,7 @@ await db.exec(`
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
-await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql'));
+await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
@@ -73,6 +73,8 @@ await como(LUIZ, async () => {
   r1 = await t('alfaiataria', null); ok(r1.p, 'Alfaiataria que já tinha a área para ateliês continua com ela (não perde o menu)');
   ok(/tipo inválido/.test(await falha(`select public.definir_tipo_empresa($1,'fabrica',false)`, [E1])), 'o tipo Fábrica não existe mais');
   r1 = await t('alfaiataria', null);
+  r1 = await t('loja', true); const lj = await q1(`select fornece_tecido f from public.empresas where id=$1`, [E1]); ok(r1.tipo === 'loja' && !r1.v && !r1.p && lj.f, 'Loja de tecido: fornece tecido, não atende cliente final, sem área para ateliês');
+  r1 = await t('alfaiataria', null); const lj2 = await q1(`select fornece_tecido f from public.empresas where id=$1`, [E1]); ok(r1.v && !lj2.f, 'voltar para alfaiataria desliga o fornecimento de tecido');
   const pl = (await db.query(`select * from public.plataforma_empresas()`)).rows.find(x => x.id === E1); ok(pl.tipo === 'alfaiataria', 'a lista do painel traz o tipo');
   await t('alfaiataria', false);
 });

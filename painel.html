@@ -61,7 +61,7 @@ function cnpjOk(c){c=digs(c);if(c.length!==14||/^(\d)\1+$/.test(c))return false;
 var NOME={atelie:'Ateliê',alfaiataria:'Alfaiataria',loja:'Loja de tecido',cliente_loja:'Cliente da loja'};
 function tipoChave(e){if(e.tipo)return e.tipo;if(e.fornece)return'loja';if(e.so_tecidos)return'cliente_loja';return null}
 function tipoDe(e){var k=tipoChave(e);return k?NOME[k]:'Tipo a definir'}
-var TIPOS=[['atelie','Ateliê','Manda produzir com uma alfaiataria'],['alfaiataria','Alfaiataria','Atende consumidor e ateliê']];
+var TIPOS=[['atelie','Ateliê','Manda produzir com uma alfaiataria'],['alfaiataria','Alfaiataria','Atende consumidor e ateliê'],['loja','Loja de tecido','Vende tecido para ateliês e alfaiatarias']];
 function msg(t,k){var m=$('msg');if(m){m.textContent=t||'';m.className='msg '+(k||'e')}}
 function dataBR(s){try{return new Date(s).toLocaleDateString('pt-BR')}catch(x){return''}}
 function erro(x){var t=(x&&x.message)||String(x);return t.replace(/^.*?: /,'')}
@@ -130,7 +130,7 @@ function ligarLista(){
 function atual(){return E.lista.filter(function(e){return e.id===E.sel})[0]}
 function detalheHTML(){
   var e=atual();if(!e)return'<div class="sub">Nenhuma empresa cadastrada. Use “+ Nova”.</div>';
-  var c=e.cadastro||{},tk=tipoChave(e),dosTecidos=!!(e.fornece||e.so_tecidos);
+  var c=e.cadastro||{},tk=tipoChave(e),dosTecidos=!!e.so_tecidos;
   var campo=function(id,l,v,cls,ex){return'<label class="'+(cls||'')+'">'+l+'<input id="'+id+'" value="'+esc(v||'')+'" '+(ex||'')+'></label>'};
   return'<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2>'+esc((e.cadastro&&e.cadastro.razao)||e.nome)+'</h2>'+(e.cadastro&&e.cadastro.razao&&e.cadastro.razao!==e.nome?'<div class="sub">'+esc(e.nome)+'</div>':'')+'<div class="sub">Cliente desde '+dataBR(e.criado_em)+' · <span class="'+(e.ativa?'ok':'no')+'">'+(e.ativa?'Ativa':'Suspensa')+'</span></div></div>'+
   '<div style="display:flex;gap:10px"><button class="btn '+(e.ativa?'r':'o')+'" id="susp">'+(e.ativa?'Suspender':'Reativar')+'</button><button class="btn" id="salvar">Salvar</button></div></div><div id="msg" class="msg"></div>'+
@@ -144,8 +144,8 @@ function detalheHTML(){
   campo('c-end','Endereço',c.end,'s2','maxlength="160"')+campo('c-obs','Observações',c.obs,'','maxlength="200"')+'</div></div>'+
   '<div class="card"><div class="sec">TIPO DA EMPRESA (só a plataforma altera)</div><div class="tipos">'+
   TIPOS.map(function(x){return'<button class="tp '+(x[0]===tk?'on':'')+'" data-tipo="'+x[0]+'" '+(dosTecidos?'disabled':'')+'><b>'+x[1]+'</b><span>'+x[2]+'</span></button>'}).join('')+
-  (tk==='loja'?'<button class="tp on" disabled><b>Loja de tecido</b><span>Módulo de tecidos</span></button>':tk==='cliente_loja'?'<button class="tp on" disabled><b>Cliente da loja</b><span>Cadastrado pela loja</span></button>':'')+'</div>'+
-  (dosTecidos?'<div class="sub" style="margin-top:8px">Empresa do módulo de tecidos: o tipo não muda por aqui.</div>':'<div class="sub" style="margin-top:8px">“Pedidos de produção” e “Ateliês” aparecem no menu da alfaiataria quando ela cadastra um ateliê como cliente.</div>')+'</div>'+
+  (tk==='cliente_loja'?'<button class="tp on" disabled><b>Cliente da loja</b><span>Cadastrado pela loja</span></button>':'')+'</div>'+
+  (dosTecidos?'<div class="sub" style="margin-top:8px">Cliente de loja de tecido: cadastrado pela própria loja, o tipo não muda por aqui.</div>':'<div class="sub" style="margin-top:8px">“Pedidos de produção” e “Ateliês” aparecem no menu da alfaiataria quando ela cadastra um ateliê como cliente.</div>')+'</div>'+
   '<div class="card"><div class="sec">USUÁRIOS ('+E.usuarios.length+')</div>'+
   (E.usuarios.length?E.usuarios.map(function(u){return'<div class="us"><span>'+esc(u.email)+'</span><span style="color:#8a6a26;font-weight:600">'+esc({admin:'Administrador',usuario:'Usuário',parceiro:'Ateliê parceiro'}[u.papel]||u.papel)+'</span></div>'}).join(''):'<div class="sub">Nenhum usuário ainda.</div>')+'</div>';
 }
