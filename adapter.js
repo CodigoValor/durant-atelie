@@ -230,7 +230,7 @@
       document.getElementById('g-out').onclick = function () { SB.sair(); };
     });
   }
-  var PAPEL_TXT = { admin: 'administrador', usuario: 'usuário', parceiro: 'parceiro' };
+  var PAPEL_TXT = { admin: 'administrador', usuario: 'usuário', parceiro: 'ateliê' };
   function lembrada(uid, v) {
     try { if (v === undefined) return localStorage.getItem('durant.empresa.' + uid); if (v === null) localStorage.removeItem('durant.empresa.' + uid); else localStorage.setItem('durant.empresa.' + uid, v); } catch (e) {}
     return null;

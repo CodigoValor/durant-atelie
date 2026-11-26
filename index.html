@@ -582,7 +582,7 @@ function andamCard(p){
  return `<section class="card" style="border-color:${st==='recusado'?'var(--crit)':'#B98332'}"><div class="card-h"><h2>Resposta da fábrica</h2>${pillParceiro(p)}</div><p class="d" style="margin:0;color:var(--ink-2)">${txt}</p></section>`;
 }
 /* ===== Destino da peça pronta (escolhido pelo parceiro ao lançar o pedido) ===== */
-const DEST_TIPOS={parceiro:'Enviar para mim (parceiro)',cliente:'Enviar direto ao cliente final',retirada:'Retirada'};
+const DEST_TIPOS={parceiro:'Enviar para mim (ateliê)',cliente:'Enviar direto ao cliente final',retirada:'Retirada'};
 const DEST_QUEM={parceiro:'Eu mesmo retiro',outra:'Outra pessoa retira',motoboy:'Motoboy retira'};
 const destVazio=()=>({tipo:'',nome:'',tel:'',cep:'',rua:'',num:'',comp:'',bairro:'',cidade:'',quem:'',quemNome:''});
 function destErro(d){
@@ -600,7 +600,7 @@ function destErro(d){
 }
 function destResumo(d){
  if(!d||!d.tipo)return '';
- if(d.tipo==='parceiro')return 'Enviar a peça pronta para o parceiro.';
+ if(d.tipo==='parceiro')return 'Enviar a peça pronta para o ateliê.';
  if(d.tipo==='cliente')return `Enviar direto ao cliente final: <b>${esc(d.nome||'')}</b>${d.tel?' · '+esc(d.tel):''}<br>${esc([d.rua,d.num,d.comp].filter(Boolean).join(', '))} — ${esc(d.bairro||'')}, ${esc(d.cidade||'')}${d.cep?' · CEP '+esc(d.cep):''}`;
  return `Retirada: ${esc(DEST_QUEM[d.quem]||'quem retira a definir')}${d.quem&&d.quem!=='parceiro'&&d.quemNome?' — <b>'+esc(d.quemNome)+'</b>':''}.`;
 }
@@ -660,7 +660,7 @@ function bindAceite(){
 function navProdParc(){
  if(PARC()||NAV.some(n=>n.id==='prodparc'))return false;
  if(!((window.SB&&window.SB.perfil&&window.SB.perfil.produz)||Object.keys(ORIGEM).length))return false;
- NAV.splice(NAV.findIndex(n=>n.id==='pedidos')+1,0,{id:'prodparc',label:'Pedidos de produção',short:'Parceiros',icon:'i-truck'});return true;
+ NAV.splice(NAV.findIndex(n=>n.id==='pedidos')+1,0,{id:'prodparc',label:'Pedidos de produção',short:'Ateliês',icon:'i-truck'});return true;
 }
 const novoIdCliente=()=>NUM.ativo()?(()=>{let n;do{n=NUM.tomar('cliente')}while(S.clientes.some(c=>c.id===n));return n})():Math.max(0,...S.clientes.map(x=>x.id))+1;
 
@@ -668,7 +668,7 @@ const VIEWS=[
  {id:'painel',label:'Painel',short:'Painel',icon:'i-home'},
  {id:'clientes',label:'Clientes e medidas',short:'Clientes',icon:'i-users'},
  {id:'pedidos',label:'Pedidos',short:'Pedidos',icon:'i-coin'},
- {id:'prodparc',label:'Pedidos de produção',short:'Parceiros',icon:'i-truck'},
+ {id:'prodparc',label:'Pedidos de produção',short:'Ateliês',icon:'i-truck'},
  {id:'producao',label:'Produção',short:'Produção',icon:'i-scissors'},
  {id:'atividades',label:'Atividades',short:'Atividades',icon:'i-truck'},
  {id:'financeiro',label:'Financeiro',short:'Finanças',icon:'i-coin'},
@@ -1259,7 +1259,7 @@ R.clientes=()=>{
    ?(ui.medEdit?`<button type="button" class="btn ghost" id="med-cancelar">Cancelar</button><button type="button" class="btn" id="med-salvar">Salvar alterações</button>`:`<button type="button" class="btn" id="med-editar">Editar</button>`)
    :'';
   let body;
-  if(ui.tab==='cadastro') body=`<div class="stack" style="margin-top:18px">${cliOculto(c)?`<div class="note">Este cliente é de <b>${esc(ORIGEM['clientes~'+c.id])}</b>. Os dados de contato e documentos ficam só com o parceiro. Você vê o nome e as medidas para produzir.</div>`:''}${cadForm(c,!ui.cadEdit)}</div>`;
+  if(ui.tab==='cadastro') body=`<div class="stack" style="margin-top:18px">${cliOculto(c)?`<div class="note">Este cliente é de <b>${esc(ORIGEM['clientes~'+c.id])}</b>. Os dados de contato e documentos ficam só com o ateliê. Você vê o nome e as medidas para produzir.</div>`:''}${cadForm(c,!ui.cadEdit)}</div>`;
   else if(ui.tab==='pedidos') body=`<div class="stack" style="margin-top:18px">${histHTML(c)}${osCliHTML(c)}</div>`;
   else if(ui.tab==='corpo'){
    body=`<div class="stack" style="margin-top:18px">
@@ -3315,7 +3315,7 @@ function bindTec(){
  document.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=()=>{const [k,n]=b.dataset.rdel.split('|');const r=lista(k)[+n];if(usado(k,r.ref,null)){toast('Referência usada em pedido. Não dá para remover.');return}lista(k).splice(+n,1);S[k][f.fantasia]=[];fim()});
 }
 /* ===== Acessos e convites (administrador da empresa; servidor decide quem pode) ===== */
-const PAPEL_NOME={admin:'Administrador',usuario:'Usuário',parceiro:'Parceiro'};
+const PAPEL_NOME={admin:'Administrador',usuario:'Usuário',parceiro:'Ateliê'};
 const linkConvite=t=>location.origin+location.pathname+'?convite='+t;
 const ESTADO_CONV={valido:'Aguardando',expirado:'Expirado',cancelado:'Cancelado',usado:'Aceito'};
 function acessosView(){
@@ -3335,10 +3335,10 @@ async function bindAcessos(){
   const sel=(v,id)=>`<select class="ctl" ${id}>${['admin','usuario','parceiro'].map(x=>`<option value="${x}" ${x===v?'selected':''}>${PAPEL_NOME[x]}</option>`).join('')}</select>`;
   const linkBox=l=>l?`<div class="card" style="border-color:#B98332"><b>Link do convite</b><p style="margin:6px 0;color:var(--ink-2);font-size:14px">Envie esta mensagem para a pessoa (WhatsApp ou e-mail). O link vale 7 dias, serve só para o e-mail convidado e só funciona uma vez. Ele não será mostrado de novo.</p><input class="ctl" id="ac-link" readonly value="${esc(l)}" style="width:100%"><div style="margin-top:8px"><button class="btn" id="ac-copia">Copiar link</button></div></div>`:'';
   box.innerHTML=linkBox(ultimoLink)+
-  `<div class="card"><b>Convidar uma pessoa para ${esc(window.SB.empresaNome)}</b><form id="ac-conv" class="form" style="margin-top:10px"><label class="full">E-mail da pessoa<input class="ctl" id="ac-em" type="email" autocomplete="off" required></label><label class="full">Papel${sel('usuario','id="ac-pp"')}</label><label class="full" id="ac-np-l" hidden>Nome da empresa do parceiro<input class="ctl" id="ac-np" autocomplete="off" maxlength="120" placeholder="Ex.: Durant Alfaiataria"></label><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Administrador: tudo, inclusive convidar e remover. Usuário: trabalha na empresa conforme o grupo de acesso. Parceiro: vê e edita só o que ele mesmo criou (clientes, medidas, pedidos e orçamentos).</p><div class="full"><button class="btn" type="submit">Gerar convite</button> <span id="ac-er" style="color:#B3261E;font-size:14px"></span></div></form></div>`+
+  `<div class="card"><b>Convidar uma pessoa para ${esc(window.SB.empresaNome)}</b><form id="ac-conv" class="form" style="margin-top:10px"><label class="full">E-mail da pessoa<input class="ctl" id="ac-em" type="email" autocomplete="off" required></label><label class="full">Papel${sel('usuario','id="ac-pp"')}</label><label class="full" id="ac-np-l" hidden>Nome do ateliê<input class="ctl" id="ac-np" autocomplete="off" maxlength="120" placeholder="Ex.: Durant Alfaiataria"></label><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Administrador: tudo, inclusive convidar e remover. Usuário: trabalha na empresa conforme o grupo de acesso. Ateliê: vê e edita só o que ele mesmo criou (clientes, medidas, pedidos e orçamentos).</p><div class="full"><button class="btn" type="submit">Gerar convite</button> <span id="ac-er" style="color:#B3261E;font-size:14px"></span></div></form></div>`+
   `<div class="card"><b>Pessoas com acesso</b><div class="tbl-wrap"><table><thead><tr><th>E-mail</th><th>Papel</th><th></th></tr></thead><tbody>${mem.map(m=>`<tr><td>${esc(m.email)}${m.user_id===window.SB.uid?' <span class="pill">você</span>':''}</td><td>${sel(m.papel,`data-mp="${m.user_id}"`)}${m.papel==='parceiro'?`<div style="font-size:13px;color:var(--ink-2);margin-top:4px">Empresa: <b>${esc(m.nome_parceiro||'não informada')}</b> <button class="btn ghost sm" data-mnp="${m.user_id}" data-mnpv="${esc(m.nome_parceiro||'')}">Editar</button></div>`:''}</td><td><button class="btn ghost sm" data-mrm="${m.user_id}" data-mem="${esc(m.email)}">Remover</button></td></tr>`).join('')}</tbody></table></div><p id="ac-er2" style="color:#B3261E;font-size:14px;margin:8px 0 0"></p></div>`+
   `<div class="card"><b>Convites enviados</b>${conv.length?`<div class="tbl-wrap"><table><thead><tr><th>E-mail</th><th>Papel</th><th>Situação</th><th>Validade</th><th></th></tr></thead><tbody>${conv.map(v=>`<tr><td>${esc(v.email)}</td><td>${PAPEL_NOME[v.papel]||esc(v.papel)}</td><td>${ESTADO_CONV[v.estado]||esc(v.estado)}</td><td>${new Date(v.expira_em).toLocaleDateString('pt-BR')}</td><td>${v.estado==='valido'?`<button class="btn ghost sm" data-vc="${v.id}">Cancelar</button> `:''}${v.estado!=='usado'?`<button class="btn ghost sm" data-vr="${esc(v.email)}|${v.papel}">Gerar novo link</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<p style="margin:8px 0 0;color:var(--ink-2);font-size:14px">Nenhum convite ainda.</p>'}</div>`+
-  (plat?`<div class="card"><b>Nova empresa (administrador da plataforma)</b><p style="margin:6px 0;color:var(--ink-2);font-size:14px">Convida uma pessoa para criar uma empresa nova no Alinhavo. Ela vira administradora dessa empresa.</p><form id="ac-emp" class="form"><label class="full">E-mail do administrador da nova empresa<input class="ctl" id="ae-em" type="email" autocomplete="off" required></label><label class="full">Nome da empresa<input class="ctl" id="ae-nm" autocomplete="off" required minlength="2" maxlength="120"></label><label class="chk full"><input type="checkbox" id="ae-v" checked>Vende ao cliente final</label><label class="chk full"><input type="checkbox" id="ae-p">Produz (recebe pedidos de parceiros)</label><div class="full"><button class="btn" type="submit">Gerar convite de empresa</button> <span id="ae-er" style="color:#B3261E;font-size:14px"></span></div></form>${cvp.length?`<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>E-mail</th><th>Empresa</th><th>Situação</th><th></th></tr></thead><tbody>${cvp.map(v=>`<tr><td>${esc(v.email)}</td><td>${esc(v.empresa_nome||'')}</td><td>${ESTADO_CONV[v.estado]||esc(v.estado)}</td><td>${v.estado==='valido'?`<button class="btn ghost sm" data-vc="${v.id}">Cancelar</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:''}</div>`:'');
+  (plat?`<div class="card"><b>Nova empresa (administrador da plataforma)</b><p style="margin:6px 0;color:var(--ink-2);font-size:14px">Convida uma pessoa para criar uma empresa nova no Alinhavo. Ela vira administradora dessa empresa.</p><form id="ac-emp" class="form"><label class="full">E-mail do administrador da nova empresa<input class="ctl" id="ae-em" type="email" autocomplete="off" required></label><label class="full">Nome da empresa<input class="ctl" id="ae-nm" autocomplete="off" required minlength="2" maxlength="120"></label><label class="chk full"><input type="checkbox" id="ae-v" checked>Vende ao cliente final</label><label class="chk full"><input type="checkbox" id="ae-p">Fábrica (recebe pedidos de ateliês)</label><div class="full"><button class="btn" type="submit">Gerar convite de empresa</button> <span id="ae-er" style="color:#B3261E;font-size:14px"></span></div></form>${cvp.length?`<div class="tbl-wrap" style="margin-top:12px"><table><thead><tr><th>E-mail</th><th>Empresa</th><th>Situação</th><th></th></tr></thead><tbody>${cvp.map(v=>`<tr><td>${esc(v.email)}</td><td>${esc(v.empresa_nome||'')}</td><td>${ESTADO_CONV[v.estado]||esc(v.estado)}</td><td>${v.estado==='valido'?`<button class="btn ghost sm" data-vc="${v.id}">Cancelar</button>`:''}</td></tr>`).join('')}</tbody></table></div>`:''}</div>`:'');
   if(ultimoLink){const li=document.getElementById('ac-link');if(li){li.scrollIntoView({block:'center',behavior:'smooth'});li.select()}}
   const cp=document.getElementById('ac-copia');if(cp)cp.onclick=()=>{const i=document.getElementById('ac-link');i.select();try{navigator.clipboard.writeText(i.value)}catch(e){document.execCommand('copy')}toast('Link copiado')};
   const er=t=>{document.getElementById('ac-er').textContent=t||''};
@@ -3346,15 +3346,15 @@ async function bindAcessos(){
   const npVer=()=>{npL.hidden=ppS.value!=='parceiro'};ppS.onchange=npVer;npVer();
   document.getElementById('ac-conv').onsubmit=async e=>{e.preventDefault();er('');const em=document.getElementById('ac-em').value.trim();
    const pp=ppS.value,np=document.getElementById('ac-np').value.trim();
-   if(pp==='parceiro'&&np.length<2){er('Informe o nome da empresa do parceiro.');document.getElementById('ac-np').focus();return}
+   if(pp==='parceiro'&&np.length<2){er('Informe o nome do ateliê.');document.getElementById('ac-np').focus();return}
    try{const t=await rp('criar_convite',{p_empresa:emp,p_email:em,p_papel:pp,p_nome_parceiro:pp==='parceiro'?np:null});await pintar(linkConvite(t))}catch(x){er(msg(x))}};
   document.querySelectorAll('[data-mnp]').forEach(b=>b.onclick=()=>{
-   modal('Empresa do parceiro',`<label class="full">Nome da empresa do parceiro<input class="ctl" id="mnp-n" maxlength="120" value="${esc(b.dataset.mnpv)}" autocomplete="off"></label><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">É o nome que aparece como etiqueta nos pedidos que este parceiro lança.</p>`,()=>{(async()=>{try{await rp('definir_nome_parceiro',{p_empresa:emp,p_user:b.dataset.mnp,p_nome:document.getElementById('mnp-n').value});toast('Nome atualizado');await carregarOrigens();await pintar()}catch(x){document.getElementById('ac-er2').textContent=msg(x)}})()},'Salvar')});
+   modal('Nome do ateliê',`<label class="full">Nome do ateliê<input class="ctl" id="mnp-n" maxlength="120" value="${esc(b.dataset.mnpv)}" autocomplete="off"></label><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">É o nome que aparece como etiqueta nos pedidos que este ateliê lança.</p>`,()=>{(async()=>{try{await rp('definir_nome_parceiro',{p_empresa:emp,p_user:b.dataset.mnp,p_nome:document.getElementById('mnp-n').value});toast('Nome atualizado');await carregarOrigens();await pintar()}catch(x){document.getElementById('ac-er2').textContent=msg(x)}})()},'Salvar')});
   document.querySelectorAll('[data-mp]').forEach(b=>b.onchange=async()=>{try{await rp('alterar_papel',{p_empresa:emp,p_user:b.dataset.mp,p_papel:b.value});toast('Papel alterado');await pintar()}catch(x){document.getElementById('ac-er2').textContent=msg(x);await pintar()}});
   document.querySelectorAll('[data-mrm]').forEach(b=>b.onclick=()=>{
    modal('Remover acesso',`<p class="full" style="margin:0">Remover <b>${esc(b.dataset.mem)}</b> desta empresa? A pessoa perde o acesso na hora. O que ela criou continua no sistema.</p>`,()=>{(async()=>{try{await rp('remover_membro',{p_empresa:emp,p_user:b.dataset.mrm});toast('Acesso removido');await pintar()}catch(x){document.getElementById('ac-er2').textContent=msg(x)}})()},'Remover')});
   document.querySelectorAll('[data-vc]').forEach(b=>b.onclick=async()=>{try{await rp('cancelar_convite',{p_id:b.dataset.vc});toast('Convite cancelado');await pintar()}catch(x){toast(msg(x))}});
-  document.querySelectorAll('[data-vr]').forEach(b=>b.onclick=async()=>{const [em,pp]=b.dataset.vr.split('|');if(pp==='parceiro'){document.getElementById('ac-em').value=em;ppS.value='parceiro';npVer();const f=document.getElementById('ac-np');f.scrollIntoView({block:'center',behavior:'smooth'});f.focus();toast('Informe a empresa do parceiro para gerar o novo link');return}try{const t=await rp('criar_convite',{p_empresa:emp,p_email:em,p_papel:pp});await pintar(linkConvite(t))}catch(x){toast(msg(x))}});
+  document.querySelectorAll('[data-vr]').forEach(b=>b.onclick=async()=>{const [em,pp]=b.dataset.vr.split('|');if(pp==='parceiro'){document.getElementById('ac-em').value=em;ppS.value='parceiro';npVer();const f=document.getElementById('ac-np');f.scrollIntoView({block:'center',behavior:'smooth'});f.focus();toast('Informe o nome do ateliê para gerar o novo link');return}try{const t=await rp('criar_convite',{p_empresa:emp,p_email:em,p_papel:pp});await pintar(linkConvite(t))}catch(x){toast(msg(x))}});
   const fe=document.getElementById('ac-emp');if(fe)fe.onsubmit=async e=>{e.preventDefault();const o=document.getElementById('ae-er');o.textContent='';
    try{const t=await rp('criar_convite_empresa',{p_email:document.getElementById('ae-em').value.trim(),p_empresa_nome:document.getElementById('ae-nm').value.trim(),p_vende:document.getElementById('ae-v').checked,p_produz:document.getElementById('ae-p').checked});await pintar(linkConvite(t))}catch(x){o.textContent=msg(x)}};
  };
@@ -3848,7 +3848,7 @@ const WA={
 };
 function zap(pid,k){
  const p=[...S.pedidos,...S.orcamentos].find(x=>x.id===pid),c=cli(p.cli);
- if(cliOculto(c)){toast('O contato deste cliente fica com o parceiro.');return}
+ if(cliOculto(c)){toast('O contato deste cliente fica com o ateliê.');return}
  modal('Enviar WhatsApp para '+c.nome,`<label class="full">Para<input value="${esc(c.tel||'Sem WhatsApp cadastrado')}" readonly></label><label class="full">Mensagem<textarea id="wa-msg" rows="6">${esc(WA[k](c,p))}</textarea></label><p class="hint" style="margin:0">Protótipo: no sistema integrado, a mensagem sai pelo WhatsApp conectado ao seu CRM e fica registrada na conversa do cliente.</p>`,()=>{if(!c.tel)return 'Este cliente não tem WhatsApp cadastrado.';if(k==='orcamento'&&p.status==='orcamento')p.env=hoje();toast('Mensagem enviada pelo WhatsApp do CRM (simulação)')},'Enviar');
 }
 function agendar(pid){
@@ -3964,10 +3964,10 @@ R.prodparc=()=>{
  const linha=p=>{const c=cli(p.cli),e=estadoParc(p),a=aceiteDe(p.id)||{},pid=esc(p.id);
   return `<div class="row"><div class="grow"><div class="t">${esc(c?c.nome:'—')} <span class="mono" style="color:var(--ink-3)">${pid}</span> ${origTag(p.id)}</div><div class="d">${esc(p.item||'')} · ${p.aprov?'lançado em '+fd(p.aprov):'sem data'} · ${brl(p.valor||0)}${e==='recusado'&&a.motivo?' · motivo: '+esc(a.motivo):''}</div></div>${estPill(e)}<button class="btn ghost sm" data-ppo="${pid}">Ver pedido</button>${e==='recebido'?`<button class="btn sm" data-ac="aceitar" data-pid="${pid}">Aceitar</button><button class="btn ghost sm danger" data-ac="recusar" data-pid="${pid}">Recusar</button>`:e==='recusado'?`<button class="btn ghost sm" data-ac="reabrir" data-pid="${pid}">Reabrir</button>`:''}</div>`};
  return head('Produção','Pedidos de produção','')+
- `<div class="card"><div class="card-h"><h2>Pedidos dos parceiros</h2><span class="pill ${n('recebido')?'warn':'plain'}">${n('recebido')} ${n('recebido')===1?'recebido':'recebidos'}</span></div>
-  <div class="docrow" style="gap:10px;flex-wrap:wrap;margin:0 0 10px"><select class="ctl" id="pp-parc" aria-label="Parceiro"><option value="">Todos os parceiros</option>${parcs.map(x=>`<option value="${esc(x)}" ${x===fp?'selected':''}>${esc(x)}</option>`).join('')}</select>
+ `<div class="card"><div class="card-h"><h2>Pedidos dos ateliês</h2><span class="pill ${n('recebido')?'warn':'plain'}">${n('recebido')} ${n('recebido')===1?'recebido':'recebidos'}</span></div>
+  <div class="docrow" style="gap:10px;flex-wrap:wrap;margin:0 0 10px"><select class="ctl" id="pp-parc" aria-label="Ateliê"><option value="">Todos os ateliês</option>${parcs.map(x=>`<option value="${esc(x)}" ${x===fp?'selected':''}>${esc(x)}</option>`).join('')}</select>
   <select class="ctl" id="pp-est" aria-label="Estado"><option value="">Todos os estados</option><option value="recebido" ${fe==='recebido'?'selected':''}>Recebidos (${n('recebido')})</option><option value="aceito" ${fe==='aceito'?'selected':''}>Aceitos (${n('aceito')})</option><option value="recusado" ${fe==='recusado'?'selected':''}>Recusados (${n('recusado')})</option></select></div>
-  ${L.length?`<div class="list">${L.map(linha).join('')}</div>`:`<p class="d" style="color:var(--ink-2);margin:0">${todos.length?'Nenhum pedido com esse filtro.':'Nenhum pedido de parceiro ainda. Quando um parceiro lançar um pedido, ele aparece aqui como "recebido".'}</p>`}</div>`;
+  ${L.length?`<div class="list">${L.map(linha).join('')}</div>`:`<p class="d" style="color:var(--ink-2);margin:0">${todos.length?'Nenhum pedido com esse filtro.':'Nenhum pedido de ateliê ainda. Quando um ateliê lançar um pedido, ele aparece aqui como "recebido".'}</p>`}</div>`;
 };
 R.producao=()=>{
  if(ui.draft||ui.compras||ui.det)return R.pedidos();
@@ -4913,7 +4913,7 @@ async function flush(){
    let renovou=false;
    try{const r=await window.SB.client.auth.refreshSession();renovou=!!(r&&r.data&&r.data.session)}catch(x){}
    if(renovou){P.sessao=true;setState('saving')}   /* o próximo ciclo (2,5 s) grava de novo */
-   else{P.sessao=false;P.err='sessao';setState('error');if(!P.avisouSessao){P.avisouSessao=true;modal('Sua sessão expirou','<p class="full" style="margin:0">Você saiu do sistema (a sessão venceu, ou você entrou em outra conta em outra aba deste navegador). <b>O que você digitou ainda está na tela, mas ainda não foi salvo.</b></p><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Anote o que for importante, depois atualize a página e entre de novo. Para testar parceiro e dono ao mesmo tempo, use uma janela anônima para cada um.</p>',null)}}
+   else{P.sessao=false;P.err='sessao';setState('error');if(!P.avisouSessao){P.avisouSessao=true;modal('Sua sessão expirou','<p class="full" style="margin:0">Você saiu do sistema (a sessão venceu, ou você entrou em outra conta em outra aba deste navegador). <b>O que você digitou ainda está na tela, mas ainda não foi salvo.</b></p><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Anote o que for importante, depois atualize a página e entre de novo. Para testar ateliê e fábrica ao mesmo tempo, use uma janela anônima para cada um.</p>',null)}}
   }else{P.err=(e&&(e.code||e.message))||String(e);setState('error')}
  }
  finally{P.busy=false}

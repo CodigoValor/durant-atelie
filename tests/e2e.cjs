@@ -195,7 +195,7 @@ function novoBanco(cfg) {
   await pg.waitForSelector('[data-emp]', { timeout: 15000 });
   const nomes = await pg.$$eval('[data-emp]', bs => bs.map(b => b.textContent));
   ok(nomes.length === 2 && nomes[0].includes('Durant Alfaiataria') && nomes[1].includes('Ateliê da Maria'), 'com 2 empresas, aparece a tela "Escolha a empresa" listando as duas');
-  ok(nomes[1].includes('parceiro') && nomes[0].includes('administrador'), 'cada empresa mostra o papel da pessoa nela');
+  ok(nomes[1].includes('ateliê') && nomes[0].includes('administrador'), 'cada empresa mostra o papel da pessoa nela');
   ok(b4.reg.size === 0, 'nada é lido nem gravado antes de escolher a empresa');
   await pg.click('[data-emp="1"]');
   await pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
@@ -288,7 +288,7 @@ function novoBanco(cfg) {
   await r11.pg.fill('#ac-em', 'ana@ex.com'); await r11.pg.selectOption('#ac-pp', 'parceiro');
   ok(await r11.pg.evaluate(() => !document.getElementById('ac-np-l').hidden), 'ao escolher parceiro, o campo aparece');
   await r11.pg.click('#ac-conv button[type=submit]'); await r11.pg.waitForTimeout(300);
-  ok(/empresa do parceiro/i.test(await r11.pg.textContent('#ac-er')) && !b11.convites, 'convite de parceiro sem o nome da empresa é barrado antes de enviar');
+  ok(/nome do ateliê/i.test(await r11.pg.textContent('#ac-er')) && !b11.convites, 'convite de parceiro sem o nome da empresa é barrado antes de enviar');
   await r11.pg.fill('#ac-np', 'Durant Alfaiataria'); await r11.pg.click('#ac-conv button[type=submit]');
   await r11.pg.waitForSelector('#ac-link', { timeout: 5000 });
   const lk = await r11.pg.inputValue('#ac-link');
@@ -389,7 +389,7 @@ function novoBanco(cfg) {
   ok(t15.includes('Destino da peça pronta') && t15.includes('Maria Souza') && t15.includes('Rua das Flores'), 'dono vê o destino da peça (envio direto ao cliente) com o endereço informado pelo parceiro');
   await r15.pg.evaluate(() => { ui.det = null; location.hash = 'clientes'; ui.cli = 5; ui.tab = 'cadastro'; render(); }); await r15.pg.waitForTimeout(300);
   t15 = await r15.pg.textContent('main');
-  ok(t15.includes('Cliente 0005') && !t15.includes('123.456.789-09') && !t15.includes('99999-0000') && !t15.includes('1980') && !t15.includes('Campinas') && t15.includes('ficam só com o parceiro'), 'dono vê só o nome do cliente do parceiro: CPF, telefone, nascimento e cidade ficam ocultos');
+  ok(t15.includes('Cliente 0005') && !t15.includes('123.456.789-09') && !t15.includes('99999-0000') && !t15.includes('1980') && !t15.includes('Campinas') && t15.includes('ficam só com o ateliê'), 'dono vê só o nome do cliente do parceiro: CPF, telefone, nascimento e cidade ficam ocultos');
   ok(await r15.pg.evaluate(() => !document.getElementById('c-editar')), 'dono não edita o cadastro do cliente do parceiro');
   await r15.pg.evaluate(() => { location.hash = 'prodparc'; render(); }); await r15.pg.waitForTimeout(300);
   await r15.pg.click('button[data-ac="recusar"]'); await r15.pg.fill('#rc-m', 'Sem tecido'); await r15.pg.click('#mform button[type=submit]'); await r15.pg.waitForTimeout(300);
