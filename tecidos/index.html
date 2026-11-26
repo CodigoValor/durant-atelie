@@ -136,7 +136,7 @@ function semente() {
   function t(loja, ref, nome, comp, larg, cor, preco, apel) { return { id: uid(), loja_id: loja, referencia: ref, nome: nome, composicao: comp, largura_cm: larg, cor: cor, preco_metro: preco, apelidos: apel || [], ativo: true }; }
   return {
     v: 1, seq: 0,
-    lojas: [{ id: ls, nome: 'LS Tecidos', whatsapp: '', ativo: true }, { id: imp, nome: 'Imperiale', whatsapp: '', ativo: true }, { id: mb, nome: 'Mark Bel', whatsapp: '', ativo: true }],
+    lojas: [{ id: ls, nome: 'LS Tecidos', whatsapp: '', ativo: true }, { id: imp, nome: 'Imperiale', whatsapp: '', ativo: true }, { id: mb, nome: 'Mark Bel', whatsapp: '11982457810', ativo: true }],
     vendedores: [
       { id: uid(), loja_id: ls, nome: 'Carlos (exemplo)', whatsapp: '', principal: true, ativo: true },
       { id: uid(), loja_id: ls, nome: 'Renata (exemplo)', whatsapp: '', principal: false, ativo: true },
@@ -149,7 +149,21 @@ function semente() {
       t(ls, '512', 'Príncipe de Gales', 'Lã e seda', 148, 'Cinza e azul', 520, ['principe de gales']),
       t(imp, '210/1', 'Linho puro', '100% linho', 140, 'Bege', 310, ['linho bege']),
       t(imp, '210/4', 'Linho puro', '100% linho', 140, 'Azul claro', 310, []),
-      t(mb, '88-12', 'Algodão fio 120', '100% algodão', 145, 'Branco', 180, ['branco 120'])
+      /* Mark Bel: referências reais das tabelas do Drive (abril/2022 — preços a atualizar com a tabela vigente) */
+      t(mb, '0355/2001', 'Panamá', '', null, '', 42, ['panama']),
+      t(mb, '0352/2003', 'Crepe', '', null, '', 35, ['crepe']),
+      t(mb, '0353/2004', 'Gabardine Pes', '', null, '', 35, ['gabardine pes']),
+      t(mb, '2082', 'Puro Linho', '100% linho', null, '', 150, ['linho puro']),
+      t(mb, '2085', 'Linho S129', 'Linho', null, '', 196, ['linho s129']),
+      t(mb, '2043', 'Sarja CO', '', null, '', 42, ['sarja']),
+      t(mb, '2078', 'Sarja c/ Elast', '', null, '', 57, ['sarja elastano']),
+      t(mb, '8295', 'Camurça', '', null, '', 119.9, ['camurca']),
+      t(mb, '1001', 'Tricoline liso 80/2', 'Algodão', null, '', 60, ['tricoline 80']),
+      t(mb, '1009', 'Tricoline prata 80/2', 'Algodão', null, '', 78, []),
+      t(mb, '0109', 'Tricoline 120/2', 'Algodão', null, '', 160, ['tricoline 120']),
+      t(mb, '1086', 'Cambraia linho', 'Linho', null, '', 150, ['cambraia']),
+      t(mb, '3453', 'Tropical lã fria', 'Lã', null, '', 76.9, ['tropical la fria']),
+      t(mb, '4157-000', 'Gabardine lisa Super 120', '100% lã', null, '', 169.9, ['gabardine lisa'])
     ],
     destinos: [{ id: uid(), nome: 'Ateliê', endereco: '', padrao: true, ativo: true }, { id: uid(), nome: 'Maria', endereco: '', padrao: false, ativo: true }, { id: uid(), nome: 'WGT', endereco: '', padrao: false, ativo: true }],
     pedidos: [], itens: [], mensagens: []
