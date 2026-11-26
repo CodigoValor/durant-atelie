@@ -11,8 +11,8 @@ await db.exec(`
 `);
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
-for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql']) await db.exec(sql(f));
-await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql'));
+for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
+await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
@@ -38,4 +38,22 @@ await como(LUIZ, async () => {
   doc = ''; ok(/Informe o CNPJ/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E1))), 'CNPJ em branco é recusado (obrigatório)');
 });
 await como(MARIA, async () => ok(/permission denied|sem permissão/.test(await falha(`update public.empresas set produz=true where id=$1`, [E1]) || 'sem permissão'), 'cliente não altera a tabela de empresas direto'));
+
+// --- painel da plataforma e suspensão ---
+await db.exec(`insert into public.reg (empresa_id, id, k, i, n, j) values ('${E1}','x1','clientes','1',1,'{}')`);
+const veReg = async (sub, emp) => await como(sub, async () => (await q1(`select count(*)::int c from public.reg where empresa_id=$1`, [emp])).c);
+ok(await veReg(MARIA, E1) === 1, 'usuário vê os dados da empresa ativa');
+await como(MARIA, async () => ok(/sem permissão/.test(await falha(`select * from public.plataforma_empresas()`)), 'usuário comum não abre a lista do painel'));
+await como(ANA, async () => ok(/sem permissão/.test(await falha(`select public.plataforma_definir_ativa($1,false)`, [E1])), 'administrador de empresa não suspende empresa'));
+await como(LUIZ, async () => {
+  const l = (await db.query(`select * from public.plataforma_empresas()`)).rows;
+  ok(l.length === 2 && l.find(x => x.id === E1).usuarios === 2, 'plataforma lista as empresas com a quantidade de usuários');
+  ok((await db.query(`select * from public.plataforma_usuarios($1)`, [E1])).rows.length === 2, 'plataforma lista os usuários da empresa');
+  await db.query(`select public.plataforma_definir_ativa($1,false)`, [E1]);
+});
+ok(await veReg(MARIA, E1) === 0, 'empresa suspensa: o usuário deixa de ver os dados');
+await como(MARIA, async () => ok((await q1(`select count(*)::int c from public.membros`)).c === 0 && (await q1(`select public.papel_em($1) p`, [E1])).p === null, 'empresa suspensa: sem vínculo e sem papel'));
+ok(await veReg(ANA, E2) === 0 && (await db.query(`select 1 from public.reg where empresa_id='${E1}'`)).rows.length === 1, 'suspender não apaga dados nem afeta outra empresa');
+await como(LUIZ, async () => { await db.query(`select public.plataforma_definir_ativa($1,true)`, [E1]); });
+ok(await veReg(MARIA, E1) === 1, 'reativar devolve o acesso');
 console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);

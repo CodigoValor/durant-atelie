@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Painel de controle</title>
+<link rel="icon" href="favicon-32.png">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#FBFAF7;color:#243430;font:15px/1.45 Inter,sans-serif}
+.top{height:60px;background:#243430;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;gap:12px}
+.logo{font:600 24px 'Cormorant Garamond',serif}.tag{font-size:11px;letter-spacing:1px;border:1px solid #D9A441;color:#D9A441;border-radius:6px;padding:3px 8px;margin-left:12px}
+.amb{font-size:11px;background:#D9A441;color:#243430;border-radius:6px;padding:3px 8px;margin-left:8px;font-weight:600}
+.lk{background:none;border:0;color:#D9A441;font:inherit;cursor:pointer;padding:0}
+.wrap{display:flex;min-height:calc(100vh - 60px)}
+.side{width:350px;flex:none;border-right:1px solid #E6E1D8;padding:20px;display:flex;flex-direction:column;gap:12px}
+.main{flex:1;padding:24px 32px;min-width:0;display:flex;flex-direction:column;gap:16px}
+h1{font:600 26px 'Cormorant Garamond',serif;margin:0}h2{font:600 32px/1.1 'Cormorant Garamond',serif;margin:0}
+input,select,textarea{font:inherit;color:inherit;border:1px solid #E6E1D8;border-radius:10px;padding:0 12px;height:40px;background:#fff;width:100%}
+input:disabled{background:#F4F1EA;color:#6b726f}
+label{display:block;font-size:12px;color:#6b726f}label>input,label>select{margin-top:4px;font-size:14px}
+.btn{height:40px;border:0;border-radius:9px;background:#243430;color:#fff;font:600 13.5px Inter,sans-serif;padding:0 16px;cursor:pointer}
+.btn.o{background:#fff;color:#243430;border:1px solid #D9C9A3}.btn.r{background:#fff;color:#9b3d2e;border:1px solid #D9C9A3}.btn:disabled{opacity:.5;cursor:default}
+.chips{display:flex;gap:8px;font-size:12.5px}.chip{border:1px solid #E6E1D8;background:#fff;border-radius:20px;padding:5px 12px;cursor:pointer}.chip.on{background:#243430;color:#fff;border-color:#243430}
+.it{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E6E1D8;border-radius:12px;padding:12px 14px;cursor:pointer;text-align:left;width:100%;font:inherit}
+.it.sel{background:#F4EFE4;border:1.5px solid #D9A441}
+.av{width:36px;height:36px;border-radius:9px;background:#243430;color:#D9A441;display:flex;align-items:center;justify-content:center;font:600 18px 'Cormorant Garamond',serif;flex:none}
+.sub{font-size:12px;color:#6b726f}.ok{color:#2f6b4f;font-weight:600}.no{color:#9b3d2e;font-weight:600}
+.card{background:#fff;border:1px solid #E6E1D8;border-radius:14px;padding:16px 18px}
+.sec{font-size:12px;letter-spacing:.8px;color:#8a6a26;font-weight:600;margin-bottom:10px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.s2{grid-column:span 2}
+.tipos{display:flex;gap:10px;flex-wrap:wrap}.tp{flex:1;min-width:120px;border:1px solid #E6E1D8;background:#fff;border-radius:10px;padding:10px 12px;text-align:left;font:inherit;cursor:pointer}
+.tp.on{border:1.5px solid #D9A441;background:#F4EFE4}.tp:disabled{cursor:default;opacity:.7}.tp b{display:block;font-size:13.5px}.tp span{font-size:11.5px;color:#6b726f}
+.us{display:flex;justify-content:space-between;padding:9px 0;border-top:1px solid #EFEBE2;font-size:13.5px}
+.msg{font-size:13px;min-height:18px}.msg.e{color:#9b3d2e}.msg.k{color:#2f6b4f}
+.modal{position:fixed;inset:0;background:rgba(36,52,48,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.box{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px}
+.login{max-width:400px;margin:12vh auto;background:#fff;border:1px solid #E6E1D8;border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:14px}
+.lnk{word-break:break-all;background:#F4EFE4;border-radius:10px;padding:10px 12px;font-size:13px;user-select:all}
+@media(max-width:860px){.wrap{flex-direction:column}.side{width:auto;border-right:0;border-bottom:1px solid #E6E1D8}.g3{grid-template-columns:1fr}.s2{grid-column:auto}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+(function(){
+'use strict';
+var cfg=window.SUPABASE_CFG,sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'painel-auth-'+cfg.ambiente}});
+var app=document.getElementById('app'),E={lista:[],sel:null,filtro:'todas',q:'',usuarios:[],eu:''};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var $=function(id){return document.getElementById(id)};
+var SISTEMA=cfg.ambiente==='producao'?'https://sistema.henriquedurant.com':'https://homolog.henriquedurant.com';
+var digs=function(v){return String(v||'').replace(/\D/g,'')};
+var cnpjMask=function(v){var x=digs(v).slice(0,14);return x.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2')};
+var cpfMask=function(v){var x=digs(v).slice(0,11);return x.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')};
+var telMask=function(v){var x=digs(v).slice(0,11);if(!x)return'';if(x.length<=2)return'('+x;if(x.length<=6)return'('+x.slice(0,2)+') '+x.slice(2);if(x.length<=10)return'('+x.slice(0,2)+') '+x.slice(2,6)+'-'+x.slice(6);return'('+x.slice(0,2)+') '+x.slice(2,7)+'-'+x.slice(7)};
+function cnpjOk(c){c=digs(c);if(c.length!==14||/^(\d)\1+$/.test(c))return false;var f=function(n){var s=0,p=n-7;for(var i=0;i<n;i++){s+=c[i]*p--;if(p<2)p=9}var r=s%11;return r<2?0:11-r};return f(12)==c[12]&&f(13)==c[13]}
+function tipoDe(e){if(e.fornece)return'Loja de tecido';if(e.so_tecidos)return'Cliente da loja';if(e.vende&&e.produz)return'Alfaiataria';if(e.produz)return'Fábrica';return'Ateliê'}
+var TIPOS=[['Ateliê','Vende ao cliente final',true,false],['Fábrica','Produz para ateliês',false,true],['Alfaiataria','Ateliê e fábrica',true,true]];
+function msg(t,k){var m=$('msg');if(m){m.textContent=t||'';m.className='msg '+(k||'e')}}
+function dataBR(s){try{return new Date(s).toLocaleDateString('pt-BR')}catch(x){return''}}
+function erro(x){var t=(x&&x.message)||String(x);return t.replace(/^.*?: /,'')}
+
+/* ---------- login ---------- */
+function telaLogin(aviso){
+  app.innerHTML='<div class="login"><div class="logo" style="color:#243430">Alinhavo</div><div class="sub" style="margin-top:-8px">Painel de controle</div>'+
+  '<label>E-mail<input id="em" type="email" autocomplete="username"></label><label>Senha<input id="pw" type="password" autocomplete="current-password"></label>'+
+  '<div id="msg" class="msg e">'+esc(aviso||'')+'</div><button class="btn" id="go">Entrar</button></div>';
+  var go=async function(){
+    $('go').disabled=true;msg('');
+    var r=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('pw').value});
+    $('go').disabled=false;
+    if(r.error){msg('E-mail ou senha incorretos.');return}
+    iniciar();
+  };
+  $('go').onclick=go;$('pw').onkeydown=function(e){if(e.key==='Enter')go()};
+}
+async function sair(aviso){await sb.auth.signOut();telaLogin(aviso)}
+
+/* ---------- dados ---------- */
+async function carregar(){
+  var r=await sb.rpc('plataforma_empresas');
+  if(r.error){if(/sem permiss/i.test(r.error.message||'')||r.error.code==='42501'){await sair('Sem acesso a este painel.');return false}throw r.error}
+  E.lista=r.data||[];if(!E.sel||!E.lista.some(function(e){return e.id===E.sel}))E.sel=E.lista.length?E.lista[0].id:null;
+  return true;
+}
+async function carregarUsuarios(){
+  E.usuarios=[];if(!E.sel)return;
+  var r=await sb.rpc('plataforma_usuarios',{p_empresa:E.sel});E.usuarios=r.data||[];
+}
+async function iniciar(){
+  var s=await sb.auth.getSession();
+  if(!s.data.session){telaLogin();return}
+  E.eu=s.data.session.user.email;
+  try{if(!(await carregar()))return;await carregarUsuarios();desenhar()}catch(x){telaLogin('Não consegui abrir o painel: '+erro(x))}
+}
+
+/* ---------- tela ---------- */
+function visiveis(){
+  var q=E.q.trim().toLowerCase(),qd=digs(q);
+  return E.lista.filter(function(e){
+    if(E.filtro==='ativas'&&!e.ativa)return false;if(E.filtro==='suspensas'&&e.ativa)return false;
+    if(!q)return true;return e.nome.toLowerCase().indexOf(q)>=0||(qd&&(e.cnpj||'').indexOf(qd)>=0)
+  });
+}
+function desenhar(){
+  var tot=E.lista.length,at=E.lista.filter(function(e){return e.ativa}).length;
+  app.innerHTML='<div class="top"><div><span class="logo">Alinhavo</span><span class="tag">PAINEL DE CONTROLE</span>'+(cfg.ambiente==='producao'?'':'<span class="amb">HOMOLOGAÇÃO</span>')+'</div><div style="font-size:14px">'+esc(E.eu)+' &nbsp; <button class="lk" id="sair">Sair</button></div></div>'+
+  '<div class="wrap"><div class="side"><div style="display:flex;justify-content:space-between;align-items:center"><h1>Empresas</h1><button class="btn" id="nova">+ Nova</button></div>'+
+  '<input id="q" placeholder="Buscar por nome ou CNPJ" value="'+esc(E.q)+'">'+
+  '<div class="chips"><span class="chip '+(E.filtro==='todas'?'on':'')+'" data-f="todas">Todas '+tot+'</span><span class="chip '+(E.filtro==='ativas'?'on':'')+'" data-f="ativas">Ativas '+at+'</span><span class="chip '+(E.filtro==='suspensas'?'on':'')+'" data-f="suspensas">Suspensas '+(tot-at)+'</span></div>'+
+  '<div id="lista" style="display:flex;flex-direction:column;gap:8px">'+listaHTML()+'</div></div><div class="main" id="det">'+detalheHTML()+'</div></div>';
+  $('sair').onclick=function(){sair()};$('nova').onclick=novaEmpresa;
+  $('q').oninput=function(){E.q=this.value;$('lista').innerHTML=listaHTML();ligarLista()};
+  Array.prototype.forEach.call(document.querySelectorAll('[data-f]'),function(c){c.onclick=function(){E.filtro=c.dataset.f;desenhar()}});
+  ligarLista();ligarDetalhe();
+}
+function listaHTML(){
+  var v=visiveis();if(!v.length)return'<div class="sub">Nenhuma empresa encontrada.</div>';
+  return v.map(function(e){return'<button class="it '+(e.id===E.sel?'sel':'')+'" data-id="'+esc(e.id)+'"><span class="av">'+esc((e.nome||'?').charAt(0).toUpperCase())+'</span><span style="flex:1"><b style="font-size:14px">'+esc(e.nome)+'</b><br><span class="sub">'+esc(tipoDe(e))+' · '+e.usuarios+' usuário'+(e.usuarios===1?'':'s')+'</span></span><span class="'+(e.ativa?'ok':'no')+'" style="font-size:11.5px">'+(e.ativa?'Ativa':'Suspensa')+'</span></button>'}).join('');
+}
+function ligarLista(){
+  Array.prototype.forEach.call(document.querySelectorAll('.it[data-id]'),function(b){b.onclick=async function(){E.sel=b.dataset.id;await carregarUsuarios();desenhar()}});
+}
+function atual(){return E.lista.filter(function(e){return e.id===E.sel})[0]}
+function detalheHTML(){
+  var e=atual();if(!e)return'<div class="sub">Nenhuma empresa cadastrada. Use “+ Nova”.</div>';
+  var c=e.cadastro||{},t=tipoDe(e),dosTecidos=!!(e.fornece||e.so_tecidos);
+  var campo=function(id,l,v,cls,ex){return'<label class="'+(cls||'')+'">'+l+'<input id="'+id+'" value="'+esc(v||'')+'" '+(ex||'')+'></label>'};
+  return'<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h2>'+esc(e.nome)+'</h2><div class="sub">Cliente desde '+dataBR(e.criado_em)+' · <span class="'+(e.ativa?'ok':'no')+'">'+(e.ativa?'Ativa':'Suspensa')+'</span></div></div>'+
+  '<div style="display:flex;gap:10px"><button class="btn '+(e.ativa?'r':'o')+'" id="susp">'+(e.ativa?'Suspender':'Reativar')+'</button><button class="btn" id="salvar">Salvar</button></div></div><div id="msg" class="msg"></div>'+
+  '<div class="card"><div class="sec">CADASTRO</div><div class="g3">'+
+  '<label>Tipo de documento<select id="c-tipo"><option value="PJ" '+(c.tipo!=='PF'?'selected':'')+'>CNPJ (empresa)</option><option value="PF" '+(c.tipo==='PF'?'selected':'')+'>CPF (pessoa física)</option></select></label>'+
+  campo('c-doc','CNPJ ou CPF (obrigatório)',c.doc||(e.cnpj?(e.cnpj.length===14?cnpjMask(e.cnpj):cpfMask(e.cnpj)):''),'','maxlength="18" inputmode="numeric"')+
+  campo('c-resp','Responsável',c.resp,'','maxlength="80"')+
+  campo('c-razao','Razão social',c.razao,'s2','maxlength="100"')+campo('c-fantasia','Nome fantasia',c.fantasia||e.nome,'','maxlength="100"')+
+  campo('c-tel','WhatsApp',c.tel,'','maxlength="20" inputmode="tel"')+campo('c-email','E-mail',c.email,'','type="email" maxlength="80"')+campo('c-cidade','Cidade · UF',c.cidade,'','maxlength="60"')+
+  campo('c-end','Endereço',c.end,'s2','maxlength="160"')+campo('c-obs','Observações',c.obs,'','maxlength="200"')+'</div></div>'+
+  '<div class="card"><div class="sec">TIPO DA EMPRESA (só a plataforma altera)</div><div class="tipos">'+
+  TIPOS.map(function(x){return'<button class="tp '+(x[0]===t?'on':'')+'" data-tipo="'+x[0]+'" '+(dosTecidos?'disabled':'')+'><b>'+x[0]+'</b><span>'+x[1]+'</span></button>'}).join('')+
+  '<button class="tp '+(e.fornece?'on':'')+'" disabled><b>Loja de tecido</b><span>Módulo de tecidos</span></button><button class="tp '+(e.so_tecidos?'on':'')+'" disabled><b>Cliente da loja</b><span>Pede tecido</span></button></div>'+
+  (dosTecidos?'<div class="sub" style="margin-top:8px">Empresa do módulo de tecidos: o tipo não muda por aqui.</div>':'')+'</div>'+
+  '<div class="card"><div class="sec">USUÁRIOS ('+E.usuarios.length+')</div>'+
+  (E.usuarios.length?E.usuarios.map(function(u){return'<div class="us"><span>'+esc(u.email)+'</span><span style="color:#8a6a26;font-weight:600">'+esc({admin:'Administrador',usuario:'Usuário',parceiro:'Ateliê parceiro'}[u.papel]||u.papel)+'</span></div>'}).join(''):'<div class="sub">Nenhum usuário ainda.</div>')+'</div>';
+}
+function ligarDetalhe(){
+  var e=atual();if(!e)return;
+  var d=$('c-doc');d.oninput=function(){d.value=$('c-tipo').value==='PJ'?cnpjMask(d.value):cpfMask(d.value)};
+  var t=$('c-tel');t.oninput=function(){t.value=telMask(t.value)};
+  $('salvar').onclick=salvar;$('susp').onclick=suspender;
+  Array.prototype.forEach.call(document.querySelectorAll('.tp[data-tipo]'),function(b){b.onclick=function(){mudarTipo(b.dataset.tipo)}});
+}
+async function salvar(){
+  var e=atual(),v=function(id){return $(id).value.trim()},dg=digs(v('c-doc')),tp=$('c-tipo').value;
+  if(!dg){msg('Informe o CNPJ (ou CPF).');return}
+  if(tp==='PJ'&&!cnpjOk(dg)){msg('CNPJ inválido. Confira os números.');return}
+  if(tp==='PF'&&dg.length!==11){msg('CPF tem 11 números.');return}
+  var em=v('c-email');if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){msg('E-mail inválido.');return}
+  var cad={tipo:tp,razao:v('c-razao'),fantasia:v('c-fantasia'),doc:v('c-doc'),resp:v('c-resp'),email:em,tel:v('c-tel'),cidade:v('c-cidade'),end:v('c-end'),obs:v('c-obs')};
+  $('salvar').disabled=true;var r=await sb.rpc('salvar_empresa',{p_empresa:e.id,p_cadastro:cad});$('salvar').disabled=false;
+  if(r.error){msg(erro(r.error));return}
+  await carregar();desenhar();msg('Cadastro salvo.','k');
+}
+async function mudarTipo(nome){
+  var e=atual(),x=TIPOS.filter(function(t){return t[0]===nome})[0];if(!x||nome===tipoDe(e))return;
+  if(!confirm('Mudar o tipo de “'+e.nome+'” para '+nome+'? Isso muda os menus de todos os usuários dessa empresa.'))return;
+  var r=await sb.rpc('definir_tipo_empresa',{p_empresa:e.id,p_vende:x[2],p_produz:x[3]});
+  if(r.error){msg(erro(r.error));return}
+  await carregar();desenhar();msg('Tipo alterado para '+nome+'.','k');
+}
+async function suspender(){
+  var e=atual(),ativar=!e.ativa;
+  if(!confirm(ativar?'Reativar “'+e.nome+'”? Todos os usuários voltam a entrar.':'Suspender “'+e.nome+'”? Todos os usuários perdem o acesso na hora. Nada é apagado e dá para reativar.'))return;
+  var r=await sb.rpc('plataforma_definir_ativa',{p_empresa:e.id,p_ativa:ativar});
+  if(r.error){msg(erro(r.error));return}
+  await carregar();desenhar();msg(ativar?'Empresa reativada.':'Empresa suspensa.','k');
+}
+function novaEmpresa(){
+  var m=document.createElement('div');m.className='modal';
+  m.innerHTML='<div class="box"><h1>Nova empresa</h1><label>Nome da empresa<input id="n-nome" maxlength="120"></label><label>E-mail do administrador<input id="n-em" type="email"></label>'+
+  '<label>Tipo<select id="n-tipo">'+TIPOS.map(function(t,i){return'<option value="'+i+'">'+t[0]+' — '+t[1]+'</option>'}).join('')+'</select></label>'+
+  '<div id="n-msg" class="msg e"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="n-x">Cancelar</button><button class="btn" id="n-ok">Criar convite</button></div></div>';
+  document.body.appendChild(m);
+  $('n-x').onclick=function(){m.remove()};
+  $('n-ok').onclick=async function(){
+    var x=TIPOS[+$('n-tipo').value];$('n-ok').disabled=true;
+    var r=await sb.rpc('criar_convite_empresa',{p_email:$('n-em').value.trim(),p_empresa_nome:$('n-nome').value.trim(),p_vende:x[2],p_produz:x[3]});
+    $('n-ok').disabled=false;
+    if(r.error){$('n-msg').textContent=erro(r.error);return}
+    var link=SISTEMA+'/?convite='+r.data;
+    m.querySelector('.box').innerHTML='<h1>Convite criado</h1><div class="sub">Envie este link ao administrador. A empresa é criada quando ele aceitar. Depois preencha o CNPJ aqui no painel.</div><div class="lnk">'+esc(link)+'</div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="n-cp">Copiar link</button><button class="btn" id="n-fim">Fechar</button></div>';
+    $('n-cp').onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(link);this.textContent='Copiado'};
+    $('n-fim').onclick=async function(){m.remove();await carregar();desenhar()};
+  };
+}
+iniciar();
+})();
+</script>
+</body>
+</html>
