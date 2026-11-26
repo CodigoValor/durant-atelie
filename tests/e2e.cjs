@@ -330,7 +330,8 @@ function novoBanco(cfg) {
   await r13.pg.evaluate(() => { ui.det = 'P-26197'; render(); }); await r13.pg.waitForTimeout(300);
   t13 = await r13.pg.textContent('main');
   ok(t13.includes('Resposta da fábrica') && t13.includes('falta dados'), 'no detalhe o parceiro vê a resposta da fábrica e o motivo da recusa');
-  ok(await r13.pg.evaluate(() => travado(S.pedidos.find(p => p.id === 'P-26197')) && travado(S.pedidos.find(p => p.id === 'P-26187'))), 'pedido já respondido (aceito ou recusado) fica travado para o parceiro');
+  const lkp = await r13.pg.evaluate(() => { const rec = S.pedidos.find(p => p.id === 'P-26197'), ac = S.pedidos.find(p => p.id === 'P-26187'); const antes = travado(ac); const st0 = ac.st; ac.st = 1; const depois = travado(ac); ac.st = st0; return { rec: travado(rec), antes, depois }; });
+  ok(lkp.rec && !lkp.antes && lkp.depois, 'parceiro: recusado fica travado; aceito ainda pode ser editado até a fábrica entrar em produção; em produção trava');
   await r13.pg.evaluate(() => { ui.det = null; location.hash = 'painel'; render(); }); await r13.pg.waitForTimeout(300);
   ok(!(await r13.pg.textContent('main')).includes('Felipe'), 'painel do parceiro não traz lembretes de exemplo da empresa');
   await r13.pg.evaluate(() => { location.hash = 'pedidos'; ui.det = null; ui.draft = newDraft(5); render(); }); await r13.pg.waitForTimeout(300);
@@ -439,6 +440,9 @@ function novoBanco(cfg) {
     const chips = [...document.querySelectorAll('[data-corig]')].map(b => b.dataset.corig); const todos = document.querySelectorAll('.citem[data-cli]').length;
     document.querySelector('[data-corig="Ateliê Teste"]').click(); const soAt = document.querySelectorAll('.citem[data-cli]').length;
     document.querySelector('[data-corig="__meus"]').click(); const meus = document.querySelectorAll('.citem[data-cli]').length; delete ORIGEM['clientes~' + id]; return { chips, todos, soAt, meus }; });
+  const fiat = await r15.pg.evaluate(() => { ORIGEM['clientes~' + S.clientes[0].id] = 'Ateliê Teste'; ui.cOrig = 'Ateliê Teste'; ui.cli = null; render(); const tinha = !!document.getElementById('at-edit');
+    S.cfg.atelies = { 'Ateliê Teste': { tipo: 'PJ', doc: '12.345.678/0001-90', resp: 'Ana' } }; render(); const t = document.getElementById('at-ficha').textContent; delete ORIGEM['clientes~' + S.clientes[0].id]; ui.cOrig = ''; return { tinha, ok: t.includes('Ana') && t.includes('12.345.678/0001-90') }; });
+  ok(fiat.tinha && fiat.ok, 'fábrica vê e edita a ficha do ateliê (tipo, documento, responsável) ao filtrar por ele');
   ok(fl.chips.includes('Ateliê Teste') && fl.chips.includes('__meus') && fl.soAt === 1 && fl.meus === fl.todos - 1, 'fábrica filtra clientes por ateliê: Todos, Meus clientes e cada ateliê');
   await r15.ctx.close();
 
