@@ -2,7 +2,7 @@
 -- Registra, no servidor, TODA criação / alteração / exclusão de documento (tabela reg):
 -- quem (usuário real do login), quando (hora do servidor), de onde (IP) e o que mudou (antes e depois).
 -- Ninguém consegue editar nem apagar o log pela API; só administradores da empresa conseguem ler.
--- Não registra: backups internos do app (k='bkp') e o marcador de sistema (k='sys'), por serem ruído.
+-- Não registra: backups internos do app (k='bkp'), o marcador de sistema (k='sys') e o catálogo público derivado (k='pub'), por serem ruído.
 
 -- 1) Tabela ----------------------------------------------------------------
 create table if not exists public.audit_log (
@@ -55,7 +55,7 @@ begin
   if tg_op = 'DELETE' then v_k := old.k; v_id := old.id; v_emp := old.empresa_id;
   else                     v_k := new.k; v_id := new.id; v_emp := new.empresa_id; end if;
 
-  if v_k in ('bkp', 'sys') then return null; end if;
+  if v_k in ('bkp', 'sys', 'pub') then return null; end if;
 
   if tg_op = 'INSERT' then
     v_depois := public._audit_json(new.j);
