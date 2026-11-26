@@ -1,4 +1,4 @@
-import { cp, mkdir } from 'node:fs/promises';
+import { cp, mkdir, rm } from 'node:fs/promises';
 
 const output = new URL('../dist/', import.meta.url);
 const root = new URL('../', import.meta.url);
@@ -8,6 +8,7 @@ const files = [
   'favicon.ico', 'favicon-32.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png',
 ];
 const assets = ['01', '02', '04', '06', '07', '08', '10', '14', '15', '16'];
+await rm(output, { recursive: true, force: true });
 await Promise.all(
   ['', 'tecidos/', 'vendor/', 'assets/entrada/'].map(dir => mkdir(new URL(dir, output), { recursive: true })),
 );

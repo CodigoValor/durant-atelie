@@ -39,6 +39,8 @@ create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
 $$;
 grant usage on schema auth to anon, authenticated;
+-- Pessoa sintética pré-existente ao gatilho de cadastro por convite.
+insert into auth.users values ('55000000-0000-0000-0000-000000000001', 'restore@example.test');
 SQL
 
 for migration in "$root"/supabase/migrations/*.sql; do
@@ -52,7 +54,6 @@ for migration in "$root"/supabase/migrations/*.sql; do
 done
 
 "${origem[@]}" -q <<'SQL'
-insert into auth.users values ('55000000-0000-0000-0000-000000000001', 'restore@example.test');
 insert into public.empresas (id, nome) values ('55000000-0000-0000-0000-000000000002', 'Empresa sintética');
 insert into public.membros (user_id, empresa_id, papel)
   values ('55000000-0000-0000-0000-000000000001', '55000000-0000-0000-0000-000000000002', 'admin');
