@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     }),
   });
   if (!r.ok) {
-    console.error("resend", r.status, (await r.text().catch(() => "")).slice(0, 300));
+    console.error("resend", r.status);
     return json(502, { error: "falha_no_envio" });
   }
   return json(200, { ok: true, para: c.email });
