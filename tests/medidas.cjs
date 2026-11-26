@@ -6,7 +6,7 @@ const ROOT = path.join(__dirname, '..');
 const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ') + m); if (!c) falhas.push(m); };
 (async () => {
   const srv = await new Promise(res => { const s = http.createServer((q, r) => { const f = path.join(ROOT, q.url.split('?')[0] === '/' ? 'index.html' : decodeURIComponent(q.url.split('?')[0])); if (!fs.existsSync(f)) { r.writeHead(404); return r.end(); } r.writeHead(200, { 'content-type': f.endsWith('.js') ? 'text/javascript' : 'text/html' }); r.end(fs.readFileSync(f)); }).listen(0, () => res(s)); });
-  const br = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  const br = await chromium.launch({ executablePath: fs.existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined, args: ['--no-sandbox'] });
   const pg = await (await br.newContext()).newPage(); const erros = []; pg.on('pageerror', e => erros.push(String(e)));
   await pg.route('https://*.supabase.co/**', r => r.abort());
   await pg.goto(`http://localhost:${srv.address().port}/`); await pg.waitForTimeout(800);
