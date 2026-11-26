@@ -517,6 +517,9 @@ const VIEWS=[
  {id:'simulacoes',label:'Orçamento rápido',short:'Simulação',icon:'i-coin'},
  {id:'config',label:'Configurações',short:'Config.',icon:'i-gear'}
 ];
+const KINDS_PARC=['clientes','med','pedidos','orcamentos'];
+const PARC=()=>!!(window.SB&&window.SB.papel==='parceiro');
+const VIS_PARC=['painel','clientes','pedidos'];
 const NAV=[
  {id:'painel',label:'Painel',icon:'i-home'},
  {id:'clientes',label:'Clientes e medidas',short:'Clientes',icon:'i-users'},
@@ -757,10 +760,11 @@ const pecaCount=id=>{const M=mc(id);return Object.keys(TIPOS).reduce((a,t)=>a+PR
 const TOTALPECA=Object.keys(TIPOS).reduce((a,t)=>a+PRONTAS[t].length,0);
 
 /* ===== Navegação ===== */
-function navHTML(){return NAV.map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.label}</span></a>`).join('')}
+function navHTML(){return NAV.filter(v=>!PARC()||VIS_PARC.includes(v.id)).map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.label}</span></a>`).join('')}
 document.getElementById('nav').innerHTML=navHTML();
-document.getElementById('tabbar').innerHTML=NAV.map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.short||v.label}</span></a>`).join('');
-function current(){const h=location.hash.slice(1);return VIEWS.some(v=>v.id===h)?h:'painel'}
+const tabbarHTML=()=>NAV.filter(v=>!PARC()||VIS_PARC.includes(v.id)).map(v=>`<a href="#${v.id}" data-v="${v.id}">${ic(v.icon)}<span>${v.short||v.label}</span></a>`).join('');
+document.getElementById('tabbar').innerHTML=tabbarHTML();
+function current(){const h=location.hash.slice(1);return VIEWS.some(v=>v.id===h)&&(!PARC()||VIS_PARC.includes(h))?h:'painel'}
 function render(){
  if(!P.ready||!P.user)return;
  const v=current();
@@ -4687,6 +4691,7 @@ async function flush(){
   const cur=snapshot(),ops=[];
   cur.forEach((v,id)=>{const o=P.last.get(id);if(!o||o.j!==v.j)ops.push(['set',id,v])});
   P.last.forEach((v,id)=>{if(!cur.has(id))ops.push(['del',id])});
+  if(PARC()){for(let n=ops.length-1;n>=0;n--)if(!KINDS_PARC.includes(ops[n][1].split('~')[0]))ops.splice(n,1)}   /* parceiro só grava o que o servidor permite */
   if(!ops.length){if(P.state!=='ok')setState('ok');return}
   setState('saving');
   const pr=id=>id.startsWith('med~')?0:id.startsWith('clientes~')?1:id.startsWith('sing~')?3:2;
@@ -5049,6 +5054,23 @@ async function loadAll(){
  P.last=raw;
 }
 
+async function loadParceiro(){
+ limparOperacional({zerarPrecos:true});
+ const raw=new Map();
+ for(const k of KINDS_PARC){
+  const snap=await retry(()=>P.col.where('k','==',k).limit(1000).get());
+  if(snap.docs.length>=1000)P.trunc=true;
+  const rows=snap.docs.map(d=>d.data());
+  if(k==='med')rows.forEach(r=>{S.medidas[r.i]=JSON.parse(r.j)});
+  else S[k]=rows.map(r=>JSON.parse(r.j)).sort(ORD[k]);
+  rows.forEach(r=>raw.set(did(r.k,r.i),r));
+ }
+ const pub=await retry(()=>P.col.doc('pub~catalogo').get());
+ if(pub.exists){const j=JSON.parse(pub.data().j);Object.keys(j).forEach(c=>{if(c==='cat')S.cat=j.cat;else S.cfg[c]=j[c]});}
+ S.tecidos={};S.forros={};catSync();syncParceiros();
+ pUid=Math.max(0,...[...S.pedidos,...S.orcamentos].flatMap(o=>(o.pecas||[]).map(p=>p.uid||0)));
+ P.last=raw;
+}
 /* hash de senha */
 async function hashPw(pw,salt){
  const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveBits']);
@@ -5133,6 +5155,8 @@ async function boot(){
  if(!P.admin)return gateRestrito();
  P.db=db;P.col=db.collection('reg');
  try{
+  if(PARC())await loadParceiro();
+  else{
   const m=await retry(()=>P.col.doc('sys~meta').get());
   if(m.exists){await loadAll()}
   else{
@@ -5143,8 +5167,10 @@ async function boot(){
    if(P.state==='error')throw {code:P.err};
    await retry(()=>P.col.doc('sys~meta').set({k:'sys',i:'meta',j:JSON.stringify({v:1,inicio:new Date().toISOString()})}));
   }
+  }
  }catch(e){P.ready=false;return gateErro(e)}
  P.ready=true;setState('ok');
+ if(PARC()){document.getElementById('nav').innerHTML=navHTML();document.getElementById('tabbar').innerHTML=tabbarHTML()}
  if(window.SB&&window.SB.papel==='admin'&&!CFGMENU[2].i.some(i=>i[0]==='acessos'))CFGMENU[2].i.push(['acessos','Acessos e convites']);
  if(NUM.ativo())await NUM.preparar();
  const sid=sess.get();let u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));

@@ -89,6 +89,7 @@ function novoBanco(cfg) {
       if (!req.headers()['authorization'] || !/Bearer .+\..+\..+/.test(req.headers()['authorization'])) return json(route, 401, { message: 'sem sessão' });
       if (m === 'GET') {
         let rows = [...st.reg.values()].filter(r => r.empresa_id === eq('empresa_id'));
+        if (st.cfg.parceiroVe) rows = rows.filter(r => ['clientes', 'med', 'pedidos', 'orcamentos', 'pub'].includes(r.k));   /* mesma regra da RLS do parceiro (0005) */
         if (q.get('id')) rows = rows.filter(r => r.id === eq('id'));
         if (q.get('k')) rows = rows.filter(r => r.k === eq('k'));
         rows.sort((a, b) => a.id.localeCompare(b.id));
@@ -96,7 +97,9 @@ function novoBanco(cfg) {
         return json(route, 200, rows.slice(off, off + lim).map(({ k, i, n, j }) => ({ k, i, n, j })));
       }
       if (m === 'POST') {
-        const body = JSON.parse(req.postData()); (Array.isArray(body) ? body : [body]).forEach(r => { st.writes = (st.writes || 0) + 1; st.reg.set(r.empresa_id + '|' + r.id, r); });
+        const body = JSON.parse(req.postData());
+        if (st.cfg.parceiroVe && (Array.isArray(body) ? body : [body]).some(r => !['clientes', 'med', 'pedidos', 'orcamentos'].includes(r.k))) { st.negados = (st.negados || 0) + 1; return json(route, 403, { code: '42501', message: 'new row violates row-level security policy' }); }
+        (Array.isArray(body) ? body : [body]).forEach(r => { st.writes = (st.writes || 0) + 1; st.reg.set(r.empresa_id + '|' + r.id, r); });
         return route.fulfill({ status: 201, headers: cors, body: '' });
       }
       if (m === 'DELETE') { st.reg.delete(eq('empresa_id') + '|' + eq('id')); return route.fulfill({ status: 204, headers: cors, body: '' }); }
@@ -187,9 +190,10 @@ function novoBanco(cfg) {
   await pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
   await pg.waitForFunction(() => P.state === 'ok', null, { timeout: 15000 });
   ok(await pg.evaluate(() => window.SB.empresa === 'E2' && window.SB.empresaNome === 'Ateliê da Maria' && window.SB.papel === 'parceiro' && window.SB.perfil.produz === true && window.SB.perfil.vende === false), 'entrou na empresa escolhida, com papel e perfil de negócio corretos');
-  ok([...b4.reg.keys()].length > 0 && [...b4.reg.keys()].every(k => k.startsWith('E2|')), 'tudo que foi gravado leva o empresa_id da empresa escolhida (E2)');
+  ok([...b4.reg.keys()].every(k => k.startsWith('E2|')), 'tudo que foi gravado leva o empresa_id da empresa escolhida (E2); parceiro não grava configuração ao entrar');
   await pg.evaluate(() => { S.clientes.push({ id: 9002, nome: 'Cliente da Maria' }); persistSoon(); });
   await pg.waitForFunction(() => P.state === 'ok' && P.last.has('clientes~9002'), null, { timeout: 15000 });
+  ok(b4.reg.has('E2|clientes~9002') && [...b4.reg.keys()].every(k => k.startsWith('E2|')), 'o cliente do parceiro foi gravado com o empresa_id da Maria (E2)');
   await pg.reload(); await pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
   ok(await pg.evaluate(() => window.SB.empresa === 'E2' && S.clientes.some(c => c.id === 9002)), 'depois de recarregar, lembra a empresa escolhida (sem perguntar de novo)');
   await pg.click('#userchip');
@@ -290,6 +294,26 @@ function novoBanco(cfg) {
   await r12.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
   ok(await r12.pg.evaluate(() => !CFGMENU.flatMap(g => g.i).some(i => i[0] === 'acessos')), 'quem não é administrador não vê o painel de acessos');
   await r12.ctx.close();
+
+  console.log('13) parceiro: entra sem ler o que não pode, vê só o que é dele e só grava o permitido');
+  const b13 = novoBanco({ parceiroVe: true, membros: [{ empresa_id: 'E7', papel: 'parceiro' }], empresas: [{ id: 'E7', nome: 'Ateliê da Maria', vende_cliente_final: true, produz: true }] });
+  b13.reg.set('E7|pub~catalogo', { empresa_id: 'E7', id: 'pub~catalogo', k: 'pub', i: 'catalogo', j: JSON.stringify({ produtos: [{ id: 1, tipo: 'Terno', nome: 'Lã fria', valor: '4500', categoria: 'Alfaiataria', ativo: true }] }) });
+  b13.reg.set('E7|clientes~5', { empresa_id: 'E7', id: 'clientes~5', k: 'clientes', i: '5', j: JSON.stringify({ id: 5, nome: 'Cliente do Luiz' }) });
+  b13.reg.set('E7|sys~meta', { empresa_id: 'E7', id: 'sys~meta', k: 'sys', i: 'meta', j: '{"v":1}' });
+  const r13 = await abre(b13); await r13.pg.waitForSelector('#g-u'); await loginUi(r13.pg, 'hd@henriquedurant.com', 'senhaCerta123');
+  await r13.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  ok(await r13.pg.evaluate(() => PARC() && S.clientes.length === 1 && S.clientes[0].nome === 'Cliente do Luiz'), 'o parceiro entra e carrega só os clientes dele');
+  ok(await r13.pg.evaluate(() => S.cfg.produtos.length === 1 && S.cfg.produtos[0].nome === 'Lã fria'), 'recebe o catálogo público (produtos e preços) da empresa');
+  const itens = await r13.pg.$$eval('#nav a', a => a.map(x => x.dataset.v));
+  ok(itens.join() === 'painel,clientes,pedidos', 'menu do parceiro: só Painel, Clientes e Pedidos (' + itens.join() + ')');
+  await r13.pg.evaluate(() => { location.hash = 'financeiro'; }); await r13.pg.waitForTimeout(300);
+  ok(await r13.pg.evaluate(() => current() === 'painel'), 'tentar abrir uma tela proibida volta ao painel');
+  await r13.pg.evaluate(() => { S.clientes.push({ id: 9100, nome: 'Novo do parceiro' }); S.cfg.nome_teste = 'x'; persistSoon(); });
+  await r13.pg.waitForFunction(() => P.state === 'ok' && P.last.has('clientes~9100'), null, { timeout: 15000 });
+  ok(b13.reg.has('E7|clientes~9100') && !b13.negados, 'grava o cliente novo e NÃO tenta gravar configurações (nada negado pelo servidor)');
+  ok(![...b13.reg.keys()].some(k => k.includes('sing~') || k === 'E7|sys~meta' && b13.reg.get(k).j !== '{"v":1}'), 'nenhuma configuração nem marcador foi escrito pelo parceiro');
+  ok(r13.erros.length === 0, 'sem erros de JavaScript na página (' + r13.erros.join(' | ') + ')');
+  await r13.ctx.close();
 
   await br.close(); srv.close();
   console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK');
