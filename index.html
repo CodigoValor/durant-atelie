@@ -551,7 +551,7 @@ function avisarMudancas(novo){
   localStorage.setItem(ch,JSON.stringify(vis));
   if(!ant)return;
   const a=Object.keys(vis).filter(id=>ant[id]&&ant[id]!==vis[id]&&vis[id]!=='recebido');
-  if(a.length)setTimeout(()=>toast(a.length===1?`Pedido ${a[0]}: ${vis[a[0]]==='aceito'?'aceito pelo produtor':'recusado pelo produtor'}.`:`${a.length} pedidos tiveram resposta do produtor.`),1200);
+  if(a.length)setTimeout(()=>toast(a.length===1?`Pedido ${a[0]}: ${vis[a[0]]==='aceito'?'aceito pela fábrica':'recusado pela fábrica'}.`:`${a.length} pedidos tiveram resposta da fábrica.`),1200);
  }catch(e){}
 }
 async function carregarAndamento(){
@@ -569,17 +569,17 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)carregarAn
 /* pílula do estado, vista pelo parceiro (sem custos, prestadores nem produção interna) */
 function pillParceiro(p){
  const st=andamSt(p);
- if(st==='recusado')return '<span class="pill crit">Recusado pelo produtor</span>';
- if(st==='recebido')return '<span class="pill warn">Aguardando aceite do produtor</span>';
+ if(st==='recusado')return '<span class="pill crit">Recusado pela fábrica</span>';
+ if(st==='recebido')return '<span class="pill warn">Aguardando aceite da fábrica</span>';
  return `<span class="pill ${p.st>=4?'ok':'info'}">${pedFin(p)?'Entregue':p.st>=4?'Pronto':!p.st?'Aceito · preparando':'Aceito · '+STATUS[p.st]}</span>`;
 }
 function andamCard(p){
  if(!PARC()||p.status==='orcamento')return '';
  const st=andamSt(p),a=andamDe(p.id)||{},quando=a.em?new Date(a.em).toLocaleDateString('pt-BR'):'';
- const txt=st==='recebido'?'O produtor ainda não respondeu. Você pode alterar o pedido até ele aceitar.'
-  :st==='aceito'?`Aceito${quando?' em '+quando:''}. Daqui em diante só o produtor altera o andamento. Etapa atual: <b>${pedFin(p)?'Entregue':!p.st?'preparando o tecido':STATUS[p.st]}</b>.`
-  :`Recusado${quando?' em '+quando:''}. Motivo: ${esc(a.motivo||'não informado')}. Fale com o produtor para combinar o próximo passo.`;
- return `<section class="card" style="border-color:${st==='recusado'?'var(--crit)':'#B98332'}"><div class="card-h"><h2>Resposta do produtor</h2>${pillParceiro(p)}</div><p class="d" style="margin:0;color:var(--ink-2)">${txt}</p></section>`;
+ const txt=st==='recebido'?'A fábrica ainda não respondeu. Você pode alterar o pedido até ela aceitar.'
+  :st==='aceito'?`Aceito${quando?' em '+quando:''}. Daqui em diante só a fábrica altera o andamento. Etapa atual: <b>${pedFin(p)?'Entregue':!p.st?'preparando o tecido':STATUS[p.st]}</b>.`
+  :`Recusado${quando?' em '+quando:''}. Motivo: ${esc(a.motivo||'não informado')}. Fale com a fábrica para combinar o próximo passo.`;
+ return `<section class="card" style="border-color:${st==='recusado'?'var(--crit)':'#B98332'}"><div class="card-h"><h2>Resposta da fábrica</h2>${pillParceiro(p)}</div><p class="d" style="margin:0;color:var(--ink-2)">${txt}</p></section>`;
 }
 /* ===== Destino da peça pronta (escolhido pelo parceiro ao lançar o pedido) ===== */
 const DEST_TIPOS={parceiro:'Enviar para mim (parceiro)',cliente:'Enviar direto ao cliente final',retirada:'Retirada'};
@@ -615,7 +615,7 @@ function destinoHTML(dr){
  const opt=(g,k,l)=>`<label class="dest-opt"><input type="radio" name="dest-${g}" data-destr="${g}|${k}" ${d[g]===k?'checked':''}><span>${l}</span></label>`;
  return `<section class="card" id="dest-card"><div class="card-h"><h2>Para onde vai a peça pronta?</h2></div>
   <div class="dest-row">${Object.entries(DEST_TIPOS).map(([k,l])=>opt('tipo',k,l)).join('')}</div>
-  ${d.tipo==='cliente'?`<div class="pgrid4" style="margin-top:8px">${inp('nome','Nome de quem recebe')}${inp('tel','Telefone (com DDD)')}${inp('cep','CEP')}${inp('rua','Rua')}${inp('num','Número')}${inp('comp','Complemento')}${inp('bairro','Bairro')}${inp('cidade','Cidade')}</div><p class="hint">O produtor só vê estes dados de contato porque a peça vai direto ao cliente.</p>`:''}
+  ${d.tipo==='cliente'?`<div class="pgrid4" style="margin-top:8px">${inp('nome','Nome de quem recebe')}${inp('tel','Telefone (com DDD)')}${inp('cep','CEP')}${inp('rua','Rua')}${inp('num','Número')}${inp('comp','Complemento')}${inp('bairro','Bairro')}${inp('cidade','Cidade')}</div><p class="hint">A fábrica só vê estes dados de contato porque a peça vai direto ao cliente.</p>`:''}
   ${d.tipo==='retirada'?`<div style="margin-top:8px"><div class="dest-row">${Object.entries(DEST_QUEM).map(([k,l])=>opt('quem',k,l)).join('')}</div>${d.quem==='outra'||d.quem==='motoboy'?`<div class="pgrid4">${inp('quemNome',d.quem==='motoboy'?'Nome ou empresa do motoboy':'Nome de quem retira')}</div>`:''}</div>`:''}
  </section>`;
 }
@@ -2941,7 +2941,7 @@ function criarOrcamento(dr){
 const podeAlt=()=>{const u=P.user;if(!u)return true;if(u.grupo==='Administrador')return true;const g=S.cfg.grupos.find(x=>x.nome===u.grupo);return !!(g&&g.altAprov)};
 const aprovadoPed=p=>p.status!=='orcamento'&&p.finOk!==false;
 const travado=p=>(aprovadoPed(p)&&!podeAlt())||!!origemDe(p.id)||partTrava(p);
-const msgTrava=p=>partTrava(p)?'O produtor já respondeu a este pedido, então ele não pode mais ser alterado. Fale com o produtor.':origemDe(p.id)?'Pedido lançado por um parceiro: os dados comerciais são dele. Você aceita, recusa e produz.':MSG_TRAVA;
+const msgTrava=p=>partTrava(p)?'A fábrica já respondeu a este pedido, então ele não pode mais ser alterado. Fale com a fábrica.':origemDe(p.id)?'Pedido lançado por um parceiro: os dados comerciais são dele. Você aceita, recusa e produz.':MSG_TRAVA;
 const MSG_TRAVA='Pedido aprovado. Só quem tem permissão para alterar pedido aprovado pode mexer nele.';
 /* Log de eventos do pedido: registro simples de quem fez o quê e quando, direto no próprio pedido. Versão leve para o protótipo — a versão final (auditoria completa, por usuário autenticado) fica para a reconstrução no Lovable. */
 function logEvt(p,txt){let por='Sistema';try{por=(P.user&&P.user.nome)||'Sistema'}catch(e){}(p.log=p.log||[]).push({ts:Date.now(),dt:hoje(),txt,por})}

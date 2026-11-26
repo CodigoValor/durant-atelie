@@ -322,14 +322,14 @@ function novoBanco(cfg) {
   ok(await r13.pg.evaluate(() => PARC() && S.clientes.length === 1 && S.clientes[0].nome === 'Cliente do Luiz'), 'o parceiro entra e carrega só os clientes dele');
   ok(await r13.pg.evaluate(() => S.cfg.produtos.length === 1 && S.cfg.produtos[0].nome === 'Lã fria'), 'recebe o catálogo público (produtos e preços) da empresa');
   ok(await r13.pg.evaluate(() => P.user.grupo === 'Atendimento e vendas' && P.user.email === 'hd@henriquedurant.com'), 'parceiro NÃO herda o grupo Administrador do usuário de exemplo (grupo: ' + await r13.pg.evaluate(() => P.user.grupo) + ')');
-  ok(await r13.pg.evaluate(() => JSON.stringify(prestAtivos('Alfaiataria')) === JSON.stringify([['hda', 'Ateliê da Maria']]) && prestAtivos('Camisaria').length === 1), 'em "Quem vai produzir" o parceiro vê a própria empresa dona como produtora');
+  ok(await r13.pg.evaluate(() => JSON.stringify(prestAtivos('Alfaiataria')) === JSON.stringify([['hda', 'Ateliê da Maria']]) && prestAtivos('Camisaria').length === 1), 'em "Quem vai produzir" o parceiro vê a própria empresa dona coma fábricaa');
   await r13.pg.evaluate(() => { location.hash = 'pedidos'; }); await r13.pg.waitForTimeout(400);
   ok(await r13.pg.evaluate(() => S.pedidos.length === 2 && ['P-26187', 'P-26197'].every(i => document.querySelector('main').textContent.includes(i))), 'parceiro vê na lista os dois pedidos, inclusive o que ainda aguarda aprovação do pedido (finOk=false)');
   let t13 = await r13.pg.textContent('main');
-  ok(t13.includes('Aceito') && t13.includes('Recusado pelo produtor') && !t13.includes('Tecido a pedir') && !t13.includes('0/15'), 'parceiro vê "Aceito" e "Recusado pelo produtor" na lista, sem o andamento interno (0/15)');
+  ok(t13.includes('Aceito') && t13.includes('Recusado pela fábrica') && !t13.includes('Tecido a pedir') && !t13.includes('0/15'), 'parceiro vê "Aceito" e "Recusado pela fábrica" na lista, sem o andamento interno (0/15)');
   await r13.pg.evaluate(() => { ui.det = 'P-26197'; render(); }); await r13.pg.waitForTimeout(300);
   t13 = await r13.pg.textContent('main');
-  ok(t13.includes('Resposta do produtor') && t13.includes('falta dados'), 'no detalhe o parceiro vê a resposta do produtor e o motivo da recusa');
+  ok(t13.includes('Resposta da fábrica') && t13.includes('falta dados'), 'no detalhe o parceiro vê a resposta da fábrica e o motivo da recusa');
   ok(await r13.pg.evaluate(() => travado(S.pedidos.find(p => p.id === 'P-26197')) && travado(S.pedidos.find(p => p.id === 'P-26187'))), 'pedido já respondido (aceito ou recusado) fica travado para o parceiro');
   await r13.pg.evaluate(() => { ui.det = null; location.hash = 'painel'; render(); }); await r13.pg.waitForTimeout(300);
   ok(!(await r13.pg.textContent('main')).includes('Felipe'), 'painel do parceiro não traz lembretes de exemplo da empresa');
