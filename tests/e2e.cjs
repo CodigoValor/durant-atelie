@@ -127,7 +127,7 @@ function novoBanco(cfg) {
 
 (async () => {
   const srv = await servidor(); const base = `http://localhost:${srv.address().port}/`;
-  const br = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  const br = await chromium.launch({ executablePath: fs.existsSync('/usr/bin/google-chrome') ? '/usr/bin/google-chrome' : undefined, args: ['--no-sandbox'] });
 
   async function abre(banco, ctx, qs) {
     ctx = ctx || await br.newContext();
