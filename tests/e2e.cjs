@@ -405,6 +405,18 @@ function novoBanco(cfg) {
   await r15.pg.evaluate(() => { ui.det = 'P-26188'; render(); }); await r15.pg.waitForTimeout(300);
   ok((await r15.pg.textContent('body')).includes('pedido de Durant Alfaiataria'), 'no detalhe aparece "pedido de Durant Alfaiataria"');
   ok(![...b15.reg.values()].some(r => /Durant Alfaiataria/.test(r.j || '')), 'a origem nunca é gravada dentro dos dados');
+  const d15 = await r15.pg.textContent('main');
+  ok(!d15.includes('1.500') && d15.includes('Valor da fábrica') && d15.includes('a definir') && !d15.includes('Financeiro do pedido') && !d15.includes('Pagamento'), 'fábrica não vê valor, pagamento nem financeiro do pedido do ateliê (mostra "Valor da fábrica: a definir")');
+  ok(await r15.pg.evaluate(() => !document.getElementById('o-aprovped') && !document.getElementById('o-pag') && !document.querySelector('[data-zap2]')), 'fábrica não tem botões de aprovar pedido, confirmar pagamento nem WhatsApp ao cliente no pedido do ateliê');
+  await r15.pg.evaluate(() => { ui.det = null; location.hash = 'pedidos'; render(); }); await r15.pg.waitForTimeout(300);
+  const l15 = await r15.pg.$$eval('[data-open]', els => els.map(e => e.textContent.replace(/\s+/g, ' ')));
+  ok(l15.some(t => t.includes('P-26188')) && !l15.some(t => t.includes('P-26188') && t.includes('1.500')), 'na lista de pedidos o valor do ateliê não aparece');
+  await r15.pg.evaluate(() => { location.hash = 'prodparc'; render(); }); await r15.pg.waitForTimeout(300);
+  ok(!(await r15.pg.textContent('main')).includes('1.500'), 'na tela "Pedidos de produção" o valor também não aparece');
+  ok(await r15.pg.evaluate(() => { const v = S.pedidos.filter(p => !vendaAtelie(p)).reduce((a, p) => a + (p.valor || 0), 0); return vendaAtelie(S.pedidos.find(p => p.id === 'P-26188')) === true && fluxoCalc().every(x => x.v <= v); }), 'o pedido do ateliê fica fora dos totais (painel e gráfico de faturamento)');
+  await r15.pg.evaluate(() => { location.hash = 'painel'; render(); }); await r15.pg.waitForTimeout(300);
+  const pn = await r15.pg.textContent('main');
+  ok(pn.includes('não inclui 1 pedido de ateliê') && await r15.pg.evaluate(() => { const ym = TODAY().toISOString().slice(0, 7); return S.pedidos.filter(p => !vendaAtelie(p) && (p.aprov || '').slice(0, 7) === ym).reduce((a, p) => a + p.valor, 0) === 1500; }), 'o painel da fábrica soma só o pedido da própria fábrica (R$ 1.500) e avisa que não inclui o do ateliê');
   ok(r15.erros.length === 0, 'sem erros de JavaScript na página (' + r15.erros.join(' | ') + ')');
   await r15.pg.evaluate(() => { location.hash = 'pedidos'; ui.det = null; ui.draft = newDraft(5); render(); }); await r15.pg.waitForTimeout(300);
   await r15.pg.click('[data-add="paleto"]'); await r15.pg.waitForTimeout(300);
