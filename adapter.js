@@ -15,6 +15,9 @@
   SB.trocarEmpresa = function () {
     sb.auth.getSession().then(function (r) { var u = r && r.data && r.data.session && r.data.session.user; if (u) lembrada(u.id, null); location.reload(); });
   };
+  SB.irParaEmpresa = function (empresaId) {
+    sb.auth.getSession().then(function (r) { var u = r && r.data && r.data.session && r.data.session.user; if (u) lembrada(u.id, empresaId); location.href = '/'; });
+  };
   var vemDeRecuperacao = /type=recovery/.test(location.hash);
   /* convite: o link traz ?convite=CÓDIGO. Guardamos o código (sobrevive a "confirme seu e-mail") e limpamos o endereço. */
   var CONVITE = (function () {
@@ -265,6 +268,8 @@
         return { id: x.empresa_id, papel: x.papel, papelTxt: PAPEL_TXT[x.papel] || x.papel, nome: e.nome || 'Empresa',
           vende: e.vende_cliente_final !== false, produz: e.produz === true };
       });
+      lista = lista.filter(function (x) { return !(x.vende === false && !x.produz); });   // loja de tecido pura não usa o sistema do ateliê
+      if (!lista.length) { location.replace('/tecidos/pedido'); await new Promise(function () {}); }
       SB.empresas = lista;
       var uid = session.user.id, esc1 = null, lemb = lembrada(uid);
       if (lemb) esc1 = lista.filter(function (x) { return x.id === lemb; })[0] || null;   // só vale se ainda for vínculo real

@@ -334,17 +334,17 @@ function menuUser(atual, rotulo) {
   who.innerHTML = '<div class="um"><button type="button" class="umb" id="umb" aria-haspopup="true" aria-expanded="false"><span class="uma">' + esc(ini) + '</span><span class="umn">' + esc(rotulo) + '</span><span aria-hidden="true">▾</span></button>' +
     '<div class="umd" id="umd" hidden><div class="umh"><div><b>' + esc(X.user.email) + '</b>' + (X.master ? ' <span class="umm">Master</span>' : '') + '</div></div>' +
     '<div class="umc"><div class="ey2">Você está em</div><div><b>' + esc((NOMES_SIS[atual] || [atual])[0]) + '</b> <span class="m">· ' + esc(X.empNome) + '</span></div></div>' +
-    (outros.length ? '<div class="ey2" style="padding:8px 14px 2px">Alternar para</div>' + outros.map(function (s) { return '<button type="button" class="umi" data-s="' + esc(s.sistema) + '"><b>' + esc(NOMES_SIS[s.sistema][0]) + '</b><span class="m">' + esc(NOMES_SIS[s.sistema][1]) + '</span></button>'; }).join('') : '') +
+    (outros.length ? '<div class="ey2" style="padding:8px 14px 2px">Alternar para</div>' + outros.map(function (s) { return '<button type="button" class="umi" data-s="' + esc(s.sistema) + '" data-e="' + esc(s.empresa_id) + '"><b>' + esc(NOMES_SIS[s.sistema][0]) + '</b><span class="m">' + esc(NOMES_SIS[s.sistema][1]) + '</span></button>'; }).join('') : '') +
     '<button type="button" class="umi" id="sx"><b>Sair</b></button></div></div>';
   var b = $('#umb'), d = $('#umd');
   b.onclick = function (e) { e.stopPropagation(); d.hidden = !d.hidden; b.setAttribute('aria-expanded', String(!d.hidden)); };
   document.onclick = function () { if (d) { d.hidden = true; b.setAttribute('aria-expanded', 'false'); } };
   d.onclick = function (e) { e.stopPropagation(); };
   $('#sx').onclick = sair;
-  [].forEach.call(d.querySelectorAll('[data-s]'), function (x) { x.onclick = function () { irPara(x.dataset.s); }; });
+  [].forEach.call(d.querySelectorAll('[data-s]'), function (x) { x.onclick = function () { irPara(x.dataset.s, x.dataset.e); }; });
 }
-function irPara(sistema) {
-  if (sistema === 'atelie' || sistema === 'fabrica') { try { sessionStorage.setItem('hda.sis', sistema); } catch (e) {} location.href = '/'; return; }
+function irPara(sistema, empresa) {
+  if (sistema === 'atelie' || sistema === 'fabrica') { try { localStorage.setItem('durant.empresa.' + X.user.id, empresa); } catch (e) {} location.href = '/'; return; }
   try { sessionStorage.setItem('tec.sis', sistema); } catch (e) {}
   aba = ''; boot();
 }
