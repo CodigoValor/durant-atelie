@@ -513,17 +513,69 @@ async function carregarOrigens(){
   const r=await window.SB.client.rpc('listar_origens',{p_empresa:window.SB.empresa});
   if(r.error)return;
   const novo={};(r.data||[]).forEach(x=>{novo[x.id]=x.nome});
-  if(JSON.stringify(novo)!==JSON.stringify(ORIGEM)){ORIGEM=novo;if(P.ready&&typeof render==='function'&&!ui.draft&&!document.getElementById('mdl'))render()}
+  let mudou=JSON.stringify(novo)!==JSON.stringify(ORIGEM);ORIGEM=novo;
+  if(navProdParc()&&P.ready&&P.user){document.getElementById('nav').innerHTML=navHTML();document.getElementById('tabbar').innerHTML=tabbarHTML()}
+  /* documentos novos de parceiros (lançados depois que esta tela abriu): busca só os que faltam e entra na lista sem recarregar a página */
+  if(P.ready&&P.col){
+   for(const id of Object.keys(novo).filter(i=>!P.last.has(i)).slice(0,60)){
+    try{const d=await P.col.doc(id).get();if(!d.exists)continue;const r=d.data(),k=r.k;
+     if(k==='med')S.medidas[r.i]=JSON.parse(r.j);
+     else if(Array.isArray(S[k])&&['clientes','pedidos','orcamentos'].includes(k)){const o=JSON.parse(r.j);if(!S[k].some(x=>String(x[ARR[k]])===String(r.i))){S[k].push(o);if(ORD[k])S[k].sort(ORD[k])}}
+     else continue;
+     P.last.set(id,r);mudou=true}catch(e){}
+   }
+  }
+  if(mudou&&P.ready&&P.user&&typeof render==='function'&&!ui.draft&&!document.getElementById('mdl'))render()
  }catch(e){}
 }
 setInterval(()=>{carregarOrigens()},60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)carregarOrigens()});
+/* Pedido de parceiro: o dono ACEITA antes de entrar na produção. O estado fica em S.cfg.aceites (só da empresa dona; o parceiro nunca lê cfg). */
+const aceiteDe=id=>(S.cfg&&S.cfg.aceites&&S.cfg.aceites[id])||null;
+const estadoParc=p=>{if(!origemDe(p.id))return null;const a=aceiteDe(p.id);return a?a.st:'recebido'};
+const emProd=p=>{const e=estadoParc(p);return e===null||e==='aceito'};
+const estPill=e=>e==='aceito'?'<span class="pill ok">Aceito</span>':e==='recusado'?'<span class="pill crit">Recusado</span>':'<span class="pill warn">Recebido</span>';
+function aceiteCard(p){
+ const est=estadoParc(p);if(!est)return '';
+ const a=aceiteDe(p.id)||{},n=origemDe(p.id),quando=a.em?new Date(a.em).toLocaleDateString('pt-BR'):'',pid=esc(p.id);
+ const corpo=est==='recebido'
+  ?`<p class="d" style="margin:0 0 10px;color:var(--ink-2)">Este pedido veio de <b>${esc(n)}</b> e <b>ainda não entrou na produção</b>. Confira peças, tecido e medidas e aceite ou recuse.</p><div class="actions"><button class="btn" data-ac="aceitar" data-pid="${pid}">Aceitar pedido</button><button class="btn ghost danger" data-ac="recusar" data-pid="${pid}">Recusar</button></div>`
+  :est==='aceito'
+   ?`<p class="d" style="margin:0;color:var(--ink-2)">Aceito${quando?' em '+quando:''}${a.por?' por '+esc(a.por):''}. O pedido está na produção.</p>`
+   :`<p class="d" style="margin:0 0 10px;color:var(--ink-2)">Recusado${quando?' em '+quando:''}${a.por?' por '+esc(a.por):''}. Motivo: ${esc(a.motivo||'não informado')}.</p><div class="actions"><button class="btn ghost" data-ac="reabrir" data-pid="${pid}">Reabrir pedido</button></div>`;
+ return `<section class="card" style="border-color:#B98332"><div class="card-h"><h2>Pedido de ${esc(n)}</h2>${estPill(est)}</div>${corpo}</section>`;
+}
+function bindAceite(){
+ document.querySelectorAll('[data-ac]').forEach(b=>b.onclick=e=>{
+  e.stopPropagation();
+  const id=b.dataset.pid,ac=b.dataset.ac,por=(P.user&&P.user.nome)||'';
+  S.cfg.aceites=S.cfg.aceites||{};
+  if(ac==='aceitar'){S.cfg.aceites[id]={st:'aceito',em:new Date().toISOString(),por};toast('Pedido aceito. Ele entrou na produção.');persistSoon();render()}
+  else if(ac==='reabrir'){delete S.cfg.aceites[id];toast('Pedido reaberto como "recebido".');persistSoon();render()}
+  else if(ac==='recusar'){
+   modal('Recusar pedido',`<label class="full">Motivo da recusa<textarea class="ctl" id="rc-m" rows="3" maxlength="300" required></textarea></label><p class="full" style="margin:0;color:var(--ink-2);font-size:13px">O pedido sai da fila de produção e fica registrado como recusado, com este motivo.</p>`,()=>{
+    const m=document.getElementById('rc-m').value.trim();if(m.length<3)return 'Escreva o motivo da recusa.';
+    S.cfg.aceites=S.cfg.aceites||{};S.cfg.aceites[id]={st:'recusado',em:new Date().toISOString(),por,motivo:m};persistSoon();toast('Pedido recusado.')},'Recusar');
+  }
+ });
+ document.querySelectorAll('[data-ppo]').forEach(b=>b.onclick=()=>{ui.det=b.dataset.ppo;if(location.hash==='#pedidos')render();else location.hash='pedidos'});
+ const f1=document.getElementById('pp-parc'),f2=document.getElementById('pp-est');
+ if(f1)f1.onchange=()=>{ui.ppParc=f1.value;render()};
+ if(f2)f2.onchange=()=>{ui.ppEst=f2.value;render()};
+}
+/* o item "Pedidos de produção" só existe para quem produz para parceiros (empresa que produz, ou que já recebeu pedido de parceiro) */
+function navProdParc(){
+ if(PARC()||NAV.some(n=>n.id==='prodparc'))return false;
+ if(!((window.SB&&window.SB.perfil&&window.SB.perfil.produz)||Object.keys(ORIGEM).length))return false;
+ NAV.splice(NAV.findIndex(n=>n.id==='pedidos')+1,0,{id:'prodparc',label:'Pedidos de produção',short:'Parceiros',icon:'i-truck'});return true;
+}
 const novoIdCliente=()=>NUM.ativo()?(()=>{let n;do{n=NUM.tomar('cliente')}while(S.clientes.some(c=>c.id===n));return n})():Math.max(0,...S.clientes.map(x=>x.id))+1;
 
 const VIEWS=[
  {id:'painel',label:'Painel',short:'Painel',icon:'i-home'},
  {id:'clientes',label:'Clientes e medidas',short:'Clientes',icon:'i-users'},
  {id:'pedidos',label:'Pedidos',short:'Pedidos',icon:'i-coin'},
+ {id:'prodparc',label:'Pedidos de produção',short:'Parceiros',icon:'i-truck'},
  {id:'producao',label:'Produção',short:'Produção',icon:'i-scissors'},
  {id:'atividades',label:'Atividades',short:'Atividades',icon:'i-truck'},
  {id:'financeiro',label:'Financeiro',short:'Finanças',icon:'i-coin'},
@@ -786,8 +838,14 @@ function render(){
  document.querySelectorAll('[data-v]').forEach(a=>{if(a.dataset.v===navAtivo(v))a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
  const sc={};document.querySelectorAll('[data-sc]').forEach(e=>{sc[e.dataset.sc]=[e.scrollLeft,e.scrollTop]});
  const y=window.scrollY,same=(window.__rv===v&&window.__rd===String(ui.det));
- document.getElementById('main').innerHTML=`<div class="wrap view">${R[v]()}</div>`;
- bind[v]&&bind[v]();
+ /* pedido de parceiro ainda não aceito não entra em nenhuma tela de produção/painel: as telas leem uma lista filtrada (a lista completa volta logo depois) */
+ const pedTodos=S.pedidos;
+ if(v!=='prodparc'&&ui.det==null&&pedTodos.some(p=>!emProd(p)))S.pedidos=pedTodos.filter(emProd);
+ try{
+  document.getElementById('main').innerHTML=`<div class="wrap view">${R[v]()}</div>`;
+  bind[v]&&bind[v]();
+  bindAceite();
+ }finally{S.pedidos=pedTodos}
  document.querySelectorAll('[data-sc]').forEach(e=>{const s=sc[e.dataset.sc];if(s){e.scrollLeft=s[0];e.scrollTop=s[1]}});
  if(same)window.scrollTo(0,y);
  window.__rv=v;window.__rd=String(ui.det);
@@ -902,7 +960,7 @@ function excluirCliente(c){
   S.clientes=S.clientes.filter(x=>x.id!==c.id);ui.cli=S.clientes.length?S.clientes[0].id:'novo';ui.det=null;toast('Cliente excluído');
  },'Excluir cliente');
 }
-function excluirPedido(p){if(travado(p)){toast(MSG_TRAVA);return}
+function excluirPedido(p){if(travado(p)){toast(msgTrava(p));return}
  const orc=p.status==='orcamento';
  const rec=S.receber.filter(r=>r.ped===p.id),pag=S.pagar.filter(r=>r.ped===p.id),pagos=rec.filter(r=>r.st==='pago').length;
  modal(orc?'Excluir orçamento':'Excluir pedido',`<p class="full" style="margin:0">Excluir ${orc?'o orçamento':'o pedido'} <b>${p.id}</b> de ${esc(cli(p.cli).nome)}?</p>${rec.length||pag.length?`<p class="full" style="margin:0;color:var(--crit)">Também serão apagados ${plural(rec.length,'lançamento a receber','lançamentos a receber')} e ${plural(pag.length,'lançamento a pagar','lançamentos a pagar')}${pagos?`, inclusive ${plural(pagos,'já recebido','já recebidos')}`:''}.</p>`:''}`,()=>{
@@ -936,7 +994,7 @@ function substituirTecido(p,pc){
  const il=()=>{const r=refs().find(x=>nzRef(x.ref)===nzRef(fam.value));document.getElementById('sb-il').innerHTML=(r?r.cores:[]).map(c=>`<option value="${esc(c)}"></option>`).join('');const av=document.getElementById('sb-aviso');const novo=fam.value.trim()&&!r;av.textContent=novo?'Esta família não está cadastrada: ela será cadastrada agora e você completa o tipo e o valor em Tecidos e forros.':''};
  fe.onchange=fl;fam.addEventListener('input',il);fl();
 }
-function excluirPeca(p,pc){if(travado(p)){toast(MSG_TRAVA);return}
+function excluirPeca(p,pc){if(travado(p)){toast(msgTrava(p));return}
  const i=p.pecas.indexOf(pc);
  if(p.pecas.length<2){modal('Excluir peça',`<p class="full" style="margin:0">Este pedido só tem esta peça. Para remover tudo, exclua o pedido.</p>`,null);return}
  modal(`Excluir peça ${i+1}`,`<p class="full" style="margin:0">Excluir <b>${esc(pecaNome(pc))}</b> do ${p.status==='orcamento'?'orçamento':'pedido'} ${p.id}?</p>
@@ -2785,7 +2843,8 @@ function criarOrcamento(dr){
 }
 const podeAlt=()=>{const u=P.user;if(!u)return true;if(u.grupo==='Administrador')return true;const g=S.cfg.grupos.find(x=>x.nome===u.grupo);return !!(g&&g.altAprov)};
 const aprovadoPed=p=>p.status!=='orcamento'&&p.finOk!==false;
-const travado=p=>aprovadoPed(p)&&!podeAlt();
+const travado=p=>(aprovadoPed(p)&&!podeAlt())||!!origemDe(p.id);
+const msgTrava=p=>origemDe(p.id)?'Pedido lançado por um parceiro: os dados comerciais são dele. Você aceita, recusa e produz.':MSG_TRAVA;
 const MSG_TRAVA='Pedido aprovado. Só quem tem permissão para alterar pedido aprovado pode mexer nele.';
 /* Log de eventos do pedido: registro simples de quem fez o quê e quando, direto no próprio pedido. Versão leve para o protótipo — a versão final (auditoria completa, por usuário autenticado) fica para a reconstrução no Lovable. */
 function logEvt(p,txt){let por='Sistema';try{por=(P.user&&P.user.nome)||'Sistema'}catch(e){}(p.log=p.log||[]).push({ts:Date.now(),dt:hoje(),txt,por})}
@@ -3740,6 +3799,7 @@ function detalheHTML(){
  const stP=s=>s==='pago'?'<span class="pill ok">Pago</span>':s==='atrasado'?'<span class="pill crit">Atrasado</span>':'<span class="pill">Em aberto</span>';
  const itemOf=itemNums(p.pecas);
  return head(`${orc?'Orçamento':'Pedido'} ${p.id}${origemDe(p.id)?' · pedido de '+esc(origemDe(p.id)):''}`,esc(c.nome),`<button class="btn ghost" id="o-voltar">Pedidos</button><button class="btn ghost" id="o-cliente">${ic('i-users')}Ver cadastro do cliente</button><button class="btn ghost" id="o-editar-top">Editar ${orc?'orçamento':'pedido'}</button>${acoes}`,'sticky')+`<div class="stack">
+ ${aceiteCard(p)}
  <section class="card"><div class="card-h"><h2>${esc(p.item)}</h2>${stBadge(p)}${incompletoPill(p)}</div>
  ${p.incompleto?`<p class="hint" style="margin:0 0 4px;color:var(--warn,#8a6300)">Preenchimento incompleto — falta: ${esc(faltantesPedido(p).join(', '))}.</p>`:''}
  ${p.recusado?`<p class="hint" style="margin:0 0 4px;color:var(--ink-2)">Recusado em ${fdFull(p.recusaData)}${p.recusaMotivo?' — '+esc(p.recusaMotivo):''}. Dá para reativar a qualquer momento.</p>`:''}
@@ -3769,7 +3829,7 @@ function detalheHTML(){
   <div class="sec2">A pagar</div><div class="list">${pags.map(r=>`<div class="row"><div class="grow"><div class="t">${esc(r.forn)}</div><div class="d">${esc(r.desc)} · vence ${fd(r.venc)}</div></div><b class="num">${brl(r.valor)}</b>${stP(r.st)}</div>`).join('')||'<p class="d" style="color:var(--ink-2)">Nenhum ainda. Eles são gerados ao registrar o pedido de tecido, de forro e o envio da ficha ao prestador.</p>'}</div>`}
  </section>
  ${p.log&&p.log.length?`<section class="card"><div class="card-h"><h2>Histórico</h2><span class="pill plain">${p.log.length}</span></div><div class="list">${p.log.slice().reverse().map(e=>`<div class="row" style="cursor:default"><div class="grow"><div class="t">${esc(e.txt)}</div><div class="d">${fdFull(e.dt)}${e.por?' · '+esc(e.por):''}</div></div></div>`).join('')}</div></section>`:''}
- <div class="actions"><button class="btn ghost" id="o-editar" ${travado(p)?'disabled':''}>Editar ${orc?'orçamento':'pedido'}</button><button class="btn ghost danger" id="o-excluir" ${travado(p)?'disabled':''}>Excluir ${orc?'orçamento':'pedido'}</button></div>${travado(p)?`<p class="hint" style="margin:8px 0 0">${MSG_TRAVA}</p>`:aprovadoPed(p)?'<p class="hint" style="margin:8px 0 0">Pedido aprovado. Você tem permissão para alterar. Se mudar o valor, ajuste o Financeiro.</p>':''}
+ <div class="actions"><button class="btn ghost" id="o-editar" ${travado(p)?'disabled':''}>Editar ${orc?'orçamento':'pedido'}</button><button class="btn ghost danger" id="o-excluir" ${travado(p)?'disabled':''}>Excluir ${orc?'orçamento':'pedido'}</button></div>${travado(p)?`<p class="hint" style="margin:8px 0 0">${msgTrava(p)}</p>`:aprovadoPed(p)?'<p class="hint" style="margin:8px 0 0">Pedido aprovado. Você tem permissão para alterar. Se mudar o valor, ajuste o Financeiro.</p>':''}
  </div>`;
 }
 const secHTML=(k,titulo,n,atr,body)=>`<details class="grp sec-p" data-sec="${k}" ${ui.sec[k]===false?'':'open'}><summary><span class="gt">${titulo}</span>${n?`<span class="pill ${atr?'crit':'warn'}">${n} ${n>1?'pendências':'pendência'}</span>`:'<span class="pill ok">Em dia</span>'}${atr?`<span class="pill crit">${atr} ${atr>1?'atrasadas':'atrasada'}</span>`:''}</summary><div class="gb">${body}</div></details>`;
@@ -3796,6 +3856,20 @@ R.pedidos=()=>{
  `${secHTML('orc','Orçamentos aguardando aprovação',orcAll.length,orcAll.filter(o=>daysTo(o.prazo||addDias(o.dped,7))<0).length,(orcAll.length?buscaHTML('ped-qo','Buscar por nome do cliente',ui.pedQo):'')+(orcAll.length?(orcList.length?`<div class="list">${orcList.map(o=>`<button class="row" data-open="${o.id}" style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:pointer"><div class="grow"><div class="t">${esc(cli(o.cli).nome)} <span class="mono" style="color:var(--ink-3)">${o.id}</span> ${origTag(o.id)}</div><div class="d">${esc(o.item)} · ${o.env?'enviado em '+fd(o.env):'ainda não enviado'}</div></div>${incompletoPill(o)}<b class="num">${brl(o.valor)}</b>${pz(o.prazo||addDias(o.dped,7))}</button>`).join('')}</div>`:'<p class="d" style="color:var(--ink-2);margin:0">Nenhum orçamento encontrado para essa busca.</p>'):'<p class="d" style="color:var(--ink-2);margin:0">Nenhum orçamento aguardando.</p>'))}
  ${orcRecusados.length?`<details class="grp sec-p" data-sec="orcrec" ${ui.sec.orcrec?'open':''}><summary><span class="gt">Orçamentos recusados</span><span class="pill plain">${orcRecusados.length}</span></summary><div class="gb"><div class="list">${orcRecusados.map(o=>`<button class="row" data-open="${o.id}" style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:pointer"><div class="grow"><div class="t">${esc(cli(o.cli).nome)} <span class="mono" style="color:var(--ink-3)">${o.id}</span></div><div class="d">${esc(o.item)} · recusado em ${fd(o.recusaData)}${o.recusaMotivo?' — '+esc(o.recusaMotivo):''}</div></div><b class="num">${brl(o.valor)}</b></button>`).join('')}</div></div></details>`:''}
  <div class="card"><div class="card-h"><h2>Pedidos aprovados</h2><span class="pill plain">${ps0.length}</span></div>${ps0.length?buscaHTML('ped-qa','Buscar por nome do cliente',ui.pedQa):''}${ps0.length?(ps.length?`<div class="list">${ps.map(p=>{const [a,b]=p.pecas?prog(p):[0,0];const ent=p.pecas?prazoPedido(p):p.entrega;const dl=daysTo(ent);return `<button class="row" ${p.pecas?`data-open="${p.id}"`:''} style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:${p.pecas?'pointer':'default'}"><div class="grow"><div class="t">${esc(cli(p.cli)?cli(p.cli).nome:'—')} <span class="mono" style="color:var(--ink-3)">${p.id}</span> ${origTag(p.id)}</div><div class="d">${esc(p.item||'')} · ${p.aprov?'aprovado em '+fd(p.aprov):'aprovação a registrar'} · ${ent?'entrega '+fd(ent):'entrega a definir'}${p.st<4&&ent&&dl<0?' · atrasado':''}</div></div>${incompletoPill(p)}<b class="num">${brl(p.valor)}</b><span class="pill ${p.st>=4?'ok':'info'}">${pedFin(p)?'Finalizado':p.st>=4?'Pronto, falta entregar':STATUS[p.st]}${b&&!pedFin(p)?' · '+a+'/'+b:''}</span></button>`}).join('')}</div>`:'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido encontrado para essa busca.</p>'):'<p class="d" style="color:var(--ink-2);margin:0">Nenhum pedido aprovado ainda.</p>'}</div>`;
+};
+R.prodparc=()=>{
+ const ord={recebido:0,aceito:1,recusado:2};
+ const todos=S.pedidos.filter(p=>origemDe(p.id)).sort((a,b)=>(ord[estadoParc(a)]-ord[estadoParc(b)])||String(b.aprov||b.dped||'').localeCompare(String(a.aprov||a.dped||'')));
+ const parcs=[...new Set(todos.map(p=>origemDe(p.id)))].sort((a,b)=>a.localeCompare(b));
+ const fp=ui.ppParc||'',fe=ui.ppEst||'',L=todos.filter(p=>(!fp||origemDe(p.id)===fp)&&(!fe||estadoParc(p)===fe));
+ const n=e=>todos.filter(p=>estadoParc(p)===e).length;
+ const linha=p=>{const c=cli(p.cli),e=estadoParc(p),a=aceiteDe(p.id)||{},pid=esc(p.id);
+  return `<div class="row"><div class="grow"><div class="t">${esc(c?c.nome:'—')} <span class="mono" style="color:var(--ink-3)">${pid}</span> ${origTag(p.id)}</div><div class="d">${esc(p.item||'')} · ${p.aprov?'lançado em '+fd(p.aprov):'sem data'} · ${brl(p.valor||0)}${e==='recusado'&&a.motivo?' · motivo: '+esc(a.motivo):''}</div></div>${estPill(e)}<button class="btn ghost sm" data-ppo="${pid}">Ver pedido</button>${e==='recebido'?`<button class="btn sm" data-ac="aceitar" data-pid="${pid}">Aceitar</button><button class="btn ghost sm danger" data-ac="recusar" data-pid="${pid}">Recusar</button>`:e==='recusado'?`<button class="btn ghost sm" data-ac="reabrir" data-pid="${pid}">Reabrir</button>`:''}</div>`};
+ return head('Produção','Pedidos de produção','')+
+ `<div class="card"><div class="card-h"><h2>Pedidos dos parceiros</h2><span class="pill ${n('recebido')?'warn':'plain'}">${n('recebido')} ${n('recebido')===1?'recebido':'recebidos'}</span></div>
+  <div class="docrow" style="gap:10px;flex-wrap:wrap;margin:0 0 10px"><select class="ctl" id="pp-parc" aria-label="Parceiro"><option value="">Todos os parceiros</option>${parcs.map(x=>`<option value="${esc(x)}" ${x===fp?'selected':''}>${esc(x)}</option>`).join('')}</select>
+  <select class="ctl" id="pp-est" aria-label="Estado"><option value="">Todos os estados</option><option value="recebido" ${fe==='recebido'?'selected':''}>Recebidos (${n('recebido')})</option><option value="aceito" ${fe==='aceito'?'selected':''}>Aceitos (${n('aceito')})</option><option value="recusado" ${fe==='recusado'?'selected':''}>Recusados (${n('recusado')})</option></select></div>
+  ${L.length?`<div class="list">${L.map(linha).join('')}</div>`:`<p class="d" style="color:var(--ink-2);margin:0">${todos.length?'Nenhum pedido com esse filtro.':'Nenhum pedido de parceiro ainda. Quando um parceiro lançar um pedido, ele aparece aqui como "recebido".'}</p>`}</div>`;
 };
 R.producao=()=>{
  if(ui.draft||ui.compras||ui.det)return R.pedidos();
@@ -4299,7 +4373,7 @@ function bindDetalhe(){
  if(pg)pg.onclick=()=>modal('Confirmar pagamento',`<p class="full" style="margin:0;color:var(--ink-2)">Marca a primeira parcela como paga.</p><label class="full">Data do pagamento<input id="pg-d" type="date" value="${hoje()}" min="${p.aprov||''}" max="${hoje()}"></label>`,()=>{const d=val('pg-d');if(!d)return 'Informe a data do pagamento.';if(d>hoje())return 'A data não pode ser no futuro.';if(p.aprov&&d<p.aprov)return 'O pagamento não pode ser antes da aprovação.';confirmarPag(p,d);toast('Pagamento confirmado.')},'Confirmar');
  document.getElementById('o-excluir').onclick=()=>excluirPedido(p);
  const et=document.getElementById('o-editar-top');if(et){et.disabled=travado(p);et.onclick=()=>document.getElementById('o-editar').click()}
- document.getElementById('o-editar').onclick=()=>{if(travado(p)){toast(MSG_TRAVA);return}ui.draft={cli:p.cli,dped:p.dped,valor:String(p.valor).replace('.',','),forma:p.forma||'Pix à vista',parc:p.parcelas||1,pecas:clone(p.pecas).map((x,_,a)=>{x.preco=x.preco?txtN(x.preco):(a.length===1&&p.valor>0?txtN(p.valor):'');x.descItem=x.descItem?txtN(x.descItem):'';x.fechada=true;if(String(x.metr||'').trim())x.metrEdit=true;if(String(x.metrF||'').trim())x.metrFEdit=true;return x}),editId:p.id,prazoUnico:!!p.prazoUnico,prazoUnicoData:p.prazoUnicoData||'',descTipo:p.descTipo||'valor',descVal:p.descVal?txtN(p.descVal):''};ui.det=null;render();window.scrollTo(0,0)};
+ document.getElementById('o-editar').onclick=()=>{if(travado(p)){toast(msgTrava(p));return}ui.draft={cli:p.cli,dped:p.dped,valor:String(p.valor).replace('.',','),forma:p.forma||'Pix à vista',parc:p.parcelas||1,pecas:clone(p.pecas).map((x,_,a)=>{x.preco=x.preco?txtN(x.preco):(a.length===1&&p.valor>0?txtN(p.valor):'');x.descItem=x.descItem?txtN(x.descItem):'';x.fechada=true;if(String(x.metr||'').trim())x.metrEdit=true;if(String(x.metrF||'').trim())x.metrFEdit=true;return x}),editId:p.id,prazoUnico:!!p.prazoUnico,prazoUnicoData:p.prazoUnicoData||'',descTipo:p.descTipo||'valor',descVal:p.descVal?txtN(p.descVal):''};ui.det=null;render();window.scrollTo(0,0)};
  document.querySelectorAll('[data-delpc]').forEach(b=>b.onclick=()=>excluirPeca(p,p.pecas.find(x=>x.uid===+b.dataset.delpc)));
  document.querySelectorAll('[data-ocor]').forEach(b=>b.onclick=()=>ocorrenciaModal(p,p.pecas.find(x=>x.uid===+b.dataset.ocor)));
  document.querySelectorAll('[data-subst]').forEach(b=>b.onclick=()=>substituirTecido(p,p.pecas.find(x=>x.uid===+b.dataset.subst)));
@@ -4998,6 +5072,7 @@ function aplicarDados(src,manterUsers){
   PROD_BASE.forEach(([tipo,nome,valor])=>{const x=L.find(y=>y.tipo===tipo&&y.nome===nome);if(!x)L.push({id:nid(),tipo,nome,valor,ativo:true});else if(!String(x.valor||'').trim())x.valor=valor});src.cfg.prodV2=true}
  if(src.cfg&&src.cfg.produtos&&!src.cfg.prodV3){src.cfg.produtos.forEach(x=>{if(!x.categoria)x.categoria=catProd(x.tipo)});src.cfg.prodV3=true}
  if(src.cfg&&!src.cfg.recorrentes)src.cfg.recorrentes=[];
+ if(src.cfg&&!src.cfg.aceites)src.cfg.aceites={};
  if(src.cfg&&!src.cfg.idFixV1){
   ['bancos','contas','formas','categorias','industrias','tipostec','materiais','produtos','servicos','usuarios'].forEach(k=>{
    const L=src.cfg[k];if(!Array.isArray(L))return;
@@ -5195,7 +5270,7 @@ async function boot(){
   }
  }catch(e){P.ready=false;return gateErro(e)}
  P.ready=true;setState('ok');
- if(PARC()){document.getElementById('nav').innerHTML=navHTML();document.getElementById('tabbar').innerHTML=tabbarHTML()}
+ if(PARC()||navProdParc()){document.getElementById('nav').innerHTML=navHTML();document.getElementById('tabbar').innerHTML=tabbarHTML()}
  if(window.SB&&window.SB.papel==='admin'&&!CFGMENU[2].i.some(i=>i[0]==='acessos'))CFGMENU[2].i.push(['acessos','Acessos e convites']);
  if(NUM.ativo())await NUM.preparar();
  const sid=sess.get();let u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));
@@ -5204,7 +5279,7 @@ async function boot(){
   u={id:nid(),nome:em.split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),email:em,grupo:adm?'Administrador':'Atendimento e vendas',ativo:true};
   S.cfg.usuarios.push(u);if(window.SB.papel!=='parceiro')await flush();
  }
- if(u){entrar(u);carregarOrigens()}else if(window.SB)window.SB.semUsuario();else gateLogin();
+ if(u){await carregarOrigens();entrar(u)}else if(window.SB)window.SB.semUsuario();else gateLogin();
 }
 
 /* backup, restauração e limpeza */
