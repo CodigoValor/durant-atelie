@@ -4672,8 +4672,8 @@ const b64e=u=>btoa(String.fromCharCode(...u)),b64d=s=>Uint8Array.from(atob(s),c=
 const numId=x=>parseFloat(String(x.id).replace(/\D/g,''))||0;
 const ORD={clientes:(a,b)=>a.id-b.id,pedidos:(a,b)=>numId(a)-numId(b),orcamentos:(a,b)=>numId(b)-numId(a),os:(a,b)=>numId(a)-numId(b),receber:(a,b)=>String(a.venc).localeCompare(b.venc),pagar:(a,b)=>String(a.venc).localeCompare(b.venc),campanhas:(a,b)=>a.id-b.id,fornecedores:(a,b)=>String(a.fantasia).localeCompare(b.fantasia,'pt-BR'),club:(a,b)=>String(a.inicio).localeCompare(b.inicio),simulacoes:(a,b)=>String(b.data).localeCompare(String(a.data))};
 const SYNC_TXT={boot:'Carregando…',ok:'Salvo',saving:'Salvando…',error:'Erro ao salvar',off:'Sem salvamento'};
-const syncTxt=()=>P.state==='ok'&&P.at?`Salvo às ${P.at}`:SYNC_TXT[P.state]||'';
-const syncHTML=()=>`<span class="sync ${P.state}" data-sync title="${P.state==='off'?'Os dados não estão sendo gravados. Abra pelo link publicado do sistema.':''}">${syncTxt()}</span>`;
+const syncTxt=()=>P.state==='ok'&&P.at?`Salvo às ${P.at}`:P.state==='error'&&P.errId?`Erro ao salvar (${P.errId.split('~')[0]}: ${String(P.err||'').slice(0,40)})`:SYNC_TXT[P.state]||'';
+const syncHTML=()=>`<span class="sync ${P.state}" data-sync title="${P.state==='error'&&P.errDet?P.errDet.replace(/"/g,''):P.state==='off'?'Os dados não estão sendo gravados. Abra pelo link publicado do sistema.':''}">${syncTxt()}</span>`;
 function setState(s){P.state=s;if(s==='ok'){const n=new Date();P.at=n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}document.querySelectorAll('[data-sync]').forEach(e=>{e.className='sync '+s;e.textContent=syncTxt()})}
 function snapshot(){
  const m=new Map();
@@ -4700,11 +4700,11 @@ async function flush(){
    const g=pr(ops[i][1]),grp=[];
    while(i<ops.length&&pr(ops[i][1])===g&&grp.length<8){grp.push(ops[i]);i++}
    await Promise.all(grp.map(async([op,id,v])=>{
-    await retry(()=>op==='set'?P.col.doc(id).set(v):P.col.doc(id).delete());
+    try{await retry(()=>op==='set'?P.col.doc(id).set(v):P.col.doc(id).delete())}catch(x){P.errId=id;P.errDet=(x&&(x.message||x.code))||String(x);console.error('Erro ao salvar',id,x);throw x}
     if(op==='set')P.last.set(id,v);else P.last.delete(id);
    }));
   }
-  setState('ok');
+  P.errId=null;setState('ok');
  }catch(e){P.err=(e&&(e.code||e.message))||String(e);setState('error')}
  finally{P.busy=false}
 }
