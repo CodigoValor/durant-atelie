@@ -29,26 +29,13 @@ export BACKUP_PASSPHRASE='a sua frase'
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -in durant-backup-2026-11-26.sql.gz.enc -pass env:BACKUP_PASSPHRASE | gunzip > backup.sql
 ```
 
-## Restaurar (ensaie primeiro na HOMOLOGAÇÃO)
+## Ensaiar recuperação em ambiente descartável
 
-O arquivo contém só os **dados** (as tabelas já precisam existir: rode as migrations `0001` a `0003` num banco novo).
-Usuários de login (Authentication) não fazem parte do backup: num projeto novo, crie o usuário de novo e rode o `0002_primeiro_admin.sql`.
+Execute `PG_BIN=/caminho/postgresql/17/bin bash tools/ensaiar-recuperacao.sh` como usuário sem privilégios de sistema. O comando cria um PostgreSQL descartável sem acesso de rede, aplica as migrações e recupera duas empresas sintéticas. A CI também executa o ensaio. O banco compartilhado de homologação recebe somente dados sintéticos.
 
-```bash
-# 1) limpar as tabelas de destino (no SQL Editor do projeto de destino)
-truncate public.reg, public.audit_log restart identity;   -- não mexa em empresas/membros se já estiverem corretos
+O arquivo operacional contém dados das tabelas de aplicação. Um destino vazio precisa do esquema da versão de origem e de identidades previamente preparadas com os mesmos UUIDs referenciados pelos vínculos. Criar usuários com o mesmo e-mail não preserva automaticamente esses UUIDs. A recuperação das identidades gerenciadas ainda precisa de um procedimento validado no Supabase.
 
-# 2) carregar (terminal; URL = string do Session pooler do projeto de destino)
-( echo "set session_replication_role = replica;"; cat backup.sql ) | psql "$URL" -v ON_ERROR_STOP=1
-
-# 3) ajustar o contador do log de auditoria
-select setval(pg_get_serial_sequence('public.audit_log','id'), coalesce(max(id),1)) from public.audit_log;
-```
-
-Observações:
-- `truncate` de `audit_log` é bloqueado de propósito (log imutável). Em um banco de ensaio, recrie a tabela (rode a migration `0003` num banco novo) em vez de truncar.
-- Se `empresas`/`membros` já existirem no destino, o carregamento delas dará erro de chave duplicada: nesse caso carregue só a tabela `reg` (extraia o bloco `COPY public.reg` do arquivo).
-- **Faça o ensaio de restauração na homologação uma vez**, para saber que funciona antes de precisar.
+O ensaio restaura SQL de dados em uma transação do banco descartável. Suspende os gatilhos de aplicação apenas nas tabelas restauradas, mantém a verificação de chaves estrangeiras e reabilita os gatilhos. Confira totais, relações, política multiempresa e nova auditoria após restauração. Para uma recuperação real, vincule o plano ao artefato, ao commit e ao ambiente corretos e obtenha autorização específica antes de qualquer operação em produção.
 
 ## Limites e próximos passos
 

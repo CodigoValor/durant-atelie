@@ -10,7 +10,8 @@ begin
      )) <> 3 then
     raise exception 'Integridade dos dados sintéticos ou da auditoria';
   end if;
-  if has_table_privilege('anon', 'public.reg', 'select')
+  if not has_schema_privilege('authenticated', 'public', 'usage')
+     or has_table_privilege('anon', 'public.reg', 'select')
      or not (select relrowsecurity from pg_class where oid = 'public.reg'::regclass) then
     raise exception 'Controle de acesso da tabela reg';
   end if;
@@ -43,6 +44,12 @@ begin
   perform set_config('request.jwt.sub', '55000000-0000-0000-0000-000000000006', true);
   if exists (select 1 from public.reg) or exists (select 1 from public.audit_log) then
     raise exception 'Visibilidade de registros e auditoria sem vínculo';
+  end if;
+
+  perform set_config('request.jwt.sub', '55000000-0000-0000-0000-000000000001', true);
+  update public.reg set j = '{"origem":"A","verificado":true}' where id = 'recuperacao-1';
+  if (select count(*) from public.audit_log where reg_id = 'recuperacao-1') <> 2 then
+    raise exception 'Auditoria após atualização autorizada';
   end if;
 end $$;
 rollback;

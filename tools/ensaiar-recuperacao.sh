@@ -38,7 +38,8 @@ $$;
 create function auth.jwt() returns jsonb language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
 $$;
-grant usage on schema auth to anon, authenticated;
+-- O dump deve preservar concessões de schema exigidas pelos papéis do Data API.
+grant usage on schema public, auth to anon, authenticated;
 -- Identidades sintéticas pré-existentes ao gatilho de cadastro por convite.
 insert into auth.users values
   ('55000000-0000-0000-0000-000000000001', 'restore@example.test'),
