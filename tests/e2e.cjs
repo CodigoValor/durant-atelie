@@ -314,6 +314,7 @@ function novoBanco(cfg) {
   const b13 = novoBanco({ parceiroVe: true, membros: [{ empresa_id: 'E7', papel: 'parceiro' }], empresas: [{ id: 'E7', nome: 'Ateliê da Maria', vende_cliente_final: true, produz: true }] });
   b13.reg.set('E7|pub~catalogo', { empresa_id: 'E7', id: 'pub~catalogo', k: 'pub', i: 'catalogo', j: JSON.stringify({ produtos: [{ id: 1, tipo: 'Terno', nome: 'Lã fria', valor: '4500', categoria: 'Alfaiataria', ativo: true }] }) });
   b13.reg.set('E7|clientes~5', { empresa_id: 'E7', id: 'clientes~5', k: 'clientes', i: '5', j: JSON.stringify({ id: 5, nome: 'Cliente do Luiz' }) });
+  [['P-26187', true], ['P-26197', false]].forEach(([id, fin]) => b13.reg.set('E7|pedidos~' + id, { empresa_id: 'E7', id: 'pedidos~' + id, k: 'pedidos', i: id, j: JSON.stringify({ id, cli: 5, status: 'producao', item: 'Camisa', valor: 1500, dped: '2026-11-26', aprov: '2026-11-26', finOk: fin, pecas: [] }) }));
   b13.reg.set('E7|sys~meta', { empresa_id: 'E7', id: 'sys~meta', k: 'sys', i: 'meta', j: '{"v":1}' });
   const r13 = await abre(b13); await r13.pg.waitForSelector('#g-u'); await loginUi(r13.pg, 'hd@henriquedurant.com', 'senhaCerta123');
   await r13.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
@@ -321,6 +322,8 @@ function novoBanco(cfg) {
   ok(await r13.pg.evaluate(() => S.cfg.produtos.length === 1 && S.cfg.produtos[0].nome === 'Lã fria'), 'recebe o catálogo público (produtos e preços) da empresa');
   ok(await r13.pg.evaluate(() => P.user.grupo === 'Atendimento e vendas' && P.user.email === 'hd@henriquedurant.com'), 'parceiro NÃO herda o grupo Administrador do usuário de exemplo (grupo: ' + await r13.pg.evaluate(() => P.user.grupo) + ')');
   ok(await r13.pg.evaluate(() => JSON.stringify(prestAtivos('Alfaiataria')) === JSON.stringify([['hda', 'Ateliê da Maria']]) && prestAtivos('Camisaria').length === 1), 'em "Quem vai produzir" o parceiro vê a própria empresa dona como produtora');
+  await r13.pg.evaluate(() => { location.hash = 'pedidos'; }); await r13.pg.waitForTimeout(400);
+  ok(await r13.pg.evaluate(() => S.pedidos.length === 2 && ['P-26187', 'P-26197'].every(i => document.querySelector('main').textContent.includes(i))), 'parceiro vê na lista os dois pedidos, inclusive o que ainda aguarda aprovação do pedido (finOk=false)');
   const itens = await r13.pg.$$eval('#nav a', a => a.map(x => x.dataset.v));
   ok(itens.join() === 'painel,clientes,pedidos', 'menu do parceiro: só Painel, Clientes e Pedidos (' + itens.join() + ')');
   await r13.pg.evaluate(() => { location.hash = 'financeiro'; }); await r13.pg.waitForTimeout(300);
