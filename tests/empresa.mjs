@@ -13,7 +13,7 @@ await db.exec(`
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
-await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0024_pessoas_cpf.sql')); await db.exec(sql('0024_pessoas_cpf.sql'));
+await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0024_pessoas_cpf.sql')); await db.exec(sql('0024_pessoas_cpf.sql')); await db.exec(sql('0025_convite_empresa_tipo.sql')); await db.exec(sql('0025_convite_empresa_tipo.sql')); await db.exec(sql('0026_convite_envio_email.sql')); await db.exec(sql('0026_convite_envio_email.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
@@ -117,5 +117,43 @@ await db.exec(`set role service_role`);
   await db.query(`select public.login_cpf_falha('99999999999')`); }
 await db.exec(`reset role`);
 ok((await q1(`select count(*)::int n from public.login_cpf_falhas where cpf='99999999999'`)).n === 0, 'CPF desconhecido não gera registro de falha');
+// --- convite de empresa nova já com o tipo (migração 0025) ---
+await como(MARIA, async () => ok(/só o administrador da plataforma/.test(await falha(`select public.criar_convite_empresa('novo@ex.com','Nova','true','false','atelie')`)), 'só a plataforma cria convite de empresa'));
+await como(LUIZ, async () => ok(/escolha o tipo/.test(await falha(`select public.criar_convite_empresa('novo@ex.com','Nova Ltda',true,false,null)`)), 'convite de empresa sem tipo é recusado'));
+await como(LUIZ, async () => ok(/escolha o tipo/.test(await falha(`select public.criar_convite_empresa('novo@ex.com','Nova Ltda',true,false,'fabrica')`)), 'tipo antigo "fábrica" é recusado'));
+let tokLoja, tokAt;
+await como(LUIZ, async () => { tokLoja = (await q1(`select public.criar_convite_empresa('loja@ex.com','Loja Nova',true,false,'loja') t`)).t; tokAt = (await q1(`select public.criar_convite_empresa('maria@ex.com','Ateliê Novo',true,false,'atelie') t`)).t; });
+await db.exec(`update auth.users set email='loja@ex.com' where id='${ANA}'`);
+await como(ANA, async () => { await db.query(`select public.aceitar_convite($1)`, [tokLoja]); });
+{ const e = await q1(`select tipo, vende_cliente_final v, produz p, fornece_tecido f from public.empresas where nome='Loja Nova'`); ok(e.tipo === 'loja' && e.v === false && e.p === false && e.f === true, 'empresa criada por convite de loja nasce como Loja de tecido (fornece tecido, não vende ao cliente final)'); }
+await como(MARIA, async () => { await db.query(`select public.aceitar_convite($1)`, [tokAt]); });
+{ const e = await q1(`select tipo, vende_cliente_final v, produz p, fornece_tecido f from public.empresas where nome='Ateliê Novo'`); ok(e.tipo === 'atelie' && e.v === true && e.p === false && e.f === false, 'empresa criada por convite de ateliê nasce como Ateliê'); }
 const tp = (await q1(`select tipo from public.empresas where nome='Durant Alfaiataria'`)).tipo; ok(['alfaiataria', 'fabrica', 'atelie'].includes(tp), 'empresas existentes ganharam um tipo na migração');
+// --- envio do convite por e-mail (migração 0026) ---
+let tokEnv;
+await como(LUIZ, async () => { tokEnv = (await q1(`select public.criar_convite_empresa('envio@ex.com','Empresa Envio',true,false,'atelie') t`)).t; });
+await como(MARIA, async () => ok(/sem permissão/.test(await falha(`select * from public.convite_para_envio($1)`, [tokEnv])), 'quem não é da plataforma não consegue os dados de um convite de empresa nova'));
+await como(LUIZ, async () => ok(/inválido ou expirado/.test(await falha(`select * from public.convite_para_envio('codigo-que-nao-existe-123')`)), 'código inexistente é recusado'));
+await como(LUIZ, async () => { const r = await q1(`select * from public.convite_para_envio($1)`, [tokEnv]); ok(r.email === 'envio@ex.com' && r.empresa_nome === 'Empresa Envio' && r.papel === 'admin' && r.envio === 1, 'a plataforma recebe e-mail, empresa e papel do convite (envio 1)'); });
+await como(LUIZ, async () => ok(/aguarde 1 minuto/.test(await falha(`select * from public.convite_para_envio($1)`, [tokEnv])), 'reenvio em menos de 1 minuto é recusado'));
+await db.exec(`update public.convites set ultimo_envio = now() - interval '2 minutes'`);
+await como(LUIZ, async () => { await db.query(`select * from public.convite_para_envio($1)`, [tokEnv]); });
+await db.exec(`update public.convites set ultimo_envio = now() - interval '2 minutes'`);
+await como(LUIZ, async () => { await db.query(`select * from public.convite_para_envio($1)`, [tokEnv]); });
+await db.exec(`update public.convites set ultimo_envio = now() - interval '2 minutes'`);
+await como(LUIZ, async () => ok(/limite de 3/.test(await falha(`select * from public.convite_para_envio($1)`, [tokEnv])), 'o 4º e-mail do mesmo convite é recusado'));
+let tokUsr;
+await como(LUIZ, async () => { tokUsr = (await q1(`select public.criar_convite($1,'novo-usuario@ex.com','usuario') t`, [E1])).t; });
+await como(ANA, async () => ok(/sem permissão/.test(await falha(`select * from public.convite_para_envio($1)`, [tokUsr])), 'administrador de outra empresa não envia convite desta'));
+await como(MARIA, async () => ok(/sem permissão/.test(await falha(`select * from public.convite_para_envio($1)`, [tokUsr])), 'usuário comum não envia convite'));
+await como(LUIZ, async () => { const r = await q1(`select * from public.convite_para_envio($1)`, [tokUsr]); ok(r.email === 'novo-usuario@ex.com' && r.papel === 'usuario', 'administrador da empresa recebe os dados do convite de usuário'); });
+const idUsr = (await q1(`select id from public.convites where token_hash = public._hash_token($1)`, [tokUsr])).id;
+await como(ANA, async () => ok(/sem permissão/.test(await falha(`select public.cancelar_convite($1)`, [idUsr])), 'administrador de outra empresa não cancela convite desta (correção)'));
+await como(MARIA, async () => ok(/sem permissão/.test(await falha(`select public.cancelar_convite($1)`, [idUsr])), 'usuário comum não cancela convite'));
+ok((await q1(`select status from public.convites where id = $1`, [idUsr])).status === 'pendente', 'o convite continua pendente depois das tentativas');
+await como(LUIZ, async () => { await db.query(`select public.cancelar_convite($1)`, [idUsr]); });
+ok((await q1(`select status from public.convites where id = $1`, [idUsr])).status === 'cancelado', 'o administrador da empresa cancela o convite');
+ok((await q1(`select count(*)::int n from public.audit_log where depois ? 'email_enviado_para'`)).n >= 4, 'cada envio fica na auditoria');
+await db.exec(`reset role`);
+try { await db.query(`set role anon`); ok(/permission denied/.test(await falha(`select * from public.convite_para_envio($1)`, [tokEnv])), 'sem login não chama a função'); } finally { await db.exec(`reset role`); }
 console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);

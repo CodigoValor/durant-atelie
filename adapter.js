@@ -13,10 +13,15 @@
   });
   var SB = (window.SB = { email: '', empresa: null, empresaNome: '', empresas: [], perfil: null, papel: null, autenticado: false, client: sb });
   // A interface só é liberada depois de validar a identidade no Supabase.
-  var authEpoch = 0;
+  var authEpoch = 0, uidValidando = null, entradaValidada = false;
+  function conferirSessao(epoch) {
+    if (epoch !== authEpoch) throw new Error('A sessão foi encerrada durante a entrada.');
+  }
   function bloquear() {
     SB.autenticado = false;
+    uidValidando = null; entradaValidada = false;
     SB.uid = null; SB.email = ''; SB.empresa = null; SB.empresaNome = '';
+    SB.recemAceito = false;
     SB.empresas = []; SB.papel = null; SB.perfil = null; SB.cadastro = null;
     if (typeof P !== 'undefined') { P.ready = false; P.user = null; }
     ['main', 'modal-root', 'umenu'].forEach(function (id) {
@@ -26,10 +31,11 @@
   }
   sb.auth.onAuthStateChange(function (evento, sessao) {
     // Não aguardar chamadas Auth dentro deste callback (o SDK mantém um lock).
-    var mudouUsuario = SB.uid && sessao && sessao.user && sessao.user.id !== SB.uid;
+    var uid = SB.uid || uidValidando;
+    var mudouUsuario = uid && sessao && sessao.user && sessao.user.id !== uid;
     if (evento === 'SIGNED_OUT' || mudouUsuario) {
       authEpoch++;
-      if (SB.autenticado || SB.uid) {
+      if (SB.autenticado || entradaValidada) {
         bloquear();
         location.reload();
       }
@@ -347,8 +353,10 @@
       while (!usuario) {
         if (!session) session = await telaLogin();
         var epoch = authEpoch;
+        uidValidando = session.user.id;
         var validacao = await sb.auth.getUser();
         if (validacao.error) {
+          uidValidando = null;
           if (validacao.error.status === 401 || validacao.error.status === 403 ||
               /session_not_found|refresh_token_not_found|refresh_token_already_used|bad_jwt|user_not_found/.test(validacao.error.code || '')) {
             var saida = await sb.auth.signOut({ scope: 'local' });
@@ -361,16 +369,23 @@
         usuario = validacao.data && validacao.data.user;
         if (!usuario || usuario.id !== session.user.id) throw new Error('Não foi possível validar a sessão.');
       }
+      conferirSessao(epoch);
+      entradaValidada = true;
       session.user = usuario;
       if (vemDeRecuperacao) { await telaNovaSenha(); vemDeRecuperacao = false; }
+      conferirSessao(epoch);
       SB.email = String(session.user.email || '').toLowerCase();
       var recemEntrou = await aceitarPendente();
+      conferirSessao(epoch);
       await pedirCpf();
+      conferirSessao(epoch);
       if (recemEntrou) { lembrada(session.user.id, recemEntrou); SB.recemAceito = true; }
       var m = await sb.from('membros').select('empresa_id,papel').order('criado_em', { ascending: true });
+      conferirSessao(epoch);
       if (m.error) throw erro(m.error);
       if (!m.data || !m.data.length) { telaSemAcesso(SB.email); await new Promise(function () {}); }
       var em = await sb.from('empresas').select('*');
+      conferirSessao(epoch);
       if (em.error) throw erro(em.error);
       var porId = {}; (em.data || []).forEach(function (e) { porId[e.id] = e; });
       var lista = m.data.map(function (x) {
@@ -387,13 +402,16 @@
         if (lista.length === 1) esc1 = lista[0];
         else {
           var pes = null; try { var rp = await sb.rpc('minha_pessoa'); pes = rp && rp.data && rp.data[0]; } catch (e) {}
+          conferirSessao(epoch);
           var esc2 = await telaEscolherEmpresa(lista, pes && pes.nome ? String(pes.nome).split(' ')[0] : '', ultimaEmpresa(uid));
+          conferirSessao(epoch);
           esc1 = esc2.emp;
           if (esc2.lembrar) lembrada(uid, esc1.id); else lembrada(uid, null);
         }
       }
+      conferirSessao(epoch);
       ultimaEmpresa(uid, esc1.id);
-      if (epoch !== authEpoch) throw new Error('A sessão foi encerrada durante a entrada.');
+      uidValidando = null; entradaValidada = false;
       SB.autenticado = true;
       SB.uid = uid; SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz, fornece: esc1.fornece, soTec: esc1.soTec, tipo: esc1.tipo }; SB.cadastro = esc1.cadastro;
       aplicaMarca();
@@ -440,8 +458,7 @@
             var out = [], de = 0, passo = 500;
             while (out.length < lim) {
               exigirAcesso();
-              exigirAcesso();
-            var r = await sb.from('reg').select(COLS).eq('empresa_id', SB.empresa).eq(campo, valor)
+              var r = await sb.from('reg').select(COLS).eq('empresa_id', SB.empresa).eq(campo, valor)
                 .order('id', { ascending: true }).range(de, de + passo - 1);
               if (r.error) throw erro(r.error);
               out = out.concat(r.data);
@@ -460,6 +477,7 @@
   /* ---------- logout ---------- */
   SB.semUsuario = telaSemUsuario;
   SB.sair = async function () {
+    authEpoch++;
     bloquear();
     try {
       var r = await sb.auth.signOut({ scope: 'local' });

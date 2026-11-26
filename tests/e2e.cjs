@@ -335,10 +335,7 @@ function novoBanco(cfg) {
   const lk = await r11.pg.inputValue('#ac-link');
   ok(/\?convite=NOVO0$/.test(lk) && b11.convites.NOVO0.papel === 'parceiro' && b11.convites.NOVO0.email === 'ana@ex.com' && b11.convites.NOVO0.nome_parceiro === 'Durant Alfaiataria', 'gera o convite de parceiro e mostra o link: ' + lk);
   ok((await r11.pg.textContent('#ac-box')).includes('ana@ex.com'), 'o convite aparece na lista de enviados');
-  ok(await r11.pg.$('#ac-emp') !== null, 'quem é administrador da plataforma vê o formulário de empresa nova');
-  await r11.pg.fill('#ae-em', 'dono@novo.com'); await r11.pg.fill('#ae-nm', 'Ateliê Novo'); await r11.pg.check('#ae-p'); await r11.pg.click('#ac-emp button[type=submit]');
-  await r11.pg.waitForFunction(() => /convite=NOVO1/.test(document.getElementById('ac-link')?.value || ''), null, { timeout: 5000 });
-  ok(b11.convites.NOVO1.empresa_id === null && b11.convites.NOVO1.empresa_nome === 'Ateliê Novo', 'gera o convite de empresa nova');
+  ok(await r11.pg.$('#ac-emp') === null && !(await r11.pg.textContent('#ac-box')).includes('Nova empresa'), 'o sistema não oferece mais "Nova empresa" (criar empresa é só no painel, com 2FA)');
   await r11.pg.click('[data-mrm="u2"]'); await r11.pg.waitForSelector('#mform');
   await r11.pg.click('#mform button[type=submit]');
   await r11.pg.waitForFunction(() => !document.querySelector('[data-mrm="u2"]') || true, null, { timeout: 2000 });

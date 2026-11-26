@@ -16,7 +16,7 @@
     url: 'https://azkvclwozhneyougtcbn.supabase.co',
     key: 'sb_publishable_tKung_iL7gHzW-ZmWA-Sew_fN9O3FO8'
   };
-  var HOSTS_PRODUCAO = ['sistema.henriquedurant.com', 'durant-atelie.vercel.app'];
+  var HOSTS_PRODUCAO = ['sistema.henriquedurant.com', 'painel.henriquedurant.com', 'durant-atelie.vercel.app'];
   var host = String(location.hostname || '').toLowerCase();
   window.SUPABASE_CFG = HOSTS_PRODUCAO.indexOf(host) >= 0 ? PRODUCAO : HOMOLOGACAO;
 })();
