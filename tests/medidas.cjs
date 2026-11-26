@@ -22,6 +22,13 @@ const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ')
     const antes = M.vCorpo; const e = medVoltar(cid, 'corpo', M.versCorpo[M.versCorpo.length - 1].v);
     out.volta = { e, v: M.vCorpo, valor: M.corpo[k], antes, h: M.hist.length, mot: M.hist[M.hist.length - 1].motivo };
     out.semMudar = medDiff({ corpo: { ...M.corpo }, peca: JSON.parse(JSON.stringify(M.peca)) }, M).length;
+    /* pedido guarda cópia e versão; medidas novas do cliente não trocam sozinhas */
+    const p = { id: 'T-1', cli: cid, status: 'producao', pecas: [] }; p.medUsadas = medFoto(cid);
+    out.ped0 = { v: p.medUsadas.vCorpo, aviso: !!medNovaVersao(p), val: medBase(p).corpo[k] };
+    const s2 = { corpo: { ...M.corpo }, peca: JSON.parse(JSON.stringify(M.peca)), rev: M.rev };
+    M.corpo[k] = 45; medAplicar(cid, s2, 'Correção de medida', '');
+    out.ped1 = { aviso: !!medNovaVersao(p), val: medBase(p).corpo[k], atual: M.corpo[k] };
+    p.medUsadas = medFoto(cid); out.ped2 = { aviso: !!medNovaVersao(p), val: medBase(p).corpo[k] };
     return out;
   });
   console.log(JSON.stringify(r));
@@ -30,6 +37,9 @@ const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ')
   ok(r.seg.v === 2 && r.seg.vers === 1 && r.seg.guard === 40 && r.seg.rev === 2 && r.seg.ult === 'Ajuste após prova', 'alteração guarda a versão anterior (40), cria versão nova e soma revisão');
   ok(!r.volta.e && r.volta.v === r.volta.antes + 1 && r.volta.valor === 40 && /Voltou/.test(r.volta.mot), 'voltar a uma versão restaura 40 criando versão nova (nada apagado)');
   ok(r.semMudar === 0, 'sem mudança, sem diferença');
+  ok(r.ped0.val === 40 && !r.ped0.aviso, 'pedido nasce com cópia das medidas e sem aviso');
+  ok(r.ped1.aviso && r.ped1.val === 40 && r.ped1.atual === 45, 'cliente ganha medida nova: pedido avisa mas continua com a antiga (40)');
+  ok(!r.ped2.aviso && r.ped2.val === 45, 'ao escolher "usar as atuais" o pedido passa a 45 e o aviso some');
   ok(erros.length === 0, 'sem erros de JavaScript ' + erros.join('|'));
   await br.close(); srv.close();
   console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);

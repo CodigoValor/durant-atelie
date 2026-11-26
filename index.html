@@ -2259,13 +2259,24 @@ async function salvarArquivo(nome,blob,okMsg){
  if(dl){try{await dl.save({filename:nome,data:blob});toast(okMsg||'PDF salvo');}catch(e){if(!e||e.code!=='declined')toast('Não foi possível salvar o arquivo. Tente de novo.')}return}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast(okMsg||'PDF gerado');
 }
+/* ===== Medidas usadas no pedido: o pedido guarda uma cópia e a versão; nunca troca sozinho ===== */
+function medFoto(cid){const M=mc(cid);return {em:new Date().toISOString(),vCorpo:M.vCorpo||1,vPeca:M.vPeca||1,corpo:Object.assign({},M.corpo),peca:JSON.parse(JSON.stringify(M.peca))}}
+function medBase(p){const u=p&&p.medUsadas;if(u)return {corpo:u.corpo||{},peca:u.peca||{}};const M=mc(p.cli);return {corpo:M.corpo,peca:M.peca}}
+function medNovaVersao(p){const u=p.medUsadas;if(!u)return null;const M=mc(p.cli);
+ const c=(M.vCorpo||1)>u.vCorpo,pe=(M.vPeca||1)>u.vPeca;return c||pe?{c,pe}:null}
+function medPedCard(p){
+ if(!p.medUsadas)return '';const u=p.medUsadas,n=medNovaVersao(p),M=mc(p.cli);
+ const base=`Medidas usadas neste pedido: corpo <b>V${u.vCorpo}</b>, peça pronta <b>V${u.vPeca}</b>, copiadas em ${fdFull(u.em.slice(0,10))}.`;
+ if(!n)return `<div class="note">${base} São as mais recentes.</div>`;
+ const trava=travado(p)&&!podeAlt();
+ return `<div class="note" id="med-ped-aviso">${base} <b>O cliente tem medidas mais novas</b> (corpo V${M.vCorpo||1}, peça pronta V${M.vPeca||1}). O pedido continua com as medidas antigas até você escolher.${trava?'':` <button type="button" class="btn ghost sm" id="med-usar-atual" style="margin-left:6px">Usar as medidas atuais</button>`}</div>`}
 function medidasDa(p,pc){
  if(pc.modo==='peca'||pc.modo==='camisa'){
-  const M=mc(p.cli).peca[pc.tipo]||{};
+  const M=medBase(p).peca[pc.tipo]||{};
   return (PRONTAS[pc.tipo]||[]).map(l=>[l,M[l],false]);
  }
  const sec=SECS.find(x=>x.id===pc.tipo);if(!sec)return [];
- const corpo=mc(p.cli).corpo;
+ const corpo=medBase(p).corpo;
  const par=sec.f.filter(k=>/_(entrepernas|comprimento)$/.test(k)&&/^(ca|sh)_/.test(k));
  const ambos=par.length===2&&par.every(k=>corpo[k]==null);
  return sec.f.map(k=>[FLD[k].l,corpo[k],par.includes(k)&&corpo[k]==null&&!ambos]);
@@ -3001,6 +3012,7 @@ function criarOrcamento(dr){
  const prest=[...new Set(dr.pecas.map(p=>p.prest))];
  const o={id,cli:dr.cli,item:resumo(dr.pecas),parc:dr.pecas[0].prest,mais:prest.length-1,st:0,valor:+String(dr.valor).replace(/\./g,'').replace(',','.')||0,dped:dr.dped,forma:dr.forma,parcelas:dr.parc,pecas:dr.pecas,atv:{},status:'orcamento',env:null,pagto:null,prova:null,prazo:addDias(dr.dped,7),prazoUnico:!!dr.prazoUnico,prazoUnicoData:dr.prazoUnicoData||'',descTipo:dr.descTipo||'valor',descVal:numBR(dr.descVal||0),dest:dr.dest&&dr.dest.tipo?dr.dest:undefined};
  o.incompleto=faltantesPedido(o).length>0;
+ o.medUsadas=medFoto(o.cli);
  S.orcamentos.unshift(o);return o;
 }
 const podeAlt=()=>{const u=P.user;if(!u)return true;if(u.grupo==='Administrador')return true;const g=S.cfg.grupos.find(x=>x.nome===u.grupo);return !!(g&&g.altAprov)};
@@ -3963,7 +3975,7 @@ function detalheHTML(){
  const stP=s=>s==='pago'?'<span class="pill ok">Pago</span>':s==='atrasado'?'<span class="pill crit">Atrasado</span>':'<span class="pill">Em aberto</span>';
  const itemOf=itemNums(p.pecas);
  return head(`${orc?'Orçamento':'Pedido'} ${p.id}${origemDe(p.id)?' · pedido de '+esc(origemDe(p.id)):''}`,esc(c.nome),`<button class="btn ghost" id="o-voltar">Pedidos</button><button class="btn ghost" id="o-cliente">${ic('i-users')}Ver cadastro do cliente</button><button class="btn ghost" id="o-editar-top">Editar ${orc?'orçamento':'pedido'}</button>${acoes}`,'sticky')+`<div class="stack">
- ${aceiteCard(p)}${andamCard(p)}${destinoCard(p)}
+ ${aceiteCard(p)}${andamCard(p)}${destinoCard(p)}${medPedCard(p)}
  <section class="card"><div class="card-h"><h2>${esc(p.item)}</h2>${stBadge(p)}${incompletoPill(p)}</div>
  ${p.incompleto?`<p class="hint" style="margin:0 0 4px;color:var(--warn,#8a6300)">Preenchimento incompleto — falta: ${esc(faltantesPedido(p).join(', '))}.</p>`:''}
  ${p.recusado?`<p class="hint" style="margin:0 0 4px;color:var(--ink-2)">Recusado em ${fdFull(p.recusaData)}${p.recusaMotivo?' — '+esc(p.recusaMotivo):''}. Dá para reativar a qualquer momento.</p>`:''}
@@ -4474,6 +4486,7 @@ bind.pedidos=()=>{
 function bindDetalhe(){
  const p=[...S.orcamentos,...S.pedidos].find(x=>x.id===ui.det);
  document.getElementById('o-voltar').onclick=()=>{ui.det=null;render();window.scrollTo(0,0)};
+ const musar=document.getElementById('med-usar-atual');if(musar)musar.onclick=()=>modal('Usar as medidas atuais neste pedido',`<p class="full" style="margin:0">O pedido passa a usar as medidas mais recentes do cliente (corpo V${mc(p.cli).vCorpo||1}, peça pronta V${mc(p.cli).vPeca||1}). A cópia antiga continua registrada no histórico do pedido.</p>`,()=>{const a=p.medUsadas;p.medUsadas=medFoto(p.cli);logEvt(p,`Medidas do pedido atualizadas: corpo V${a.vCorpo}→V${p.medUsadas.vCorpo}, peça pronta V${a.vPeca}→V${p.medUsadas.vPeca}`);toast('Pedido atualizado com as medidas atuais');return ''},'Usar as medidas atuais');
  document.getElementById('o-cliente').onclick=()=>{ui.cli=p.cli;ui.tab='corpo';ui.det=null;ui.draft=null;location.hash='clientes';render();window.scrollTo(0,0)};
  document.querySelectorAll('[data-zap2]').forEach(b=>b.onclick=()=>zap(p.id,b.dataset.zap2));
  const pcsDe=v=>v==='all'?p.pecas:v.startsWith('g:')?p.pecas.filter(x=>x.prest===v.slice(2)):p.pecas.filter(x=>x.uid===+v.slice(2));
