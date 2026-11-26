@@ -5648,52 +5648,37 @@ const empCad=()=>(window.SB&&window.SB.cadastro)||{};
 const empPerfil=()=>(window.SB&&window.SB.perfil)||{vende:true,produz:false};
 const empTipoNome=p=>{const v=p.vende!==false,f=!!p.produz;return v&&f?'Tipo: Alfaiataria (ateliê e fábrica juntos)':f?'Tipo: Fábrica':'Tipo: Ateliê'};
 function empresaView(){
- const c=empCad(),p=empPerfil(),adm=!window.SB||window.SB.papel==='admin',dis=adm?'':'disabled',plat=!!(window.SB&&window.SB.plataforma===true);
- const inp=(id,l,v,ex)=>`<label class="full">${l}<input class="ctl" id="${id}" value="${esc(v||'')}" ${ex||''} ${dis} autocomplete="off"></label>`;
- const tipo=(id,t,desc,on,fixo)=>`<label style="display:flex;gap:10px;align-items:flex-start;border:1px solid ${on?'#D9C9A3':'var(--line)'};background:${on?'#F4EFE4':'#fff'};border-radius:12px;padding:12px 14px;${fixo||!adm?'opacity:.75':'cursor:pointer'}"><input type="checkbox" id="${id}" ${on?'checked':''} ${fixo||!adm?'disabled':''} style="margin-top:3px"><span><b>${t}</b><span style="display:block;font-size:13px;color:var(--ink-2)">${desc}</span></span></label>`;
+ const c=empCad(),p=empPerfil(),adm=!window.SB||window.SB.papel==='admin',dis=adm?'':'disabled';
+ const inp=(id,l,v,ex,fx)=>`<label class="full">${l}<input class="ctl" id="${id}" value="${esc(v||'')}" ${ex||''} ${fx||dis} autocomplete="off"></label>`;
+ const tipo=(id,t,desc,on)=>`<label style="display:flex;gap:10px;align-items:flex-start;border:1px solid ${on?'#D9C9A3':'var(--line)'};background:${on?'#F4EFE4':'#fff'};border-radius:12px;padding:12px 14px;opacity:.8"><input type="checkbox" id="${id}" ${on?'checked':''} disabled style="margin-top:3px"><span><b>${t}</b><span style="display:block;font-size:13px;color:var(--ink-2)">${desc}</span></span></label>`;
  return head('Configurações · Sistema','Configurações da empresa','')+`<div class="stack">
  ${adm?'':'<div class="note">Só o administrador altera os dados da empresa.</div>'}
- <div class="card"><div class="card-h"><h2>Cadastro da empresa</h2></div><p class="d" style="margin:0 0 10px;color:var(--ink-2)">Quem comprou o Alinhavo. O CNPJ (ou CPF) é único: não pode ser usado por duas empresas.</p>
+ <div class="card"><div class="card-h"><h2>Dados da empresa</h2></div><p class="d" style="margin:0 0 10px;color:var(--ink-2)">Estes dados saem nos orçamentos, pedidos e recibos impressos.</p>
   <div class="form">
-   <label class="full">Tipo<select class="ctl" id="em-tipo" ${dis}><option value="PJ" ${c.tipo!=='PF'?'selected':''}>Pessoa jurídica (CNPJ)</option><option value="PF" ${c.tipo==='PF'?'selected':''}>Pessoa física (CPF)</option></select></label>
    ${inp('em-razao','Razão social',c.razao,'maxlength="100"')}${inp('em-fantasia','Nome fantasia',c.fantasia||(window.SB&&window.SB.empresaNome),'maxlength="100"')}
-   ${inp('em-doc','CNPJ ou CPF (obrigatório)',c.doc,'maxlength="18" inputmode="numeric"')}${inp('em-resp','Responsável',c.resp,'maxlength="80"')}
+   ${inp('em-doc','CNPJ ou CPF (só a equipe Alinhavo altera)',c.doc,'maxlength="18"','disabled')}${inp('em-resp','Responsável',c.resp,'maxlength="80"')}
    ${inp('em-email','E-mail',c.email,'type="email" maxlength="80"')}${inp('em-tel','WhatsApp',c.tel,'maxlength="20" inputmode="tel"')}
    ${inp('em-cidade','Cidade · UF',c.cidade,'maxlength="60"')}${inp('em-end','Endereço',c.end,'maxlength="160"')}${inp('em-obs','Observações',c.obs,'maxlength="200"')}
   </div></div>
- <div class="card"><div class="card-h"><h2>O que a empresa faz</h2></div><p style="margin:0 0 8px"><b id="em-nome-tipo">${empTipoNome(p)}</b></p><p class="d" style="margin:0 0 10px;color:var(--ink-2)">O que a empresa contratou. Pode ser alfaiataria e fábrica ao mesmo tempo. ${plat?'Você é administrador da plataforma: pode alterar.':'Para mudar, fale com a equipe Alinhavo.'}</p>
+ <div class="card"><div class="card-h"><h2>O que a empresa faz</h2></div><p style="margin:0 0 8px"><b id="em-nome-tipo">${empTipoNome(p)}</b></p><p class="d" style="margin:0 0 10px;color:var(--ink-2)">Definido pela equipe Alinhavo no momento da contratação. Para mudar, fale com a equipe.</p>
   <div style="display:grid;gap:10px">
-   ${tipo('em-vende','Ateliê','Atende o cliente final, faz orçamento e pedido. Pode mandar produzir em uma fábrica.',p.vende!==false,!plat)}
-   ${tipo('em-produz','Fábrica','Produz peças e recebe pedidos de outros ateliês, com uma área de acesso para eles (aba Ateliês, Pedidos de produção, fechamento).',!!p.produz,!plat)}
-   ${tipo('em-loja','Loja de tecido','Vende tecido e recebe pedidos de tecido (módulo de tecidos, separado deste sistema).',!!p.fornece,true)}
-   ${tipo('em-cliente','Cliente da loja de tecido','Pede tecido a uma loja pelo módulo de tecidos.',!!p.soTec,true)}
-  </div><p class="d" style="margin:10px 0 0;color:var(--ink-3);font-size:12.5px">Loja de tecido e cliente da loja são liberados pelo módulo de tecidos, não por aqui.</p></div>
- ${adm?'<div class="actions"><button type="button" class="btn" id="em-salvar">Salvar configurações da empresa</button></div>':''}</div>`}
+   ${tipo('em-vende','Ateliê','Atende o cliente final, faz orçamento e pedido. Pode mandar produzir em uma fábrica.',p.vende!==false)}
+   ${tipo('em-produz','Fábrica','Produz peças e recebe pedidos de outros ateliês, com uma área de acesso para eles (aba Ateliês, Pedidos de produção, fechamento).',!!p.produz)}
+   ${tipo('em-loja','Loja de tecido','Vende tecido e recebe pedidos de tecido (módulo de tecidos, separado deste sistema).',!!p.fornece)}
+   ${tipo('em-cliente','Cliente da loja de tecido','Pede tecido a uma loja pelo módulo de tecidos.',!!p.soTec)}
+  </div></div>
+ ${adm?'<div class="actions"><button type="button" class="btn" id="em-salvar">Salvar dados da empresa</button></div>':''}</div>`}
 bind.empresa=()=>{
- if(window.SB&&window.SB.client&&window.SB.plataforma===undefined){window.SB.client.rpc('listar_convites',{p_empresa:null}).then(r=>{window.SB.plataforma=!r.error;if(!r.error)render()})}
  const sv=document.getElementById('em-salvar');if(!sv)return;
  const tl=document.getElementById('em-tel');tl.addEventListener('input',()=>{tl.value=telMask(tl.value)});
- const doc=document.getElementById('em-doc'),tipo=document.getElementById('em-tipo');
- doc.addEventListener('input',()=>{doc.value=tipo.value==='PJ'?cnpjMask(doc.value):cpfMask(doc.value)});
  sv.onclick=async()=>{
-  const v=id=>document.getElementById(id).value.trim(),dg=v('em-doc').replace(/\D/g,'');
-  if(!dg){toast('Informe o CNPJ (ou CPF) da empresa.');return}
-  if(dg&&tipo.value==='PJ'&&!cnpjOk(dg)){toast('CNPJ inválido. Confira os números.');return}
-  if(dg&&tipo.value==='PF'&&dg.length!==11){toast('CPF tem 11 números.');return}
+  const v=id=>document.getElementById(id).value.trim();
   const e=v('em-email');if(e&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){toast('E-mail inválido.');return}
-  const vende=document.getElementById('em-vende').checked,produz=document.getElementById('em-produz').checked;
-  if(!vende&&!produz){toast('Marque Ateliê ou Fábrica.');return}
-  const cad={tipo:tipo.value,razao:v('em-razao'),fantasia:v('em-fantasia'),doc:v('em-doc'),resp:v('em-resp'),email:e,tel:v('em-tel'),cidade:v('em-cidade'),end:v('em-end'),obs:v('em-obs')};
+  const cad=Object.assign({},empCad(),{razao:v('em-razao'),fantasia:v('em-fantasia'),resp:v('em-resp'),email:e,tel:v('em-tel'),cidade:v('em-cidade'),end:v('em-end'),obs:v('em-obs')});
   if(!window.SB||!window.SB.client){toast('Disponível só no sistema online.');return}
-  sv.disabled=true;let r=await window.SB.client.rpc('salvar_empresa',{p_empresa:window.SB.empresa,p_cadastro:cad});
-  const plat=window.SB.plataforma===true,tipoMudou=plat&&(!!empPerfil().produz!==produz||(empPerfil().vende!==false)!==vende);
-  if(!r.error&&tipoMudou)r=await window.SB.client.rpc('definir_tipo_empresa',{p_empresa:window.SB.empresa,p_vende:vende,p_produz:produz});
-  sv.disabled=false;
+  sv.disabled=true;const r=await window.SB.client.rpc('salvar_empresa',{p_empresa:window.SB.empresa,p_cadastro:cad});sv.disabled=false;
   if(r.error){toast(r.error.message||'Não consegui salvar.');return}
-  const mudou=tipoMudou;
-  window.SB.cadastro=cad;if(tipoMudou)window.SB.perfil=Object.assign({},window.SB.perfil,{vende,produz});
-  toast(mudou?'Salvo. Atualizando o menu…':'Configurações da empresa salvas');
-  if(mudou)setTimeout(()=>location.reload(),900);else render();
+  window.SB.cadastro=cad;toast('Dados da empresa salvos');render();
  };
 };
 function dadosView(){
