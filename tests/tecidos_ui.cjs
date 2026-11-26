@@ -143,6 +143,20 @@ function servidor() {
   await page.click('[data-a="aba"][data-v="catalogo"]');
   ok(/777\/1/.test(await page.locator('#app').textContent()), 'e o tecido novo também');
 
+  console.log('Cliente, loja e WhatsApp (simulação)');
+  await page.click('[data-a="aba"][data-v="whatsapp"]');
+  await page.click('[data-a="w-exemplo"]');
+  const resp = await page.locator('#w-resp').textContent();
+  ok(/1009\/6/.test(resp) && /Victor Maruyama → WGT/.test(resp) && /Preciso confirmar/.test(resp), 'WhatsApp: mensagem do cliente vira itens e a resposta automática pede o que falta');
+  await page.click('[data-a="w-criar"]');
+  ok(/Visão da loja/.test(await page.locator('#app').textContent()) && (await page.locator('tr[data-it]').count()) === 3, 'WhatsApp: criar pedido leva para a fila da loja com 3 itens');
+  await page.locator('tr[data-it] select').first().selectOption('disponivel');
+  await page.click('[data-a="loja-tudo"]');
+  ok(/Respondidos/.test(await page.locator('#app').textContent()), 'loja: "Tudo disponível" conclui o pedido');
+  await page.click('[data-a="aba"][data-v="historico"]');
+  const hist = await page.locator('#app').textContent();
+  ok(/WhatsApp/.test(hist) && /R\$\s?778,00/.test(hist) && /3 de 3 itens respondidos/.test(hist), 'Meus pedidos: mostra origem WhatsApp, valor (R$ 778,00) e andamento 3 de 3');
+
   console.log('Celular');
   await page.setViewportSize({ width: 390, height: 780 });
   await page.click('[data-a="aba"][data-v="pedido"]');

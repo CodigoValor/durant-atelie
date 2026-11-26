@@ -68,6 +68,7 @@ table.t tr.err td{background:var(--crit-bg)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
 .kpi b{display:block;font:700 26px/1.1 var(--f-display)} .kpi span{font-size:12px;color:var(--ink-3)}
+  .prog{height:8px;border-radius:6px;background:#e6e2d9;overflow:hidden;margin:8px 0 2px}.prog i{display:block;height:100%;background:#5b8f3a;border-radius:6px}
 pre.msg{white-space:pre-wrap;word-break:break-word;background:#E7F5DC;border:1px solid #cfe6bd;border-radius:12px;padding:14px;font:14px/1.5 var(--f-body);margin:8px 0}
 .alert{border-radius:8px;padding:10px 12px;font-size:14px;margin:8px 0}
 .alert.warn{background:var(--warn-bg);color:var(--warn)} .alert.crit{background:var(--crit-bg);color:var(--crit)} .alert.info{background:var(--info-bg);color:var(--info)}
@@ -414,7 +415,8 @@ function montarMensagem(numero, dia, loja, vend, itens) {
 /* ---------- estado de tela ---------- */
 var aba = 'pedido';
 var D = { lojaId: '', vendedorId: '', texto: '', itens: [], avisos: [], pedidoId: '', erros: false };
-var ABAS = [['pedido', 'Pedido do dia'], ['pedidos', 'Pedidos'], ['catalogo', 'Catálogo'], ['lojas', 'Lojas e destinos']];
+var ABAS = [['pedido', 'Pedido do dia'], ['pedidos', 'Pedidos'], ['historico', 'Meus pedidos'], ['loja', 'Visão da loja'], ['whatsapp', 'WhatsApp (simulação)'], ['catalogo', 'Catálogo'], ['lojas', 'Lojas e destinos']];
+var lojaView = '', W = { lojaId: '', de: 'Luiz Durant', texto: '', res: null };
 var filtroDia = hoje(), filtroCat = '', buscaCat = '';
 
 function sit(it) {
@@ -437,7 +439,7 @@ function infoTecido(it) {
 function vNav() {
   $('#nav').innerHTML = ABAS.map(function (a) { return '<button data-a="aba" data-v="' + a[0] + '"' + (a[0] === aba ? ' aria-current="page"' : '') + '>' + esc(a[1]) + '</button>'; }).join('');
 }
-function render() { vNav(); $('#app').innerHTML = ({ pedido: vPedido, pedidos: vPedidos, catalogo: vCatalogo, lojas: vLojas })[aba](); if (aba === 'pedido') { renderItens(); renderMsg(); } }
+function render() { vNav(); $('#app').innerHTML = ({ pedido: vPedido, pedidos: vPedidos, historico: vHistorico, loja: vLoja, whatsapp: vWhats, catalogo: vCatalogo, lojas: vLojas })[aba](); if (aba === 'pedido') { renderItens(); renderMsg(); } }
 function optsLojas(sel) { return S.lojas.filter(function (l) { return l.ativo; }).map(function (l) { return '<option value="' + l.id + '"' + (l.id === sel ? ' selected' : '') + '>' + esc(l.nome) + '</option>'; }).join(''); }
 
 function vPedido() {
@@ -515,6 +517,112 @@ function vPedidos() {
       (p.status === 'rascunho' ? '<button class="btn sm" data-a="abrir" data-p="' + p.id + '">Abrir rascunho</button><button class="btn danger sm" data-a="ped-excluir" data-p="' + p.id + '">Excluir</button>' :
         (p.status !== 'cancelado' ? '<button class="btn sm" data-a="resposta" data-p="' + p.id + '">Registrar resposta do vendedor</button><button class="btn sec sm" data-a="reenviar" data-p="' + p.id + '">Copiar mensagem</button><button class="btn danger sm" data-a="ped-cancelar" data-p="' + p.id + '">Cancelar pedido</button>' : '')) + '</div></section>';
   }).join('');
+}
+
+
+/* ---------- valor, andamento ---------- */
+function precoDe(it) { var c = it.catalogo_id ? por('catalogo', it.catalogo_id) : null; return c && Number(c.preco_metro) > 0 ? Number(c.preco_metro) : null; }
+function metrosValidos(it) { return it.status === 'indisponivel' ? 0 : (it.status === 'parcial' && it.metragem_confirmada != null ? Number(it.metragem_confirmada) : Number(it.metragem) || 0); }
+function totaisPedido(p) {
+  var its = itensDe(p), pedido = 0, conf = 0, metros = 0, semPreco = 0, resp = 0;
+  its.forEach(function (i) {
+    var pr = precoDe(i); metros += Number(i.metragem) || 0; if (i.status !== 'pendente') resp++;
+    if (pr == null) { semPreco++; return; }
+    pedido += (Number(i.metragem) || 0) * pr; if (i.status !== 'pendente') conf += metrosValidos(i) * pr;
+  });
+  return { itens: its.length, resp: resp, metros: metros, pedido: pedido, conf: conf, semPreco: semPreco };
+}
+function barra(r, n) { var pc = n ? Math.round(100 * r / n) : 0; return '<div class="prog" title="' + r + ' de ' + n + ' itens respondidos"><i style="width:' + pc + '%"></i></div><span class="tiny">' + r + ' de ' + n + ' itens respondidos</span>'; }
+function chipOrigem(p) { return p.origem === 'whatsapp' ? ' <span class="chip info">WhatsApp</span>' : ''; }
+
+/* ---------- Meus pedidos (área do cliente) ---------- */
+function vHistorico() {
+  var ps = S.pedidos.slice().sort(function (a, b) { return b.numero - a.numero; });
+  var ativos = ps.filter(function (p) { return p.status === 'enviado' || p.status === 'parcial'; }).length;
+  var valido = ps.filter(function (p) { return p.status !== 'cancelado' && p.status !== 'rascunho'; }), tot = valido.reduce(function (a, p) { var t = totaisPedido(p); a.m += t.metros; a.v += t.pedido; return a; }, { m: 0, v: 0 });
+  var h = '<h2 style="margin:0 0 4px">Meus pedidos</h2><p class="muted small" style="margin-top:0">É o que o cliente vê ao entrar na área dele: cada pedido, quando foi feito, o andamento e o valor.</p>' +
+    '<div class="kpis"><div class="kpi"><b>' + ps.length + '</b><span>pedidos no histórico</span></div><div class="kpi"><b>' + ativos + '</b><span>em andamento</span></div>' +
+    '<div class="kpi"><b>' + fmtM(tot.m).replace(' m', '') + '</b><span>metros pedidos</span></div><div class="kpi"><b>' + fmtBRL(tot.v) + '</b><span>valor pedido</span></div></div>';
+  if (!ps.length) return h + '<div class="card empty">Nenhum pedido ainda. Crie em <b>Pedido do dia</b> ou veja a aba <b>WhatsApp (simulação)</b>.</div>';
+  return h + ps.map(function (p) {
+    var loja = por('lojas', p.loja_id), t = totaisPedido(p), itens = itensDe(p);
+    var val = '<div class="tiny">Valor do pedido: <b>' + fmtBRL(t.pedido) + '</b>' + (p.status !== 'rascunho' && p.status !== 'cancelado' && t.resp ? ' · confirmado até agora: <b>' + fmtBRL(t.conf) + '</b>' : '') + (t.semPreco ? ' · ' + t.semPreco + ' item(ns) sem preço no catálogo' : '') + '</div>';
+    return '<section class="card"><div class="ped-h"><div><b>Pedido nº ' + p.numero + '</b> <span class="muted">· ' + dataBR(p.dia) + ' · ' + esc(loja ? loja.nome : '?') + '</span>' + chipOrigem(p) + '</div><div>' + chipStatus(p.status) + '</div></div>' +
+      (p.status === 'cancelado' ? '' : barra(t.resp, t.itens)) + val +
+      '<div class="tw"><table class="t stack" style="min-width:520px"><thead><tr><th>#</th><th>Tecido</th><th>Metragem</th><th>Cliente final</th><th>Situação</th><th>Valor</th></tr></thead><tbody>' +
+      itens.map(function (i) {
+        var pr = precoDe(i), c = i.catalogo_id ? por('catalogo', i.catalogo_id) : null;
+        var met = i.status === 'parcial' && i.metragem_confirmada != null ? fmtM(i.metragem_confirmada) + ' <span class="tiny">de ' + fmtM(i.metragem) + '</span>' : fmtM(i.metragem);
+        return '<tr><td class="num">' + (i.ordem + 1) + '</td><td data-l="Tecido">' + esc(i.referencia) + (c && c.nome ? ' <span class="tiny">' + esc(c.nome) + '</span>' : '') + '</td><td data-l="Metragem">' + met + '</td><td data-l="Cliente final">' + esc(i.cliente_final || '—') + '</td><td data-l="Situação">' + (p.status === 'rascunho' ? '<span class="chip">Rascunho</span>' : chipItem(i.status)) + '</td><td data-l="Valor">' + (pr == null ? '—' : fmtBRL((Number(i.metragem) || 0) * pr)) + '</td></tr>';
+      }).join('') + '</tbody></table></div></section>';
+  }).join('');
+}
+
+/* ---------- Visão da loja (painel do vendedor) ---------- */
+function vLoja() {
+  var lojas = S.lojas.filter(function (l) { return l.ativo; });
+  if (!lojaView || !por('lojas', lojaView)) lojaView = (lojas.find(function (l) { return /mark/i.test(l.nome); }) || lojas[0] || {}).id || '';
+  var loja = por('lojas', lojaView);
+  var ps = S.pedidos.filter(function (p) { return p.loja_id === lojaView && p.status !== 'rascunho' && p.status !== 'cancelado'; }).sort(function (a, b) { return b.numero - a.numero; });
+  var abertos = ps.filter(function (p) { return p.status !== 'concluido'; }), feitos = ps.filter(function (p) { return p.status === 'concluido'; });
+  var pend = abertos.reduce(function (n, p) { return n + itensDe(p).filter(function (i) { return i.status === 'pendente'; }).length; }, 0);
+  var h = '<div class="row" style="align-items:center"><h2 style="margin:0">Visão da loja</h2><label style="flex:none;min-width:200px">Loja<select id="l-loja">' + optsLojas(lojaView) + '</select></label></div>' +
+    '<p class="muted small" style="margin-top:0">É a tela do vendedor' + (loja ? ' da ' + esc(loja.nome) : '') + ': os pedidos chegam organizados por entrega e cliente, e ele responde item a item. O status aparece na hora em <b>Meus pedidos</b>.</p>' +
+    '<div class="kpis"><div class="kpi"><b>' + abertos.length + '</b><span>pedidos em aberto</span></div><div class="kpi"><b>' + pend + '</b><span>itens aguardando resposta</span></div><div class="kpi"><b>' + feitos.length + '</b><span>pedidos respondidos</span></div></div>';
+  if (!ps.length) return h + '<div class="card empty">Nenhum pedido enviado para esta loja ainda.</div>';
+  function card(p) {
+    var t = totaisPedido(p), itens = itensDe(p), g = [], ix = {};
+    itens.forEach(function (i) { var d = i.destino_id ? por('destinos', i.destino_id) : null, k = d ? d.id : '_'; if (!(k in ix)) { ix[k] = g.length; g.push({ d: d, its: [] }); } g[ix[k]].its.push(i); });
+    return '<section class="card"><div class="ped-h"><div><b>Pedido nº ' + p.numero + '</b> <span class="muted">· ' + esc(EMPRESA) + ' · ' + dataBR(p.dia) + '</span>' + chipOrigem(p) + '</div><div>' + chipStatus(p.status) + '</div></div>' + barra(t.resp, t.itens) +
+      g.map(function (x) {
+        return '<h3 style="margin:12px 0 4px;font-size:15px">Entregar: ' + esc(x.d ? x.d.nome : 'a definir') + (x.d && x.d.endereco ? ' <span class="muted small">(' + esc(x.d.endereco) + ')</span>' : '') + '</h3>' +
+          '<div class="tw"><table class="t stack" style="min-width:520px"><thead><tr><th>#</th><th>Tecido</th><th>Metragem</th><th>Cliente final</th><th>Resposta</th></tr></thead><tbody>' +
+          x.its.map(function (i) {
+            var c = i.catalogo_id ? por('catalogo', i.catalogo_id) : null;
+            return '<tr data-it="' + i.id + '"><td class="num">' + (i.ordem + 1) + '</td><td data-l="Tecido">' + esc(i.referencia) + (c && c.nome ? ' <span class="tiny">' + esc(c.nome) + '</span>' : '') + '</td><td data-l="Metragem">' + fmtM(i.metragem) + '</td><td data-l="Cliente final">' + esc(i.cliente_final || '—') + '</td><td class="full" data-l="Resposta"><select data-a-chg="st" aria-label="Resposta do item ' + (i.ordem + 1) + '">' +
+              [['pendente', 'Aguardando'], ['disponivel', 'Disponível'], ['parcial', 'Parcial'], ['indisponivel', 'Sem estoque']].map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === i.status ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' + (i.status === 'parcial' ? '<div class="tiny">Confirmado: ' + (i.metragem_confirmada != null ? fmtM(i.metragem_confirmada) : '—') + '</div>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      }).join('') +
+      (t.resp < t.itens ? '<div class="row" style="margin:10px 0 0"><button class="btn sm" data-a="loja-tudo" data-p="' + p.id + '">Tudo disponível</button></div>' : '') + '</section>';
+  }
+  return h + (abertos.length ? '<h3>Em aberto</h3>' + abertos.map(card).join('') : '') + (feitos.length ? '<h3>Respondidos</h3>' + feitos.map(card).join('') : '');
+}
+
+/* ---------- WhatsApp (simulação da mensagem recebida) ---------- */
+var EXEMPLO_ZAP = 'Bom dia Ionaldo! Preciso de:\n1009/6, 1,50m para o Victor Maruyama, mandar pra WGT\n1009/14 1,70m para o João Faé\n0109 de 2m pro cliente Marcos Lima';
+function respostaAuto(itens, avisos, numero) {
+  var L = [];
+  if (!itens.length) return 'Não consegui identificar o tecido na sua mensagem. Pode me mandar assim?\n"1009/6, 1,50 m, para o João, entregar no ateliê"';
+  L.push(numero ? '*Recebi seu pedido nº ' + numero + '*' : '*Entendi o seguinte:*'); L.push('');
+  var dudas = [];
+  itens.forEach(function (it, i) {
+    var d = it.destino_id ? por('destinos', it.destino_id) : null, c = it.catalogo_id ? por('catalogo', it.catalogo_id) : null;
+    L.push((i + 1) + ') ' + it.referencia + (c && c.nome ? ' (' + c.nome + ')' : '') + ' — ' + (Number(it.metragem) > 0 ? fmtM(it.metragem) : '? m') + (it.cliente_final ? ' — ' + it.cliente_final : '') + ' → ' + (d ? d.nome : 'a definir'));
+    if (!(Number(it.metragem) > 0)) dudas.push('item ' + (i + 1) + ': quantos metros?');
+    if (it.match === 'desconhecido') dudas.push('item ' + (i + 1) + ': não achei a referência ' + it.referencia + ' no catálogo, pode conferir?');
+    if (!it.cliente_final) dudas.push('item ' + (i + 1) + ': para qual cliente?');
+    if (it.assumido) dudas.push('item ' + (i + 1) + ': assumi a entrega em ' + (d ? d.nome : 'destino padrão') + ', está certo?');
+  });
+  L.push('');
+  L.push(dudas.length ? 'Preciso confirmar:\n- ' + dudas.join('\n- ') : 'Está tudo certo? Se algo estiver errado, é só responder aqui.');
+  return L.join('\n');
+}
+function vWhats() {
+  var lojas = S.lojas.filter(function (l) { return l.ativo; });
+  if (!W.lojaId || !por('lojas', W.lojaId)) W.lojaId = (lojas.find(function (l) { return /mark/i.test(l.nome); }) || lojas[0] || {}).id || '';
+  var r = W.res, h = '<h2 style="margin:0 0 4px">WhatsApp — simulação</h2>' +
+    '<p class="muted small" style="margin-top:0">Mostra o que acontece quando o cliente manda o pedido pelo WhatsApp da loja. Aqui é uma simulação: cole a mensagem como se tivesse chegado. Na versão ligada ao número oficial, esse passo é automático.</p>' +
+    '<section class="card"><div class="row"><label>Loja que recebe<select id="w-loja">' + optsLojas(W.lojaId) + '</select></label><label>Cliente que escreveu<input id="w-de" value="' + esc(W.de) + '"></label></div>' +
+    '<label>Mensagem recebida<textarea id="w-texto" placeholder="Cole aqui a mensagem do cliente">' + esc(W.texto) + '</textarea></label>' +
+    '<div class="row" style="margin:10px 0 0"><button class="btn" data-a="w-receber">Receber mensagem</button><button class="btn sec" data-a="w-exemplo">Usar exemplo</button><button class="btn sec" data-a="w-limpar">Limpar</button></div></section>';
+  if (!r) return h;
+  var bloqueia = !r.itens.length || r.itens.some(function (i) { return !(Number(i.metragem) > 0) || !i.referencia; });
+  h += '<section class="card"><h3 style="margin-top:0">O que a IA entendeu</h3>' + (r.itens.length ? '<div class="tw"><table class="t stack" style="min-width:520px"><thead><tr><th>#</th><th>Tecido</th><th>Metragem</th><th>Cliente final</th><th>Entrega</th><th>Situação</th></tr></thead><tbody>' +
+    r.itens.map(function (i, n) { var d = i.destino_id ? por('destinos', i.destino_id) : null; return '<tr><td class="num">' + (n + 1) + '</td><td data-l="Tecido">' + esc(i.referencia) + '<br>' + infoTecido(i) + '</td><td data-l="Metragem">' + (Number(i.metragem) > 0 ? fmtM(i.metragem) : '—') + '</td><td data-l="Cliente final">' + esc(i.cliente_final || '—') + '</td><td data-l="Entrega">' + esc(d ? d.nome : '—') + '</td><td data-l="Situação">' + sit(i).map(function (x) { return '<span class="chip ' + x.c + '">' + esc(x.t) + '</span>'; }).join(' ') + '</td></tr>'; }).join('') + '</tbody></table></div>' : '<div class="empty">Nenhum tecido reconhecido.</div>') +
+    '<h3>Resposta automática ao cliente</h3><pre class="msg" id="w-resp">' + esc(r.resposta) + '</pre>' +
+    '<div class="row" style="margin:10px 0 0"><button class="btn"' + (bloqueia ? ' disabled' : '') + ' data-a="w-criar">Criar pedido e colocar na fila da loja</button></div>' +
+    (bloqueia ? '<p class="tiny">Só cria o pedido quando todos os itens têm tecido e metragem. Aqui a IA perguntaria o que falta ao cliente e esperaria a resposta.</p>' : '') + '</section>';
+  return h;
 }
 
 function vCatalogo() {
@@ -700,7 +808,24 @@ var acoes = {
   'loja-nova': function () { formLoja(null); }, 'loja-edit': function (b) { formLoja(por('lojas', b.dataset.id)); },
   'vend-novo': function (b) { formVend(null, b.dataset.id); }, 'vend-edit': function (b) { formVend(por('vendedores', b.dataset.id)); },
   'dest-novo': function () { formDest(null); }, 'dest-edit': function (b) { formDest(por('destinos', b.dataset.id)); },
-  restaurar: function () { if (!confirm('Apagar tudo e voltar aos dados de exemplo?')) return; S = semente(); salvar(); D = { lojaId: '', vendedorId: '', texto: '', itens: [], avisos: [], pedidoId: '', erros: false }; aba = 'pedido'; render(); toast('Exemplo restaurado'); }
+  'loja-tudo': function (b) { var p = por('pedidos', b.dataset.p); itensDe(p).forEach(function (i) { if (i.status === 'pendente') gravar('itens', Object.assign({}, i, { status: 'disponivel', metragem_confirmada: i.metragem })); }); recalc(p); render(); toast('Pedido nº ' + p.numero + ': tudo disponível'); },
+  'w-exemplo': function () { W.texto = EXEMPLO_ZAP; if ($('#w-texto')) $('#w-texto').value = EXEMPLO_ZAP; acoes['w-receber'](); },
+  'w-limpar': function () { W.texto = ''; W.res = null; render(); },
+  'w-receber': function () {
+    var t = $('#w-texto') ? $('#w-texto').value : W.texto; W.texto = t;
+    if (!String(t).trim()) { toast('Cole a mensagem do cliente'); return; }
+    var r = interpretar(t, W.lojaId); W.res = { itens: r.itens, avisos: r.avisos, resposta: respostaAuto(r.itens, r.avisos, null) }; render();
+  },
+  'w-criar': function () {
+    var r = W.res; if (!r || !r.itens.length) return;
+    var p = { id: uid(), numero: ++S.seq, dia: hoje(), criado_em: new Date().toISOString(), loja_id: W.lojaId, vendedor_id: ((S.vendedores.find(function (v) { return v.loja_id === W.lojaId && v.principal && v.ativo; }) || {}).id) || null, status: 'enviado', texto_original: W.texto, origem: 'whatsapp', enviado_em: new Date().toISOString() };
+    gravar('pedidos', p);
+    r.itens.forEach(function (it, n) { gravar('itens', { id: uid(), pedido_id: p.id, ordem: n, catalogo_id: it.catalogo_id || null, referencia: String(it.referencia).trim(), metragem: Number(it.metragem), cliente_final: it.cliente_final || '', destino_id: it.destino_id || null, status: 'pendente', metragem_confirmada: null }); });
+    S.mensagens.push({ id: uid(), pedido_id: p.id, direcao: 'entrada', corpo: W.texto, criado_em: new Date().toISOString() });
+    S.mensagens.push({ id: uid(), pedido_id: p.id, direcao: 'saida', corpo: respostaAuto(r.itens, r.avisos, p.numero), criado_em: new Date().toISOString() }); salvar();
+    W.texto = ''; W.res = null; aba = 'loja'; lojaView = p.loja_id; render(); window.scrollTo(0, 0); toast('Pedido nº ' + p.numero + ' criado pelo WhatsApp e enviado para a fila da loja');
+  },
+  restaurar: function () { if (!confirm('Apagar tudo e voltar aos dados de exemplo?')) return; S = semente(); salvar(); W = { lojaId: '', de: 'Luiz Durant', texto: '', res: null }; D = { lojaId: '', vendedorId: '', texto: '', itens: [], avisos: [], pedidoId: '', erros: false }; aba = 'pedido'; render(); toast('Exemplo restaurado'); }
 };
 document.addEventListener('click', function (e) { var b = e.target.closest('[data-a]'); if (!b) return; e.preventDefault(); if (acoes[b.dataset.a]) acoes[b.dataset.a](b); });
 document.addEventListener('input', function (e) {
@@ -712,6 +837,8 @@ document.addEventListener('input', function (e) {
     else { it[f] = t.value; if (f === 'destino_id') it.assumido = false; }
     atualizaLinha(i); renderMsg();
   } else if (t.id === 'd-texto') D.texto = t.value;
+  else if (t.id === 'w-texto') W.texto = t.value;
+  else if (t.id === 'w-de') W.de = t.value;
   else if (t.id === 'c-busca') { buscaCat = t.value; var pos = t.selectionStart; render(); var n = $('#c-busca'); n.focus(); n.setSelectionRange(pos, pos); }
 });
 document.addEventListener('change', function (e) {
@@ -720,6 +847,8 @@ document.addEventListener('change', function (e) {
   else if (t.id === 'd-vend') { D.vendedorId = t.value; renderMsg(); }
   else if (t.id === 'f-dia') { filtroDia = t.value || hoje(); render(); }
   else if (t.id === 'c-loja') { filtroCat = t.value; render(); }
+  else if (t.id === 'l-loja') { lojaView = t.value; render(); }
+  else if (t.id === 'w-loja') { W.lojaId = t.value; W.res = null; render(); }
   else if (t.dataset && t.dataset.aChg === 'st') {
     var tr = t.closest('tr[data-it]'), it = por('itens', tr.dataset.it), p = por('pedidos', it.pedido_id), st = t.value, mc = null;
     if (st === 'parcial') { var v = prompt('Quantos metros a loja confirmou?', it.metragem_confirmada != null ? String(it.metragem_confirmada).replace('.', ',') : ''); mc = v == null ? null : numBR(v); if (mc == null || mc < 0) { render(); return; } }
