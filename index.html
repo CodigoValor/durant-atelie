@@ -5056,6 +5056,7 @@ async function loadAll(){
 
 async function loadParceiro(){
  limparOperacional({zerarPrecos:true});
+ S.cfg.usuarios=[];   /* parceiro não herda o usuário de exemplo (Administrador) que vem no sistema */
  const raw=new Map();
  for(const k of KINDS_PARC){
   const snap=await retry(()=>P.col.where('k','==',k).limit(1000).get());

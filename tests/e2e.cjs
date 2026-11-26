@@ -304,6 +304,7 @@ function novoBanco(cfg) {
   await r13.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
   ok(await r13.pg.evaluate(() => PARC() && S.clientes.length === 1 && S.clientes[0].nome === 'Cliente do Luiz'), 'o parceiro entra e carrega só os clientes dele');
   ok(await r13.pg.evaluate(() => S.cfg.produtos.length === 1 && S.cfg.produtos[0].nome === 'Lã fria'), 'recebe o catálogo público (produtos e preços) da empresa');
+  ok(await r13.pg.evaluate(() => P.user.grupo === 'Atendimento e vendas' && P.user.email === 'hd@henriquedurant.com'), 'parceiro NÃO herda o grupo Administrador do usuário de exemplo (grupo: ' + await r13.pg.evaluate(() => P.user.grupo) + ')');
   const itens = await r13.pg.$$eval('#nav a', a => a.map(x => x.dataset.v));
   ok(itens.join() === 'painel,clientes,pedidos', 'menu do parceiro: só Painel, Clientes e Pedidos (' + itens.join() + ')');
   await r13.pg.evaluate(() => { location.hash = 'financeiro'; }); await r13.pg.waitForTimeout(300);
