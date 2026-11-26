@@ -70,6 +70,8 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 \
   -in "$work/backup.enc" -out "$work/restore.dump" -pass env:ALINHAVO_DRILL_PASSPHRASE
 unset ALINHAVO_DRILL_PASSPHRASE
 cmp "$work/backup.dump" "$work/restore.dump"
+# A base recém-criada usa o esquema public padrão. O dump contém sua definição.
+"${destino[@]}" -q -c 'drop schema public'
 "$PG_BIN/pg_restore" --exit-on-error --single-transaction -d recuperacao "$work/restore.dump"
 
 "${destino[@]}" -q <<'SQL'
