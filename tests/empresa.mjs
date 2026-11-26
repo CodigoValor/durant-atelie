@@ -4,7 +4,7 @@ const db = new PGlite();
 const falhas = []; const ok = (c, m) => { console.log((c ? '  ok  ' : ' FALHA ') + m); if (!c) falhas.push(m); };
 const sql = f => fs.readFileSync(new URL('../supabase/migrations/' + f, import.meta.url), 'utf8');
 await db.exec(`
-  create role anon nologin; create role authenticated nologin;
+  create role anon nologin; create role authenticated nologin; create role service_role nologin;
   create schema auth; create table auth.users (id uuid primary key default gen_random_uuid(), email text);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub', true), '')::uuid $$;
   create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
@@ -13,7 +13,7 @@ await db.exec(`
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
-await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0023_painel_2fa.sql'));
+await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0021_sem_tipo_fabrica.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0022_tipo_loja.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0023_painel_2fa.sql')); await db.exec(sql('0024_pessoas_cpf.sql')); await db.exec(sql('0024_pessoas_cpf.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
@@ -97,5 +97,25 @@ await como(LUIZ, async () => ok(/ainda não tem conta/.test(await falha(`select 
 await como(LUIZ, async () => ok(/próprio acesso/.test(await falha(`select public.plataforma_admin_remover($1)`, [LUIZ])), 'não dá para remover o próprio acesso'));
 await como(LUIZ, async () => { await db.query(`select public.plataforma_admin_remover($1)`, [ANA]); });
 await como(ANA, async () => ok(/sem permissão/.test(await falha(`select * from public.plataforma_empresas()`)), 'administrador removido perde o acesso'));
+// --- pessoa com CPF único e login por CPF (migração 0024) ---
+const CPF1 = '529.982.247-25', CPF2 = '111.444.777-35';
+await como(MARIA, async () => ok(/CPF inválido/.test(await falha(`select public.salvar_minha_pessoa('111.111.111-11')`)), 'CPF inválido (dígitos repetidos) é recusado'));
+await como(MARIA, async () => ok(/CPF inválido/.test(await falha(`select public.salvar_minha_pessoa('529.982.247-24')`)), 'CPF com dígito verificador errado é recusado'));
+await como(MARIA, async () => { await db.query(`select public.salvar_minha_pessoa($1,'Maria')`, [CPF1]); ok((await q1(`select cpf from public.minha_pessoa()`)).cpf === '52998224725', 'a pessoa salva o CPF (só dígitos) e consulta o próprio'); });
+await como(ANA, async () => ok(/já está cadastrado/.test(await falha(`select public.salvar_minha_pessoa($1)`, [CPF1])), 'o mesmo CPF não entra em duas contas'));
+await como(ANA, async () => { await db.query(`select public.salvar_minha_pessoa($1)`, [CPF2]); ok((await q1(`select cpf from public.minha_pessoa()`)).cpf === '11144477735', 'outra pessoa cadastra o próprio CPF'); });
+await como(ANA, async () => ok(!!(await falha(`select * from public.login_cpf_email('52998224725')`)), 'o navegador não consegue descobrir o e-mail de um CPF'));
+await db.exec(`set role service_role`);
+{ const r = await q1(`select * from public.login_cpf_email('529.982.247-25')`); ok(r.email === 'maria@ex.com' && r.bloqueado === false, 'a função de servidor resolve CPF em e-mail');
+  ok((await db.query(`select * from public.login_cpf_email('00000000000')`)).rows.length === 0, 'CPF desconhecido não resolve');
+  for (let k = 0; k < 4; k++) await db.query(`select public.login_cpf_falha('52998224725')`);
+  ok((await q1(`select bloqueado from public.login_cpf_email('52998224725')`)).bloqueado === false, 'quatro erros ainda não bloqueiam');
+  await db.query(`select public.login_cpf_falha('52998224725')`);
+  ok((await q1(`select bloqueado from public.login_cpf_email('52998224725')`)).bloqueado === true, 'cinco erros bloqueiam o login por CPF por 15 minutos');
+  await db.query(`select public.login_cpf_ok('52998224725')`);
+  ok((await q1(`select bloqueado from public.login_cpf_email('52998224725')`)).bloqueado === false, 'login certo zera o contador');
+  await db.query(`select public.login_cpf_falha('99999999999')`); }
+await db.exec(`reset role`);
+ok((await q1(`select count(*)::int n from public.login_cpf_falhas where cpf='99999999999'`)).n === 0, 'CPF desconhecido não gera registro de falha');
 const tp = (await q1(`select tipo from public.empresas where nome='Durant Alfaiataria'`)).tipo; ok(['alfaiataria', 'fabrica', 'atelie'].includes(tp), 'empresas existentes ganharam um tipo na migração');
 console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK'); process.exit(falhas.length ? 1 : 0);

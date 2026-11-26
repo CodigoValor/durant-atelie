@@ -78,7 +78,7 @@
   }
   function telaLogin(aviso) {
     return new Promise(function (resolve) {
-      mostra('<p class="geyebrow">SEU ATELIÊ, EM BOAS MÃOS</p><h1>Bem-vindo de volta.</h1><p class="gsub">Entre para continuar o trabalho no seu ateliê.</p><form id="g-f" class="gform"><label>E-mail<input id="g-u" type="email" autocomplete="username" placeholder="voce@seuatelie.com.br"></label>' +
+      mostra('<p class="geyebrow">SEU ATELIÊ, EM BOAS MÃOS</p><h1>Bem-vindo de volta.</h1><p class="gsub">Entre para continuar o trabalho no seu ateliê.</p><form id="g-f" class="gform"><label>E-mail ou CPF<input id="g-u" type="text" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="voce@seuatelie.com.br ou 000.000.000-00"></label>' +
         '<label>Senha<input id="g-p" type="password" autocomplete="current-password"></label>' +
         '<p class="gerr" id="g-e" role="alert" ' + (aviso ? '' : 'hidden') + '>' + esc(aviso || '') + '</p>' +
         '<button class="gbtn" type="submit">Entrar no meu ateliê</button><button class="glink" type="button" id="g-forgot">Esqueceu a senha?</button></form>');
@@ -86,11 +86,27 @@
       f.onsubmit = function (ev) {
         ev.preventDefault();
         var em = document.getElementById('g-u').value.trim().toLowerCase(), pw = document.getElementById('g-p').value;
-        if (!em || !pw) { er.textContent = 'Informe e-mail e senha.'; er.hidden = false; return; }
+        if (!em || !pw) { er.textContent = 'Informe e-mail ou CPF e a senha.'; er.hidden = false; return; }
         var bt = f.querySelector('.gbtn'), txt = bt.textContent;
         if (bt.disabled) return;
         bt.disabled = true; bt.textContent = 'Entrando…'; er.hidden = true;
         var volta = function () { bt.disabled = false; bt.textContent = txt; };
+        var soDig = em.replace(/\D/g, '');
+        if (em.indexOf('@') < 0 && soDig.length === 11) {   // CPF: o servidor descobre o e-mail (o navegador nunca vê)
+          fetch(cfg.url + '/functions/v1/login-cpf', { method: 'POST', headers: { 'content-type': 'application/json', apikey: cfg.key, authorization: 'Bearer ' + cfg.key }, body: JSON.stringify({ cpf: soDig, password: pw }) })
+            .then(function (resp) { return resp.json().catch(function () { return {}; }).then(function (b) { return { status: resp.status, body: b }; }); })
+            .then(function (x) {
+              if (x.status === 429) throw { status: 429 };
+              if (x.status !== 200 || !x.body.access_token) throw { code: 'invalid_credentials' };
+              return sb.auth.setSession({ access_token: x.body.access_token, refresh_token: x.body.refresh_token });
+            })
+            .then(function (r) {
+              if (r.error || !r.data || !r.data.session) throw r.error || {};
+              resolve(r.data.session);
+            })
+            .catch(function (e) { volta(); er.textContent = (e && e.code === 'invalid_credentials') ? 'CPF ou senha incorretos.' : mensagemLogin(e); er.hidden = false; });
+          return;
+        }
         sb.auth.signInWithPassword({ email: em, password: pw }).then(function (r) {
           if (r.error || !r.data || !r.data.session) { volta(); er.textContent = mensagemLogin(r.error); er.hidden = false; return; }
           resolve(r.data.session);
@@ -204,6 +220,35 @@
     limpaConvite();
     return r.data || null;
   }
+  function cpfValido(c) {
+    c = String(c || '').replace(/\D/g, '');
+    if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+    var dv = function (n) { var s = 0; for (var i = 0; i < n; i++) s += +c[i] * (n + 1 - i); var r = (s * 10) % 11; return r === 10 ? 0 : r; };
+    return dv(9) === +c[9] && dv(10) === +c[10];
+  }
+  function cpfMascara(v) { var x = String(v || '').replace(/\D/g, '').slice(0, 11); return x.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2'); }
+  /* Quem ainda não tem CPF no cadastro de pessoa informa uma vez (permite entrar só com o CPF depois). Qualquer falha aqui não bloqueia a entrada. */
+  async function pedirCpf() {
+    var r;
+    try { r = await sb.rpc('minha_pessoa'); } catch (e) { return; }
+    if (!r || r.error || (r.data && r.data.length)) return;   // sem a função (ambiente antigo) ou já cadastrado
+    await new Promise(function (resolve) {
+      mostra('<p class="geyebrow">SEU CADASTRO</p><h1>Informe seu CPF</h1><p class="gmsg">Ele identifica você em todas as empresas e permite entrar usando só o CPF e a senha. Cada CPF vale para uma única conta.</p>' +
+        '<form id="g-f" class="gform"><label>CPF<input id="g-cpf" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00"></label>' +
+        '<p class="gerr" id="g-e" role="alert" hidden></p><button class="gbtn" type="submit">Salvar e continuar</button><button class="glink" type="button" id="g-agora">Agora não</button></form>');
+      var cp = document.getElementById('g-cpf'), er = document.getElementById('g-e');
+      cp.oninput = function () { cp.value = cpfMascara(cp.value); };
+      document.getElementById('g-agora').onclick = function () { resolve(); };
+      document.getElementById('g-f').onsubmit = function (ev) {
+        ev.preventDefault();
+        if (!cpfValido(cp.value)) { er.textContent = 'CPF inválido. Confira os números.'; er.hidden = false; return; }
+        sb.rpc('salvar_minha_pessoa', { p_cpf: cp.value, p_nome: null }).then(function (x) {
+          if (x.error) { er.textContent = /já está cadastrado/.test(x.error.message || '') ? 'Este CPF já está cadastrado em outra conta.' : 'Não consegui salvar agora. Tente de novo.'; er.hidden = false; return; }
+          resolve();
+        }, function () { er.textContent = 'Não consegui salvar agora. Tente de novo.'; er.hidden = false; });
+      };
+    });
+  }
   function telaSemUsuario() {
     mostra('<h1>Usuário não cadastrado</h1><p class="gmsg">O e-mail ' + esc(SB.email) + ' entrou, mas não está cadastrado como usuário no sistema. Peça ao administrador em Configurações, Usuários.</p>' +
       '<div class="gact"><button class="gbtn" id="g-out">Sair</button></div>');
@@ -253,6 +298,7 @@
       if (vemDeRecuperacao) { await telaNovaSenha(); vemDeRecuperacao = false; }
       SB.email = String(session.user.email || '').toLowerCase();
       var recemEntrou = await aceitarPendente();
+      await pedirCpf();
       if (recemEntrou) { lembrada(session.user.id, recemEntrou); SB.recemAceito = true; }
       var m = await sb.from('membros').select('empresa_id,papel').order('criado_em', { ascending: true });
       if (m.error) throw erro(m.error);

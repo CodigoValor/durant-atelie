@@ -36,6 +36,19 @@ function novoBanco(cfg) {
         user: { id: 'u1', aud: 'authenticated', role: 'authenticated', email: b.email, app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } });
     }
     if (p === '/auth/v1/logout') return json(route, 204, {});
+    if (p === '/auth/v1/user') return json(route, 200, { id: 'u1', aud: 'authenticated', role: 'authenticated', email: st.emailLogado || 'hd@henriquedurant.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() });
+    if (p === '/functions/v1/login-cpf') {
+      const b = JSON.parse(req.postData() || '{}'); st.cpfTent = (st.cpfTent || 0) + 1;
+      if (b.cpf === '11144477735') return json(route, 429, { error: 'muitas_tentativas' });
+      if (b.cpf !== '52998224725' || b.password !== 'senhaCerta123') return json(route, 401, { error: 'invalid_credentials' });
+      st.emailLogado = 'hd@henriquedurant.com'; const exp = Math.floor(Date.now() / 1000) + 3600;
+      return json(route, 200, { access_token: jwt('hd@henriquedurant.com'), refresh_token: 'r1', expires_at: exp });
+    }
+    if (p === '/rest/v1/rpc/minha_pessoa') return json(route, 200, st.cfg.semCpf ? [] : [{ cpf: '52998224725', nome: null }]);
+    if (p === '/rest/v1/rpc/salvar_minha_pessoa') {
+      const b = JSON.parse(req.postData() || '{}'); if (String(b.p_cpf).replace(/\D/g, '') === '11144477735') return json(route, 400, { message: 'este CPF já está cadastrado em outra conta' });
+      st.cpfSalvo = b.p_cpf; st.cfg.semCpf = false; return json(route, 204, null);
+    }
     if (p === '/rest/v1/membros') {
       const email = st.emailLogado || (st.cfg.emailPadrao);
       if (st.cfg.semMembro) return json(route, 200, []);
@@ -138,6 +151,28 @@ function novoBanco(cfg) {
   await pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
   ok(await pg.isHidden('#gate'), 'entrou no sistema (tela de entrada some)');
   ok((await pg.textContent('#userchip')).includes('Luiz'), 'usuário do sistema mapeado pelo e-mail (Luiz)');
+  { // login por CPF e cadastro do CPF
+    const bc = novoBanco({ semCpf: true }); const r = await abre(bc); await r.pg.waitForSelector('#g-u');
+    ok(/E-mail ou CPF/.test(await r.pg.textContent('#g-f')), 'o login aceita e-mail ou CPF no mesmo campo');
+    await loginUi(r.pg, 'hd@henriquedurant.com', 'senhaCerta123'); await r.pg.waitForSelector('#g-cpf');
+    ok(/Informe seu CPF/.test(await r.pg.textContent('#gate')), 'quem ainda não tem CPF no cadastro é convidado a informá-lo');
+    await r.pg.fill('#g-cpf', '11111111111'); await r.pg.click('#g-f button[type=submit]');
+    ok(/inválido/.test(await r.pg.textContent('#g-e')), 'CPF inválido é barrado');
+    await r.pg.fill('#g-cpf', '111.444.777-35'); await r.pg.click('#g-f button[type=submit]'); await r.pg.waitForTimeout(150);
+    ok(/já está cadastrado/.test(await r.pg.textContent('#g-e')), 'CPF de outra conta é recusado');
+    await r.pg.fill('#g-cpf', '52998224725'); ok((await r.pg.inputValue('#g-cpf')) === '529.982.247-25', 'CPF com máscara');
+    await r.pg.click('#g-f button[type=submit]'); await r.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+    ok(bc.cpfSalvo === '529.982.247-25', 'CPF salvo e a pessoa entra no sistema'); await r.ctx.close();
+    const b2 = novoBanco({ semCpf: true }); const r2 = await abre(b2); await r2.pg.waitForSelector('#g-u'); await loginUi(r2.pg, 'hd@henriquedurant.com', 'senhaCerta123'); await r2.pg.waitForSelector('#g-agora');
+    await r2.pg.click('#g-agora'); await r2.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 }); ok(!b2.cpfSalvo, '"Agora não" deixa entrar sem salvar'); await r2.ctx.close();
+    const b3 = novoBanco({}); const r3 = await abre(b3); await r3.pg.waitForSelector('#g-u');
+    await loginUi(r3.pg, '529.982.247-25', 'errada'); await r3.pg.waitForSelector('#g-e:not([hidden])');
+    ok(/CPF ou senha incorretos/.test(await r3.pg.textContent('#g-e')) && b3.logins === undefined, 'CPF com senha errada: mensagem própria, sem entrar');
+    await loginUi(r3.pg, '111.444.777-35', 'senhaCerta123'); await r3.pg.waitForTimeout(200);
+    ok(/Muitas tentativas/.test(await r3.pg.textContent('#g-e')), 'CPF bloqueado mostra "Muitas tentativas"');
+    await loginUi(r3.pg, '529.982.247-25', 'senhaCerta123'); await r3.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+    ok(b3.cpfTent === 3 && (await r3.pg.textContent('#userchip')).includes('Luiz'), 'entrar só com CPF e senha funciona'); await r3.ctx.close();
+  }
   await pg.waitForFunction(() => P.state === 'ok', null, { timeout: 15000 });
   const chaves = [...banco.reg.keys()];
   ok(chaves.some(k => k.endsWith('|sys~meta')), 'primeira carga grava o marcador sys~meta');
