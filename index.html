@@ -5656,7 +5656,7 @@ function empresaView(){
  ${adm?'':'<div class="note">Só o administrador altera os dados da empresa.</div>'}
  <div class="card"><div class="card-h"><h2>Dados da empresa</h2></div><p class="d" style="margin:0 0 10px;color:var(--ink-2)">Estes dados saem nos orçamentos, pedidos e recibos impressos.</p>
   <div class="form">
-   ${inp('em-razao','Razão social',c.razao,'maxlength="100"')}${inp('em-fantasia','Nome fantasia',c.fantasia||(window.SB&&window.SB.empresaNome),'maxlength="100"')}
+   ${inp('em-razao','Razão social (só a equipe Alinhavo altera)',c.razao,'maxlength="100"','disabled')}${inp('em-fantasia','Nome fantasia',c.fantasia||(window.SB&&window.SB.empresaNome),'maxlength="100"')}
    ${inp('em-doc','CNPJ ou CPF (só a equipe Alinhavo altera)',c.doc,'maxlength="18"','disabled')}${inp('em-resp','Responsável',c.resp,'maxlength="80"')}
    ${inp('em-email','E-mail',c.email,'type="email" maxlength="80"')}${inp('em-tel','WhatsApp',c.tel,'maxlength="20" inputmode="tel"')}
    ${inp('em-cidade','Cidade · UF',c.cidade,'maxlength="60"')}${inp('em-end','Endereço',c.end,'maxlength="160"')}${inp('em-obs','Observações',c.obs,'maxlength="200"')}
@@ -5673,7 +5673,7 @@ bind.empresa=()=>{
  sv.onclick=async()=>{
   const v=id=>document.getElementById(id).value.trim();
   const e=v('em-email');if(e&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){toast('E-mail inválido.');return}
-  const cad=Object.assign({},empCad(),{razao:v('em-razao'),fantasia:v('em-fantasia'),resp:v('em-resp'),email:e,tel:v('em-tel'),cidade:v('em-cidade'),end:v('em-end'),obs:v('em-obs')});
+  const cad=Object.assign({},empCad(),{fantasia:v('em-fantasia'),resp:v('em-resp'),email:e,tel:v('em-tel'),cidade:v('em-cidade'),end:v('em-end'),obs:v('em-obs')});
   if(!window.SB||!window.SB.client){toast('Disponível só no sistema online.');return}
   sv.disabled=true;const r=await window.SB.client.rpc('salvar_empresa',{p_empresa:window.SB.empresa,p_cadastro:cad});sv.disabled=false;
   if(r.error){toast(r.error.message||'Não consegui salvar.');return}

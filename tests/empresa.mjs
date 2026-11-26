@@ -12,7 +12,7 @@ await db.exec(`
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql', '0009_andamento_parceiro.sql', '0010_tecidos.sql', '0011_tecidos_loja.sql']) await db.exec(sql(f));
-await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql'));
+await db.exec(sql('0013_cadastro_empresa.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0014_empresa_tipo_travado.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0015_painel_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0016_empresa_doc_so_plataforma.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0018_tipo_empresa.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0019_nome_fantasia.sql')); await db.exec(sql('0020_razao_so_plataforma.sql')); await db.exec(sql('0020_razao_so_plataforma.sql'));
 ok(true, '0013 roda duas vezes sem quebrar');
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.empresas (nome) values ('Outra')`);
@@ -31,9 +31,10 @@ await como(LUIZ, async () => { await db.query(`select public.definir_tipo_empres
 const r = await q1(`select cnpj, vende_cliente_final v, produz p, cadastro->>'razao' razao from public.empresas where id=$1`, [E1]);
 ok(r.cnpj === '12345678000190' && r.v && r.p && r.razao === 'Durant Alfaiataria Ltda.', 'salva cadastro e CNPJ (só dígitos); plataforma define o tipo');
 await como(LUIZ, async () => ok(/já está cadastrado/.test(await falha(`select public.salvar_empresa($1,$2::jsonb)`, S(E2))), 'CNPJ repetido em outra empresa é recusado (plataforma)'));
-await como(ANA, async () => { await db.query(`select public.salvar_empresa($1,$2::jsonb)`, [E2, cad({ razao: 'Outra Ltda.', tel: '(19) 98888-7777' })]); });
+await como(ANA, async () => { await db.query(`select public.salvar_empresa($1,$2::jsonb)`, [E2, cad({ razao: 'Outra Ltda.', fantasia: 'Fantasia Nova', tel: '(19) 98888-7777' })]); });
 const o = await q1(`select cnpj, cadastro->>'razao' razao, cadastro->>'tel' tel, cadastro->>'doc' doc from public.empresas where id=$1`, [E2]);
-ok(o.razao === 'Outra Ltda.' && o.tel === '(19) 98888-7777' && o.cnpj === null && o.doc === '', 'administrador da empresa edita contatos, mas o CNPJ enviado é ignorado');
+ok(o.razao === '' && o.tel === '(19) 98888-7777' && o.cnpj === null && o.doc === '', 'administrador da empresa edita contatos, mas CNPJ e razão social enviados são ignorados');
+ok((await q1(`select nome from public.empresas where id=$1`, [E2])).nome === 'Fantasia Nova', 'administrador da empresa altera o nome fantasia');
 const p1 = await q1(`select cnpj from public.empresas where id=$1`, [E1]);
 await como(LUIZ, async () => { await db.query(`select public.salvar_empresa($1,$2::jsonb)`, [E1, cad({ doc: '99.999.999/0001-99' })]); });
 await como(MARIA, async () => {});

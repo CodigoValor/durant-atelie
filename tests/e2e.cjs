@@ -447,7 +447,7 @@ function novoBanco(cfg) {
   const em = await r15.pg.evaluate(() => { window.SB.cadastro = { tipo: 'PJ', razao: 'Durant Alfaiataria Ltda.', doc: '12.345.678/0001-90' }; window.SB.perfil = { vende: true, produz: false, tipo: 'alfaiataria' };
     ui.draft = null; ui.det = null; ui.cfg = 'empresa'; location.hash = 'config'; render();
     const g = id => document.getElementById(id), menu = [...document.querySelectorAll('.cfgmenu *, nav *, main *')].some(e => e.textContent.trim() === 'Configurações da empresa');
-    return { tela: !!g('em-salvar') && g('em-razao').value === 'Durant Alfaiataria Ltda.' && g('em-doc').value === '12.345.678/0001-90' && g('em-doc').disabled, tipo: g('em-vende').checked && !g('em-produz').checked && g('em-vende').disabled && g('em-produz').disabled && /Alfaiataria/.test(g('em-nome-tipo').textContent), menu }; });
+    return { tela: !!g('em-salvar') && g('em-razao').value === 'Durant Alfaiataria Ltda.' && g('em-razao').disabled && g('em-doc').value === '12.345.678/0001-90' && g('em-doc').disabled, tipo: g('em-vende').checked && !g('em-produz').checked && g('em-vende').disabled && g('em-produz').disabled && /Alfaiataria/.test(g('em-nome-tipo').textContent), menu }; });
   ok(em.tela && em.tipo && em.menu, 'Configurações da empresa: contatos editáveis; CNPJ e tipo (Alfaiataria, sem área para ateliês) só para leitura');
   await r15.ctx.close();
 
