@@ -245,17 +245,19 @@ async function suspender(){
 function novaEmpresa(){
   var m=document.createElement('div');m.className='modal';
   m.innerHTML='<div class="box"><h1>Nova empresa</h1><label>Nome da empresa<input id="n-nome" maxlength="120"></label><label>E-mail do administrador<input id="n-em" type="email"></label>'+
-  '<div class="sub">O tipo e o CNPJ são definidos aqui no painel depois que o administrador aceitar o convite.</div>'+
+  '<label>Tipo da empresa<select id="n-tipo"><option value="">Escolha…</option><option value="atelie">Ateliê (manda produzir com uma alfaiataria)</option><option value="alfaiataria">Alfaiataria (atende consumidor e ateliê)</option><option value="loja">Loja de tecido (vende tecido)</option></select></label>'+
+  '<div class="sub">A empresa já nasce com o tipo escolhido. O CNPJ é preenchido aqui no painel depois que o administrador aceitar o convite.</div>'+
   '<div id="n-msg" class="msg e"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="n-x">Cancelar</button><button class="btn" id="n-ok">Criar convite</button></div></div>';
   document.body.appendChild(m);
   $('n-x').onclick=function(){m.remove()};
   $('n-ok').onclick=async function(){
+    if(!$('n-tipo').value){$('n-msg').textContent='Escolha o tipo da empresa.';return}
     $('n-ok').disabled=true;
-    var r=await sb.rpc('criar_convite_empresa',{p_email:$('n-em').value.trim(),p_empresa_nome:$('n-nome').value.trim(),p_vende:true,p_produz:false});
+    var r=await sb.rpc('criar_convite_empresa',{p_email:$('n-em').value.trim(),p_empresa_nome:$('n-nome').value.trim(),p_vende:$('n-tipo').value!=='loja',p_produz:false,p_tipo:$('n-tipo').value});
     $('n-ok').disabled=false;
     if(r.error){$('n-msg').textContent=erro(r.error);return}
     var link=SISTEMA+'/?convite='+r.data;
-    m.querySelector('.box').innerHTML='<h1>Convite criado</h1><div class="sub">Envie este link ao administrador. A empresa é criada quando ele aceitar. Depois preencha o CNPJ aqui no painel.</div><div class="lnk">'+esc(link)+'</div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="n-cp">Copiar link</button><button class="btn" id="n-fim">Fechar</button></div>';
+    m.querySelector('.box').innerHTML='<h1>Convite criado</h1><div class="sub">Envie este link ao administrador. A empresa é criada, já com o tipo escolhido, quando ele aceitar. Depois preencha o CNPJ aqui no painel.</div><div class="lnk">'+esc(link)+'</div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn o" id="n-cp">Copiar link</button><button class="btn" id="n-fim">Fechar</button></div>';
     $('n-cp').onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(link);this.textContent='Copiado'};
     $('n-fim').onclick=async function(){m.remove();await carregar();desenhar()};
   };

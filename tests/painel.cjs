@@ -27,7 +27,10 @@ rpc:async function(n,a){window.__chamadas.push([n,a]);if(n==='plataforma_admin_c
   ok(await pg.locator('#c-doc').evaluate(el => el.parentElement.parentElement.firstElementChild.querySelector('select') !== null) && (await pg.locator('#c-carregar').count()) === 1, 'o documento vem primeiro e há o botão de carregar dados');
   await pg.click('#susp'); await pg.waitForTimeout(150);
   ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'plataforma_definir_ativa' && c[1].p_ativa === false)) && /Suspensa/.test(await pg.locator('#det .no').first().innerText()), 'suspender chama a função e marca a empresa como suspensa');
-  await pg.click('#nova'); await pg.fill('#n-nome', 'Ateliê Novo'); await pg.fill('#n-em', 'novo@x.com'); await pg.click('#n-ok'); await pg.waitForSelector('.lnk');
+  await pg.click('#nova'); await pg.fill('#n-nome', 'Ateliê Novo'); await pg.fill('#n-em', 'novo@x.com'); await pg.click('#n-ok'); await pg.waitForTimeout(100);
+  ok(/tipo/i.test(await pg.locator('#n-msg').innerText()) && !(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'criar_convite_empresa'))), 'nova empresa sem tipo é barrada antes de enviar');
+  await pg.selectOption('#n-tipo', 'loja'); await pg.click('#n-ok'); await pg.waitForSelector('.lnk');
+  ok(await pg.evaluate(() => window.__chamadas.some(c => c[0] === 'criar_convite_empresa' && c[1].p_tipo === 'loja' && c[1].p_vende === false)), 'o convite de empresa leva o tipo escolhido');
   ok(/\/\?convite=TOKEN123$/.test(await pg.locator('.lnk').innerText()), 'nova empresa gera o link de convite para o sistema');
   // --- segundo fator ---
   const nova = async (f) => { const p = await b.newPage({ viewport: { width: 1280, height: 760 } }); const e = []; p.on('pageerror', x => e.push(x.message));
