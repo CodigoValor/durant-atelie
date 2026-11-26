@@ -448,7 +448,7 @@ function novoBanco(cfg) {
     ui.draft = null; ui.det = null; ui.cfg = 'empresa'; location.hash = 'config'; render();
     const g = id => document.getElementById(id), menu = [...document.querySelectorAll('.cfgmenu *, nav *, main *')].some(e => e.textContent.trim() === 'Configurações da empresa');
     return { tela: !!g('em-salvar') && g('em-razao').value === 'Durant Alfaiataria Ltda.' && g('em-doc').value === '12.345.678/0001-90', vende: g('em-vende').checked && g('em-produz').checked && !g('em-loja').checked && g('em-loja').disabled, menu }; });
-  ok(em.tela && em.vende && em.menu, 'Configurações da empresa: cadastro com CNPJ, alfaiataria e fábrica marcadas, loja e cliente de loja só informativos');
+  ok(em.tela && em.vende && em.menu, 'Configurações da empresa: cadastro com CNPJ, tipo Alfaiataria (ateliê e fábrica) e loja só informativa, loja e cliente de loja só informativos');
   await r15.ctx.close();
 
   console.log('14) Enter executa o login (e-mail e senha preenchidos)');
