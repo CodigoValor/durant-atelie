@@ -534,6 +534,7 @@ async function carregarOrigens(){
      P.last.set(id,r);mudou=true}catch(e){}
    }
   }
+  if(mudou&&P.ready&&P.user&&typeof chipUser==='function')chipUser();
   if(mudou&&P.ready&&P.user&&typeof render==='function'&&!ui.draft&&!document.getElementById('mdl'))render()
  }catch(e){}
 }
@@ -1287,6 +1288,51 @@ R.painel=()=>{
  </div>`;
 };
 
+/* ===== Fábrica: aba "Ateliês" (lista de ateliês, ficha e clientes do ateliê com as medidas ao lado) ===== */
+const ateliesLista=()=>{const m={};
+ S.clientes.forEach(c=>{const n=ORIGEM['clientes~'+c.id];if(n){(m[n]=m[n]||{nome:n,cli:0,ped:0,aberto:0}).cli++}});
+ [...S.pedidos,...S.orcamentos].forEach(p=>{const n=origemDe(p.id);if(n){const a=(m[n]=m[n]||{nome:n,cli:0,ped:0,aberto:0});a.ped++;if(estadoParc(p)==='recebido')a.aberto++}});
+ return Object.values(m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))};
+const modoClientesHTML=nAt=>{if(PARC()||!nAt)return '';const meus=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length,atel=ateliesLista().length,m=ui.cModo==='atel';
+ const b=(id,l,n,on)=>`<button type="button" id="${id}" class="btn ${on?'':'ghost'}" aria-pressed="${on}">${l} <span style="opacity:.7;margin-left:3px">${n}</span></button>`;
+ return b('cm-meus','Meus clientes',meus,!m)+b('cm-atel','Ateliês',atel,m)};
+const atelieDocFmt=a=>a.tipo==='PF'?'CPF':'CNPJ';
+function medResumoHTML(c){const M=mc(c.id),vals=[];
+ GRUPOS.forEach(g=>g.f.forEach(([k,l])=>{const v=M.corpo[k];if(v!=null&&v!=='')vals.push([g.id==='comuns'?l:g.t.replace('Só ','')[0].toUpperCase()+g.t.replace('Só ','').slice(1)+' · '+l,v])}));
+ const h=(M.hist||[]).slice(-1)[0];
+ return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="av">${initials(c.nome)}</span><div style="flex:1 1 180px"><b style="font-size:16px">${esc(c.nome)}</b><div style="font-size:12.5px;color:var(--ink-2)">Medidas do corpo V${M.vCorpo||1} · peça pronta V${M.vPeca||1}</div></div><button type="button" class="btn sm" id="at-med-edit" data-cli="${c.id}">Editar medidas</button></div>
+ ${h?`<div class="note" style="margin:0">Última alteração: ${fdFull(h.em.slice(0,10))} · ${esc(h.por||h.org)} (${esc(h.org)}) · ${esc(h.motivo||'')}</div>`:''}
+ ${vals.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px">${vals.map(([l,v])=>`<div style="border:1px solid var(--line);border-radius:10px;padding:6px 10px"><div style="font-size:11.5px;color:var(--ink-3)">${esc(l)}</div><div style="font-size:17px;font-weight:600">${fmtN(v)}</div></div>`).join('')}</div>`:'<p class="d" style="margin:0;color:var(--ink-2)">Nenhuma medida do corpo preenchida ainda.</p>'}
+ <button type="button" class="btn ghost sm" id="at-med-hist" data-cli="${c.id}" style="align-self:flex-start">Ver histórico e peças prontas</button>`}
+R.clientes=()=>{
+ const ats=ateliesLista();
+ if(PARC()||!ats.length||ui.cModo!=='atel')return R.clientesMeus();
+ const q=semAcento((ui.atQ||'').trim()),ft=ui.atTipo||'';
+ const L=ats.filter(a=>(!q||semAcento(a.nome).includes(q))&&(!ft||(((S.cfg.atelies||{})[a.nome]||{}).tipo||'PJ')===ft));
+ if(!ui.atSel||!ats.some(a=>a.nome===ui.atSel))ui.atSel=(L[0]||ats[0]).nome;
+ const nome=ui.atSel,d=(S.cfg.atelies||{})[nome]||{},ats1=ats.find(a=>a.nome===nome);
+ const cs=S.clientes.filter(c=>ORIGEM['clientes~'+c.id]===nome).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
+ const qc=semAcento((ui.atQc||'').trim()),csf=cs.filter(c=>!qc||semAcento(c.nome).includes(qc));
+ if(!ui.atCli||!cs.some(c=>c.id===ui.atCli))ui.atCli=cs.length?cs[0].id:null;
+ const csel=cs.find(c=>c.id===ui.atCli);
+ const campo=(r,v)=>`<div><div style="font-size:11.5px;color:var(--ink-3)">${r}</div><div style="font-size:13.5px">${v?esc(v):'<span style="color:var(--ink-3)">—</span>'}</div></div>`;
+ const chip=(id,l,on)=>`<button type="button" data-attipo="${id}" class="btn ${on?'':'ghost'} sm" aria-pressed="${on}">${l}</button>`;
+ const esq=L.map(a=>{const sel=a.nome===nome,t=((S.cfg.atelies||{})[a.nome]||{}).tipo||'PJ';
+  return `<button type="button" class="citem" data-atsel="${esc(a.nome)}" aria-selected="${sel}" style="${sel?'background:#F4EFE4;border-color:#D9C9A3':''}"><span class="av">${initials(a.nome)}</span><span style="min-width:0;flex:1"><b style="display:block;font-weight:600">${esc(a.nome)} <span class="pill plain">${t}</span></b><span style="font-size:12.5px;color:var(--ink-2)">${a.cli} ${a.cli===1?'cliente':'clientes'} · ${a.ped} ${a.ped===1?'pedido':'pedidos'}${a.aberto?` · <b style="color:#8A5A00">${a.aberto} a aceitar</b>`:''}</span></span></button>`}).join('');
+ return head('Cadastro','Clientes e medidas',`${modoClientesHTML(ats.length)}`)+
+ `<div class="card" style="position:sticky;top:64px;z-index:5;padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="search" style="flex:1 1 220px;max-width:320px;margin:0">${ic('i-search')}<input id="at-q" type="search" placeholder="Buscar ateliê por nome" value="${esc(ui.atQ||'')}" aria-label="Buscar ateliê"></div>${chip('','Todos',!ft)}${chip('PJ','PJ',ft==='PJ')}${chip('PF','PF',ft==='PF')}<span style="margin-left:auto;font-size:12.5px;color:var(--ink-2)">Ateliê novo entra por convite e aparece aqui sozinho.</span></div>
+ <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+  <div class="card" style="flex:0 0 300px;padding:10px;max-width:100%"><div class="clist" role="listbox" aria-label="Ateliês">${esq||'<p class="d" style="padding:8px">Nenhum ateliê com esse filtro.</p>'}</div></div>
+  <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:14px">
+   <div class="card"><div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap"><span class="av" style="width:48px;height:48px;font-size:16px">${initials(nome)}</span><div style="flex:1 1 240px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">${esc(nome)}</h2><span class="pill plain">${d.tipo==='PF'?'Pessoa física':'Pessoa jurídica'}</span><span class="pill" style="background:#EFE7D6;color:#6B4E16">Ateliê parceiro</span></div><div style="font-size:13px;color:var(--ink-2)">${ats1.cli} ${ats1.cli===1?'cliente':'clientes'} · ${ats1.ped} ${ats1.ped===1?'pedido':'pedidos'}</div></div><button type="button" class="btn ghost" id="at-edit">Editar dados</button><button type="button" class="btn" id="at-pedidos">Ver pedidos do ateliê</button></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px 20px;margin-top:14px">${campo(atelieDocFmt(d),d.doc)}${campo('Responsável',d.resp)}${campo('Telefone',d.tel)}${campo('E-mail',d.email)}${campo('Endereço',d.end)}${campo('Observações',d.obs)}</div></div>
+   <div class="card"><div class="card-h"><h2>Clientes do ateliê</h2><span class="pill plain">${cs.length}</span></div>
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+     <div style="flex:0 0 270px;max-width:100%;display:flex;flex-direction:column;gap:8px"><div class="search" style="margin:0">${ic('i-search')}<input id="at-qc" type="search" placeholder="Buscar cliente do ateliê" value="${esc(ui.atQc||'')}" aria-label="Buscar cliente do ateliê"></div>
+      <div class="clist" role="listbox" aria-label="Clientes do ateliê" style="max-height:420px;overflow:auto">${csf.map(c=>`<button type="button" class="citem" data-atcli="${c.id}" aria-selected="${c.id===ui.atCli}" style="${c.id===ui.atCli?'background:#F4EFE4;border-color:#D9C9A3':''}"><span class="av">${initials(c.nome)}</span><span style="min-width:0;flex:1"><b style="display:block;font-weight:600">${esc(c.nome)}</b></span></button>`).join('')||'<p class="d" style="padding:6px">Nenhum cliente encontrado.</p>'}</div></div>
+     <div style="flex:1 1 320px;min-width:0;border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">${csel?medResumoHTML(csel):'<p class="d" style="margin:0;color:var(--ink-2)">Este ateliê ainda não cadastrou clientes. Quando cadastrar, eles aparecem aqui com as medidas.</p>'}</div>
+    </div></div>
+  </div></div>`};
 /* ===== Ficha do ateliê (a fábrica vê e edita tudo; o ateliê não vê esta ficha) ===== */
 function atelieFichaHTML(nome){const a=((S.cfg.atelies||{})[nome])||{};
  const l=(r,v)=>v?`<div><span style="color:var(--ink-3)">${r}</span> ${esc(v)}</div>`:'';
@@ -1305,12 +1351,13 @@ function atelieEditar(nome){const a=((S.cfg.atelies||{})[nome])||{};
   const dg=v('at-doc').replace(/\D/g,'');if(dg&&dg.length!==11&&dg.length!==14)return 'CPF tem 11 números e CNPJ tem 14.';
   S.cfg.atelies=S.cfg.atelies||{};S.cfg.atelies[nome]={tipo:v('at-tipo'),doc:v('at-doc'),resp:v('at-resp'),tel:v('at-tel'),email:e,end:v('at-end'),obs:v('at-obs')};
   persistSoon();toast('Dados do ateliê salvos');return ''},'Salvar')}
-R.clientes=()=>{
+R.clientesMeus=()=>{
  const q=semAcento(ui.q.trim()),qd=q.replace(/\D/g,'');
  const nRev=S.clientes.filter(c=>c.revisar).length;
  const ateliesCli=PARC()?[]:[...new Set(S.clientes.map(x=>ORIGEM['clientes~'+x.id]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  if(ui.cOrig&&ui.cOrig!=='__meus'&&!ateliesCli.includes(ui.cOrig))ui.cOrig='';
  const doAt=x=>ORIGEM['clientes~'+x.id]||'';
+ if(ateliesCli.length)ui.cOrig=ui.voltaAt&&ui.atSel?ui.atSel:'__meus';
  const list=S.clientes.filter(c=>(!ui.cOrig||(ui.cOrig==='__meus'?!doAt(c):doAt(c)===ui.cOrig))&&(!ui.soRev||!nRev||c.revisar)&&(!q||semAcento(c.nome).includes(q)||(qd&&!cliOculto(c)&&(c.cpf||'').replace(/\D/g,'').includes(qd))));
  list.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
  if(!S.clientes.length)ui.cli='novo';
@@ -1325,8 +1372,7 @@ R.clientes=()=>{
  const left=`<div class="card" style="padding:12px">
    <div class="search" style="margin:4px 4px 10px">${ic('i-search')}<input id="q" type="search" placeholder="Buscar por nome ou CPF" value="${esc(ui.q)}" aria-label="Buscar cliente"></div>
    ${nRev?`<button type="button" class="btn ghost sm" id="c-rev" style="margin:0 4px 10px" aria-pressed="${!!ui.soRev}"><span class="dotrev"></span>${ui.soRev?'Mostrar todos':'Só para revisar'} <span class="mono">${nRev}</span></button>`:''}
-   ${ateliesCli.length?`<div class="rede" style="margin:0 4px 10px" role="group" aria-label="Origem dos clientes"><button type="button" data-corig="" aria-pressed="${!ui.cOrig}" ${!ui.cOrig?'style="background:var(--ink);color:#fff"':''}>Todos</button><button type="button" data-corig="__meus" aria-pressed="${ui.cOrig==='__meus'}" ${ui.cOrig==='__meus'?'style="background:var(--ink);color:#fff"':''}>Meus clientes</button>${ateliesCli.map(a=>`<button type="button" data-corig="${esc(a)}" aria-pressed="${ui.cOrig===a}" ${ui.cOrig===a?'style="background:var(--ink);color:#fff"':''}>${esc(a)} <span class="mono">${S.clientes.filter(x=>doAt(x)===a).length}</span></button>`).join('')}</div>`:''}
-   ${ui.cOrig&&ui.cOrig!=='__meus'?atelieFichaHTML(ui.cOrig):''}
+   ${false?`<div class="rede" style="margin:0 4px 10px" role="group" aria-label="Origem dos clientes"><button type="button" data-corig="" aria-pressed="${!ui.cOrig}" ${!ui.cOrig?'style="background:var(--ink);color:#fff"':''}>Todos</button><button type="button" data-corig="__meus" aria-pressed="${ui.cOrig==='__meus'}" ${ui.cOrig==='__meus'?'style="background:var(--ink);color:#fff"':''}>Meus clientes</button>${ateliesCli.map(a=>`<button type="button" data-corig="${esc(a)}" aria-pressed="${ui.cOrig===a}" ${ui.cOrig===a?'style="background:var(--ink);color:#fff"':''}>${esc(a)} <span class="mono">${S.clientes.filter(x=>doAt(x)===a).length}</span></button>`).join('')}</div>`:''}
    <div class="clist" role="listbox" aria-label="Clientes" data-sc="clist">
    ${novo?`<button class="citem" role="option" aria-selected="true"><span class="av">+</span><span style="flex:1"><b style="display:block;font-weight:600">Novo cliente</b><span style="font-size:13px;color:var(--ink-2)">Preencha o cadastro ao lado</span></span></button>`:''}
    ${list.map(x=>`<button class="citem" role="option" data-cli="${x.id}" aria-selected="${!novo&&!!c&&x.id===c.id}"><span class="av">${initials(x.nome)}</span><span style="min-width:0;flex:1"><b style="display:block;font-weight:600">${esc(x.nome)} ${x.revisar?'<span class="pillrev"><span class="dotrev"></span>Revisar</span> ':''}${x.indicPend?'<span class="pend">Revisar indicação</span> ':''}${x.club?`<span class="emblem mini" role="img" aria-label="Membro do Club"></span>`:''}</b><span style="font-size:13px;color:var(--ink-2)">${sub(x)}</span></span><span class="mono" style="color:var(--ink-3)" title="Medidas do corpo preenchidas">${corpoCount(x.id)}/${TOTAL}</span></button>`).join('')||(novo?'':'<p style="padding:12px;color:var(--ink-2)">Nenhum cliente encontrado.</p>')}
@@ -1377,7 +1423,7 @@ R.clientes=()=>{
    </div>
    ${body}</div>`;
  }
- return head('Cadastro','Clientes e medidas',`<button class="btn" id="novo-cli">${ic('i-plus')}Novo cliente</button>`)+`<div class="split">${left}${right}</div>`;
+ return head('Cadastro','Clientes e medidas',`${ui.voltaAt?'<button type="button" class="btn ghost" id="at-volta">← Voltar ao ateliê</button>':modoClientesHTML(ateliesCli.length)}<button class="btn" id="novo-cli">${ic('i-plus')}Novo cliente</button>`)+`<div class="split">${left}${right}</div>`;
 };
 function evRow(e,locked){e=e||{desc:'',data:''};const ro=locked?'readonly':'';return `<div class="evrow"><label class="tf">Evento<input class="ev-d" autocomplete="off" placeholder="Ex.: Casamento, formatura, posse" value="${esc(e.desc)}" ${ro}></label><label class="tf">Data<input class="ev-t" type="date" value="${e.data||''}" ${ro}></label>${locked?'':'<button type="button" class="btn ghost sm" data-evx>Remover</button>'}</div>`}
 function cadForm(c,locked){
@@ -1594,6 +1640,20 @@ function histHTML(c){
  ${Object.keys(anos).sort().reverse().map(a=>`<div class="card"><div class="card-h"><h2>${a}</h2><span class="pill plain">${anos[a].length} ${anos[a].length>1?'pedidos':'pedido'}</span></div><div class="list">${anos[a].map(x=>`<button class="row" data-hped="${x.id}" style="width:100%;text-align:left;border:0;border-top:1px solid var(--line);background:none;cursor:pointer;${x.pecas?'':'cursor:default'}"><div class="date"><b class="num">${d(x._d).getDate()}</b><span>${d(x._d).toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</span></div><div class="grow"><div class="t">${esc(x.item)} <span class="mono" style="color:var(--ink-3)">${x.id}</span></div><div class="d">${PARCEIROS[x.parc]||''}</div></div><b class="num">${brl(x.valor)}</b>${st(x)}</button>`).join('')}</div></div>`).join('')}`+histImpHTML(c);
 }
 bind.clientes=()=>{
+ /* aba Ateliês (fábrica) */
+ const cmm=document.getElementById('cm-meus');if(cmm)cmm.onclick=()=>{ui.cModo='meus';ui.voltaAt=false;ui.cli=null;render()};
+ const atv=document.getElementById('at-volta');if(atv)atv.onclick=()=>{ui.cModo='atel';ui.voltaAt=false;ui.medEdit=false;ui._medSnap=null;render();window.scrollTo(0,0)};
+ const cma=document.getElementById('cm-atel');if(cma)cma.onclick=()=>{ui.cModo='atel';ui.voltaAt=false;render()};
+ const busca=(id,chave)=>{const el=document.getElementById(id);if(el)el.addEventListener('input',e=>{ui[chave]=e.target.value;const pos=el.selectionStart;render();const n=document.getElementById(id);n.focus();n.setSelectionRange(pos,pos)})};
+ busca('at-q','atQ');busca('at-qc','atQc');
+ document.querySelectorAll('[data-attipo]').forEach(b=>b.onclick=()=>{ui.atTipo=b.dataset.attipo;render()});
+ document.querySelectorAll('[data-atsel]').forEach(b=>b.onclick=()=>{ui.atSel=b.dataset.atsel;ui.atCli=null;ui.atQc='';render()});
+ document.querySelectorAll('[data-atcli]').forEach(b=>b.onclick=()=>{ui.atCli=+b.dataset.atcli||b.dataset.atcli;render()});
+ const atp=document.getElementById('at-pedidos');if(atp)atp.onclick=()=>{ui.ppParc=ui.atSel;ui.ppEst='';location.hash='prodparc'};
+ const ame=document.getElementById('at-med-edit');if(ame)ame.onclick=()=>{const M=mc(+ame.dataset.cli||ame.dataset.cli);ui.cModo='meus';ui.cli=+ame.dataset.cli||ame.dataset.cli;ui.tab='corpo';ui._lockCli=ui.cli;ui._lockTab='corpo';ui._medSnap={corpo:{...M.corpo},peca:JSON.parse(JSON.stringify(M.peca)),rev:M.rev||0};ui.medEdit=true;ui.voltaAt=true;render();window.scrollTo(0,0)};
+ const amh=document.getElementById('at-med-hist');if(amh)amh.onclick=()=>{ui.cModo='meus';ui.cli=+amh.dataset.cli||amh.dataset.cli;ui.tab='corpo';ui.voltaAt=true;render();window.scrollTo(0,0)};
+ const ate=document.getElementById('at-edit');if(ate)ate.onclick=()=>atelieEditar(ui.atSel);
+ if(!document.getElementById('q'))return;   /* aba Ateliês não tem a busca da lista de clientes */
  const nvc=document.getElementById('nova-ver-corpo');if(nvc)nvc.onclick=()=>{const v=mc(ui.cli).vCorpo||1;modal('Nova versão — medidas do corpo',`<p class="full" style="margin:0">Guardar a <b>V${v}</b> das medidas do corpo no histórico e começar a <b>V${v+1}</b>? Os valores atuais continuam como ponto de partida; a versão anterior fica congelada no histórico, sem ser alterada pelas próximas edições.</p>`,()=>{const n=novaVersaoCorpo(ui.cli);render();toast('Criada a V'+n+' das medidas do corpo')},'Criar V'+(v+1))};
  const nvp=document.getElementById('nova-ver-peca');if(nvp)nvp.onclick=()=>{const v=mc(ui.cli).vPeca||1;modal('Nova versão — medidas de peça pronta',`<p class="full" style="margin:0">Guardar a <b>V${v}</b> das medidas de peça pronta no histórico e começar a <b>V${v+1}</b>? Os valores atuais continuam como ponto de partida; a versão anterior fica congelada no histórico, sem ser alterada pelas próximas edições.</p>`,()=>{const n=novaVersaoPeca(ui.cli);render();toast('Criada a V'+n+' das medidas de peça pronta')},'Criar V'+(v+1))};
  const cdel=document.getElementById('c-del');if(cdel)cdel.onclick=()=>excluirCliente(cli(ui.cli));
@@ -1605,7 +1665,6 @@ bind.clientes=()=>{
  const q=document.getElementById('q');
  const cr=document.getElementById('c-rev');if(cr)cr.onclick=()=>{ui.soRev=!ui.soRev;render()};
  document.querySelectorAll('[data-corig]').forEach(b=>b.onclick=()=>{ui.cOrig=b.dataset.corig;render()});
- const ate=document.getElementById('at-edit');if(ate)ate.onclick=()=>atelieEditar(ui.cOrig);
  q.addEventListener('input',e=>{ui.q=e.target.value;const pos=q.selectionStart;render();const n=document.getElementById('q');n.focus();n.setSelectionRange(pos,pos)});
  document.querySelectorAll('[data-cli]').forEach(b=>b.onclick=()=>{ui.cli=+b.dataset.cli;ui.open=undefined;ui.delp=null;if(ui.tab==='cadastro'&&false)ui.tab='corpo';render()});
  document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ui.tab=b.dataset.tab;ui.delp=null;render()});
@@ -5483,8 +5542,10 @@ function entrar(u,semSessao){
 }
 function chipUser(){
  const b=document.getElementById('userchip');if(!b)return;
- b.hidden=!P.user;if(P.user)b.innerHTML=`<span class="ua" aria-hidden="true">${esc(initials(P.user.nome))}</span><span class="un">${esc(P.user.nome.split(' ')[0])}</span>`;
+ b.hidden=!P.user;if(P.user)b.innerHTML=`<span class="ua" aria-hidden="true">${esc(initials(P.user.nome))}</span><span class="un">${esc(P.user.nome.split(' ')[0])}</span>${papelEmpresaTag()}`;
 }
+/* Deixa claro de que lado a pessoa está: ateliê parceiro ou fábrica (dona que recebe pedidos de ateliês) */
+function papelEmpresaTag(){const w=window.SB;if(!w||!w.empresa)return '';const t=PARC()?'Ateliê':(typeof ateliesLista==='function'&&ateliesLista().length?'Fábrica':'');return t?`<span style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;background:#D9A441;color:#243430;border-radius:8px;padding:1px 6px;margin-left:6px;font-weight:700">${t}</span>`:''}
 function sair(){if(window.SB)return window.SB.sair();sess.clr();P.user=null;chipUser();document.getElementById('modal-root').innerHTML='';gateLogin()}
 function contaModal(){
  const u=P.user;if(!u)return;

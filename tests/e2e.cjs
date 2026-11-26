@@ -436,14 +436,14 @@ function novoBanco(cfg) {
   vf.campo = await r15.pg.evaluate(() => { ui.draft = null; ui.det = window.__pid; render(); return !!document.getElementById('vf-in') || document.querySelector('main').textContent.replace(/\s+/g,' ').slice(0,300); });
   if (vf.campo !== true) console.log('DBG', String(vf.campo));
   ok(vf.campo === true && vf.tem, 'fábrica define o valor cobrado do ateliê e o fechamento do mês soma esse valor (R$ 700)');
-  const fl = await r15.pg.evaluate(() => { const id = S.clientes[0].id; ORIGEM['clientes~' + id] = 'Ateliê Teste'; ui.det = null; ui.draft = null; ui.cli = null; ui.cOrig = ''; location.hash = 'clientes'; render();
-    const chips = [...document.querySelectorAll('[data-corig]')].map(b => b.dataset.corig); const todos = document.querySelectorAll('.citem[data-cli]').length;
-    document.querySelector('[data-corig="Ateliê Teste"]').click(); const soAt = document.querySelectorAll('.citem[data-cli]').length;
-    document.querySelector('[data-corig="__meus"]').click(); const meus = document.querySelectorAll('.citem[data-cli]').length; delete ORIGEM['clientes~' + id]; return { chips, todos, soAt, meus }; });
-  const fiat = await r15.pg.evaluate(() => { ORIGEM['clientes~' + S.clientes[0].id] = 'Ateliê Teste'; ui.cOrig = 'Ateliê Teste'; ui.cli = null; render(); const tinha = !!document.getElementById('at-edit');
-    S.cfg.atelies = { 'Ateliê Teste': { tipo: 'PJ', doc: '12.345.678/0001-90', resp: 'Ana' } }; render(); const t = document.getElementById('at-ficha').textContent; delete ORIGEM['clientes~' + S.clientes[0].id]; ui.cOrig = ''; return { tinha, ok: t.includes('Ana') && t.includes('12.345.678/0001-90') }; });
-  ok(fiat.tinha && fiat.ok, 'fábrica vê e edita a ficha do ateliê (tipo, documento, responsável) ao filtrar por ele');
-  ok(fl.chips.includes('Ateliê Teste') && fl.chips.includes('__meus') && fl.soAt === 1 && fl.meus === fl.todos - 1, 'fábrica filtra clientes por ateliê: Todos, Meus clientes e cada ateliê');
+  const at = await r15.pg.evaluate(() => { const ids = S.clientes.slice(0, 1).map(c => c.id); ids.forEach(id => ORIGEM['clientes~' + id] = 'Ateliê Teste');
+    S.cfg.atelies = { 'Ateliê Teste': { tipo: 'PJ', doc: '12.345.678/0001-90', resp: 'Ana' } };
+    ui.draft = null; ui.det = null; ui.cli = null; ui.cModo = 'atel'; ui.atSel = null; ui.voltaAt = false; location.hash = 'clientes'; render();
+    const t = document.querySelector('main').textContent, tem = id => !!document.getElementById(id);
+    const r = { tabs: tem('cm-meus') && tem('cm-atel'), lista: !!document.querySelector('[data-atsel="Ateliê Teste"]'), ficha: t.includes('Ana') && t.includes('12.345.678/0001-90') && t.includes('Ateliê parceiro'), editar: tem('at-edit'), pedidos: tem('at-pedidos'), clientes: document.querySelectorAll('[data-atcli]').length, medidas: tem('at-med-edit') };
+    document.getElementById('cm-meus').click(); r.meus = document.querySelectorAll('.citem[data-cli]').length === S.clientes.length - 1;
+    ids.forEach(id => delete ORIGEM['clientes~' + id]); ui.cModo = 'meus'; return r; });
+  ok(at.tabs && at.lista && at.ficha && at.editar && at.pedidos && at.clientes === 1 && at.medidas && at.meus, 'fábrica: aba Ateliês com lista, ficha (documento, responsável, "Ateliê parceiro"), clientes do ateliê e medidas ao lado; "Meus clientes" mostra só os próprios');
   await r15.ctx.close();
 
   console.log('14) Enter executa o login (e-mail e senha preenchidos)');
