@@ -440,10 +440,10 @@ function novoBanco(cfg) {
     S.cfg.atelies = { 'Ateliê Teste': { tipo: 'PJ', doc: '12.345.678/0001-90', resp: 'Ana' } };
     ui.draft = null; ui.det = null; ui.cli = null; ui.cModo = 'atel'; ui.atSel = null; ui.voltaAt = false; location.hash = 'clientes'; render();
     const t = document.querySelector('main').textContent, tem = id => !!document.getElementById(id);
-    const r = { tabs: tem('cm-meus') && tem('cm-atel'), lista: !!document.querySelector('[data-atsel="Ateliê Teste"]'), ficha: t.includes('Ana') && t.includes('12.345.678/0001-90') && t.includes('Ateliê parceiro'), editar: tem('at-edit'), pedidos: tem('at-pedidos'), clientes: document.querySelectorAll('[data-atcli]').length, medidas: tem('at-med-edit') };
+    const r = { tabs: tem('cm-meus') && tem('cm-atel'), lista: !!document.querySelector('[data-atsel="Ateliê Teste"]'), ficha: t.includes('Ana') && t.includes('12.345.678/0001-90') && t.includes('Razão social') && t.includes('Convidar ateliê'), editar: tem('at-edit'), pedidos: tem('at-pedidos'), clientes: document.querySelectorAll('[data-atcli]').length, medidas: tem('at-med-edit') };
     document.getElementById('cm-meus').click(); r.meus = document.querySelectorAll('.citem[data-cli]').length === S.clientes.length - 1;
     ids.forEach(id => delete ORIGEM['clientes~' + id]); ui.cModo = 'meus'; return r; });
-  ok(at.tabs && at.lista && at.ficha && at.editar && at.pedidos && at.clientes === 1 && at.medidas && at.meus, 'fábrica: aba Ateliês com lista, ficha (documento, responsável, "Ateliê parceiro"), clientes do ateliê e medidas ao lado; "Meus clientes" mostra só os próprios');
+  ok(at.tabs && at.lista && at.ficha && at.editar && at.pedidos && at.clientes === 1 && at.medidas && at.meus, 'fábrica: aba Ateliês com lista, ficha (razão social, documento, responsável), barra fixa com "Convidar ateliê", clientes do ateliê e medidas ao lado; "Meus clientes" mostra só os próprios');
   await r15.ctx.close();
 
   console.log('14) Enter executa o login (e-mail e senha preenchidos)');
