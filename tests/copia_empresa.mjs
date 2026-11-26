@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub', true), '')::uuid $$;
   grant usage on schema public, auth to anon, authenticated; grant execute on function auth.uid() to anon, authenticated;
 `);
-for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql']) await db.exec(sql('migrations/' + f));
+for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql', '0008_origem_parceiro.sql']) await db.exec(sql('migrations/' + f));
 const q = async (s, p) => (await db.query(s, p)).rows;
 const O = (await q(`select id from public.empresas where nome='Durant Alfaiataria'`))[0].id;
 await db.exec(`insert into public.empresas (id,nome) values ('22222222-2222-2222-2222-222222222222','HDA Produção')`);

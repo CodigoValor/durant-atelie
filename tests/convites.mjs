@@ -12,8 +12,9 @@ await db.exec(`
 const LUIZ = '00000000-0000-0000-0000-00000000000a', MARIA = '00000000-0000-0000-0000-00000000000b', ANA = '00000000-0000-0000-0000-00000000000c', INTRUSO = '00000000-0000-0000-0000-00000000000e';
 await db.exec(`insert into auth.users values ('${LUIZ}','hd@henriquedurant.com'),('${MARIA}','maria@ex.com'),('${ANA}','ana@ex.com'),('${INTRUSO}','intruso@ex.com')`);
 for (const f of ['0001_base.sql', '0003_auditoria.sql', '0004_perfil_empresa.sql', '0005_parceiro.sql', '0006_numeracao.sql', '0007_convites.sql']) await db.exec(sql(f));
-await db.exec(sql('0007_convites.sql'));
-ok(true, '0007_convites.sql roda duas vezes sem quebrar');
+await db.exec(sql('0007_convites.sql'));      // 0007 roda duas vezes; só depois vem a 0008 (as migrações rodam sempre em ordem)
+await db.exec(sql('0008_origem_parceiro.sql')); await db.exec(sql('0008_origem_parceiro.sql'));
+ok(true, '0007 e 0008 rodam duas vezes sem quebrar');
 
 const E1 = (await db.query(`select id from public.empresas where nome='Durant Alfaiataria'`)).rows[0].id;
 await db.exec(`insert into public.membros (user_id, empresa_id, papel) values ('${LUIZ}','${E1}','admin'),('${MARIA}','${E1}','usuario')`);
@@ -70,7 +71,7 @@ await como(INTRUSO, async () => ok(/só o administrador/.test(await falha(`selec
 await como(LUIZ, async () => {
   ok(/já tem acesso/.test(await falha(`select public.criar_convite('${E1}','maria@ex.com','usuario')`)), 'não convida quem já tem acesso');
   ok(/papel inválido/.test(await falha(`select public.criar_convite('${E1}','ana@ex.com','dono')`)), 'papel inválido recusado');
-  const t1 = (await q1(`select public.criar_convite('${E1}','ana@ex.com','parceiro') t`)).t;
+  const t1 = (await q1(`select public.criar_convite('${E1}','ana@ex.com','parceiro','Durant Alfaiataria') t`)).t;
   tokU = (await q1(`select public.criar_convite('${E1}','ana@ex.com','usuario') t`)).t;
   tokOld = t1;
   const l = (await db.query(`select * from public.listar_convites('${E1}')`)).rows;
@@ -119,6 +120,31 @@ ok(true, 'apagar a empresa inteira não é bloqueado pela regra do último admin
 
 console.log('Auditoria');
 ok((await q1(`select count(*)::int n from public.audit_log where k in ('convite','membro')`)).n >= 6, 'convites e mudanças de acesso ficam registrados');
+
+console.log('Origem do parceiro (0008)');
+let tokP;
+await como(MARIA, async () => {
+  ok(/informe o nome da empresa do parceiro/.test(await falha(`select public.criar_convite('${E1}','ana@ex.com','parceiro')`)), 'convite de parceiro exige o nome da empresa dele');
+  tokP = (await q1(`select public.criar_convite('${E1}','ana@ex.com','parceiro','  Durant Alfaiataria ') t`)).t;
+});
+await como(ANA, async () => { await db.query(`select public.aceitar_convite($1)`, [tokP]); });
+ok((await q1(`select nome_parceiro n from public.membros where empresa_id=$1 and user_id=$2`, [E1, ANA])).n === 'Durant Alfaiataria', 'o nome da empresa vai do convite para o vínculo (sem espaços nas pontas)');
+await como(ANA, async () => { await db.query(`insert into public.reg (empresa_id,id,k,i,j) values ($1,'pedidos~P-9','pedidos','P-9','{}')`, [E1]); });
+await como(MARIA, async () => { await db.query(`insert into public.reg (empresa_id,id,k,i,j) values ($1,'pedidos~P-1','pedidos','P-1','{}')`, [E1]); });
+await como(MARIA, async () => {
+  const o = (await db.query(`select * from public.listar_origens('${E1}')`)).rows;
+  ok(o.length === 1 && o[0].id === 'pedidos~P-9' && o[0].nome === 'Durant Alfaiataria', 'o dono recebe só os documentos do parceiro, com o nome da empresa dele (os da própria equipe não entram)');
+});
+await como(ANA, async () => ok(/sem permissão/.test(await falha(`select * from public.listar_origens('${E1}')`)), 'o parceiro não consulta origens'));
+await como(ANA, async () => ok(/só o administrador/.test(await falha(`select public.definir_nome_parceiro('${E1}','${ANA}','Outra')`)), 'o parceiro não muda o próprio nome'));
+await como(MARIA, async () => {
+  ok(/não é parceira/.test(await falha(`select public.definir_nome_parceiro('${E1}','${MARIA}','X Y')`)), 'só vale para quem é parceiro');
+  await db.query(`select public.definir_nome_parceiro('${E1}','${ANA}','Durant Ateliê')`);
+  const o = (await db.query(`select * from public.listar_origens('${E1}')`)).rows;
+  ok(o[0].nome === 'Durant Ateliê', 'admin corrige o nome e a origem acompanha');
+  const m = (await db.query(`select * from public.listar_membros('${E1}')`)).rows.find(x => x.user_id === ANA);
+  ok(m && m.nome_parceiro === 'Durant Ateliê', 'a lista de pessoas mostra o nome da empresa do parceiro');
+});
 
 if (falhas.length) { console.log('\n' + falhas.length + ' FALHA(S)'); process.exit(1); }
 console.log('\nTudo certo.');

@@ -68,9 +68,11 @@ function novoBanco(cfg) {
     }
     if (p === '/rest/v1/rpc/criar_convite' || p === '/rest/v1/rpc/criar_convite_empresa') {
       const b = JSON.parse(req.postData() || '{}'); st.convites = st.convites || {}; const t = 'NOVO' + Object.keys(st.convites).length;
-      st.convites[t] = { email: b.p_email, papel: b.p_papel || 'admin', empresa_id: p.endsWith('_empresa') ? null : b.p_empresa, empresa_nome: b.p_empresa_nome || null, status: 'pendente' };
+      st.convites[t] = { email: b.p_email, papel: b.p_papel || 'admin', empresa_id: p.endsWith('_empresa') ? null : b.p_empresa, empresa_nome: b.p_empresa_nome || null, nome_parceiro: b.p_nome_parceiro || null, status: 'pendente' };
       return json(route, 200, t);
     }
+    if (p === '/rest/v1/rpc/listar_origens') return json(route, 200, st.cfg.origens || []);
+    if (p === '/rest/v1/rpc/definir_nome_parceiro') { st.nomesParceiro = (st.nomesParceiro || []).concat([JSON.parse(req.postData() || '{}')]); return json(route, 204, null); }
     if (p === '/rest/v1/rpc/remover_membro') { st.removidos = (st.removidos || []).concat([JSON.parse(req.postData() || '{}').p_user]); return json(route, 204, null); }
     if (p === '/rest/v1/rpc/reservar_numeros') {   // mesma regra da migration 0006
       const b = JSON.parse(req.postData() || '{}'); st.contadores = st.contadores || {}; st.rpcs = (st.rpcs || 0) + 1;
@@ -281,10 +283,15 @@ function novoBanco(cfg) {
   await r11.pg.evaluate(() => { ui.cfg = 'acessos'; location.hash = 'config'; });
   await r11.pg.waitForSelector('#ac-conv', { timeout: 15000 });
   ok((await r11.pg.textContent('#ac-box')).includes('maria@ex.com'), 'lista as pessoas com acesso');
-  await r11.pg.fill('#ac-em', 'ana@ex.com'); await r11.pg.selectOption('#ac-pp', 'parceiro'); await r11.pg.click('#ac-conv button[type=submit]');
+  ok(await r11.pg.evaluate(() => document.getElementById('ac-np-l').hidden), 'o campo "empresa do parceiro" fica escondido para admin e usuário');
+  await r11.pg.fill('#ac-em', 'ana@ex.com'); await r11.pg.selectOption('#ac-pp', 'parceiro');
+  ok(await r11.pg.evaluate(() => !document.getElementById('ac-np-l').hidden), 'ao escolher parceiro, o campo aparece');
+  await r11.pg.click('#ac-conv button[type=submit]'); await r11.pg.waitForTimeout(300);
+  ok(/empresa do parceiro/i.test(await r11.pg.textContent('#ac-er')) && !b11.convites, 'convite de parceiro sem o nome da empresa é barrado antes de enviar');
+  await r11.pg.fill('#ac-np', 'Durant Alfaiataria'); await r11.pg.click('#ac-conv button[type=submit]');
   await r11.pg.waitForSelector('#ac-link', { timeout: 5000 });
   const lk = await r11.pg.inputValue('#ac-link');
-  ok(/\?convite=NOVO0$/.test(lk) && b11.convites.NOVO0.papel === 'parceiro' && b11.convites.NOVO0.email === 'ana@ex.com', 'gera o convite de parceiro e mostra o link: ' + lk);
+  ok(/\?convite=NOVO0$/.test(lk) && b11.convites.NOVO0.papel === 'parceiro' && b11.convites.NOVO0.email === 'ana@ex.com' && b11.convites.NOVO0.nome_parceiro === 'Durant Alfaiataria', 'gera o convite de parceiro e mostra o link: ' + lk);
   ok((await r11.pg.textContent('#ac-box')).includes('ana@ex.com'), 'o convite aparece na lista de enviados');
   ok(await r11.pg.$('#ac-emp') !== null, 'quem é administrador da plataforma vê o formulário de empresa nova');
   await r11.pg.fill('#ae-em', 'dono@novo.com'); await r11.pg.fill('#ae-nm', 'Ateliê Novo'); await r11.pg.check('#ae-p'); await r11.pg.click('#ac-emp button[type=submit]');
@@ -324,6 +331,27 @@ function novoBanco(cfg) {
   ok(![...b13.reg.keys()].some(k => k.includes('sing~') || k === 'E7|sys~meta' && b13.reg.get(k).j !== '{"v":1}'), 'nenhuma configuração nem marcador foi escrito pelo parceiro');
   ok(r13.erros.length === 0, 'sem erros de JavaScript na página (' + r13.erros.join(' | ') + ')');
   await r13.ctx.close();
+
+  console.log('15) dono vê a origem: pedido de parceiro leva a etiqueta com o nome da empresa dele');
+  const b15 = novoBanco({ membros: [{ empresa_id: 'E7', papel: 'admin' }], empresas: [{ id: 'E7', nome: 'HDA Produção', vende_cliente_final: false, produz: true }],
+    origens: [{ id: 'pedidos~P-26188', nome: 'Durant Alfaiataria' }] });
+  const ped = { id: 'P-26188', cli: 5, status: 'aprovado', item: 'Camisa', valor: 1500, dped: '2026-11-26', aprov: '2026-11-26', pecas: [] };
+  b15.reg.set('E7|clientes~5', { empresa_id: 'E7', id: 'clientes~5', k: 'clientes', i: '5', j: JSON.stringify({ id: 5, nome: 'Cliente 0005' }) });
+  b15.reg.set('E7|pedidos~P-26188', { empresa_id: 'E7', id: 'pedidos~P-26188', k: 'pedidos', i: 'P-26188', j: JSON.stringify(ped) });
+  b15.reg.set('E7|pedidos~P-1', { empresa_id: 'E7', id: 'pedidos~P-1', k: 'pedidos', i: 'P-1', j: JSON.stringify({ ...ped, id: 'P-1' }) });
+  b15.reg.set('E7|sys~meta', { empresa_id: 'E7', id: 'sys~meta', k: 'sys', i: 'meta', j: '{"v":1}' });
+  const r15 = await abre(b15); await r15.pg.waitForSelector('#g-u'); await loginUi(r15.pg, 'durant.henrique@gmail.com', 'senhaCerta123');
+  await r15.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  await r15.pg.waitForFunction(() => Object.keys(ORIGEM).length === 1, null, { timeout: 8000 });
+  ok(await r15.pg.evaluate(() => origemDe('P-26188') === 'Durant Alfaiataria' && origemDe('P-1') === ''), 'a origem vem do servidor só para o pedido do parceiro');
+  await r15.pg.evaluate(() => { location.hash = 'pedidos'; }); await r15.pg.waitForTimeout(400);
+  const lin = await r15.pg.$$eval('[data-open]', els => els.map(e => e.textContent.replace(/\s+/g, ' ')));
+  ok(lin.some(t => t.includes('P-26188') && t.includes('Durant Alfaiataria')) && lin.some(t => t.includes('P-1') && !t.includes('Durant Alfaiataria')), 'na lista, só o pedido do parceiro mostra a etiqueta');
+  await r15.pg.evaluate(() => { ui.det = 'P-26188'; render(); }); await r15.pg.waitForTimeout(300);
+  ok((await r15.pg.textContent('body')).includes('pedido de Durant Alfaiataria'), 'no detalhe aparece "pedido de Durant Alfaiataria"');
+  ok(![...b15.reg.values()].some(r => /Durant Alfaiataria/.test(r.j || '')), 'a origem nunca é gravada dentro dos dados');
+  ok(r15.erros.length === 0, 'sem erros de JavaScript na página (' + r15.erros.join(' | ') + ')');
+  await r15.ctx.close();
 
   console.log('14) Enter executa o login (e-mail e senha preenchidos)');
   const b14 = novoBanco({}); const r14 = await abre(b14); await r14.pg.waitForSelector('#g-u');
