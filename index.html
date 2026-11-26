@@ -1799,7 +1799,7 @@ function faltantesPeca(p,cortesia){
  if(incluso(p))return [];
  const f=[];
  if(!p.prest)f.push('quem produz');
- if(!p.forn)f.push('fornecedor do tecido');
+ if(!p.forn&&(p.tecOrig||'comprar')==='comprar')f.push('fornecedor do tecido');
  if(temForro(p)&&!p.forroForn)f.push('fornecedor do forro');
  if(!cortesia&&!(numBR(p.preco)>0))f.push('valor da peça');
  return f;
