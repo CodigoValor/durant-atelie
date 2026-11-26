@@ -42,6 +42,18 @@ function novoBanco(cfg) {
       return json(route, 200, st.cfg.membros || [{ empresa_id: 'E1', papel: 'admin' }]);
     }
     if (p === '/rest/v1/empresas') return json(route, 200, st.cfg.empresas || [{ id: 'E1', nome: 'Durant Alfaiataria', vende_cliente_final: true, produz: false }]);
+    if (p === '/rest/v1/rpc/reservar_numeros') {   // mesma regra da migration 0006
+      const b = JSON.parse(req.postData() || '{}'); st.contadores = st.contadores || {}; st.rpcs = (st.rpcs || 0) + 1;
+      const ch = b.p_empresa + '|' + b.p_nome, linhas = [...st.reg.values()].filter(r => r.empresa_id === b.p_empresa);
+      const num = t => +(String(t).replace(/\D/g, '')) || 0;
+      let piso = 0;
+      if (b.p_nome === 'pedido') {
+        const cf = linhas.find(r => r.id === 'sing~cfg'); piso = Math.max(2600, cf ? (JSON.parse(cf.j).ultimoPed || 0) : 0);
+        if (st.contadores[ch] == null) linhas.filter(r => r.k === 'pedidos' || r.k === 'orcamentos').forEach(r => { const v = num(String(r.i).slice(2)); if (r.k === 'orcamentos' || v < 100000) piso = Math.max(piso, v); });
+      } else if (st.contadores[ch] == null) linhas.filter(r => r.k === 'clientes').forEach(r => { piso = Math.max(piso, num(r.i)); });
+      st.contadores[ch] = Math.max(st.contadores[ch] || 0, piso) + b.p_qtd;
+      return json(route, 200, st.contadores[ch] - b.p_qtd + 1);
+    }
     if (p === '/rest/v1/reg') {
       const q = u.searchParams, eq = k => (q.get(k) || '').replace(/^eq\./, '');
       if (!req.headers()['authorization'] || !/Bearer .+\..+\..+/.test(req.headers()['authorization'])) return json(route, 401, { message: 'sem sessão' });
@@ -161,6 +173,27 @@ function novoBanco(cfg) {
   ok(await pg.evaluate(() => !S.clientes.some(c => c.id === 9002)), 'os dados da Maria NÃO aparecem na Durant (isolamento)');
   ok(erros.length === 0, 'sem erros de JavaScript na página (' + erros.join(' | ') + ')');
   await ctx.close();
+
+  console.log('8) numeração: cada pessoa recebe um bloco do servidor, sem repetir número');
+  const b5 = novoBanco({});
+  const entra = async () => { const r = await abre(b5); await r.pg.waitForSelector('#g-u'); await loginUi(r.pg, 'hd@henriquedurant.com', 'senhaCerta123'); await r.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 }); await r.pg.waitForFunction(() => P.state === 'ok', null, { timeout: 15000 }); return r; };
+  const A = await entra();
+  ok(await A.pg.evaluate(() => NUM.ativo() && NUM.sobra('pedido') === 5 && NUM.sobra('cliente') === 5), 'ao entrar, o sistema já reserva um bloco de pedidos e um de clientes no servidor');
+  const nA = await A.pg.evaluate(() => [NUM.tomar('pedido'), NUM.tomar('pedido'), NUM.tomar('pedido')]);
+  ok(nA.join() === '2601,2602,2603', 'primeiros pedidos saem em sequência a partir da numeração da empresa: ' + nA.join());
+  await A.pg.waitForFunction(() => NUM.sobra('pedido') >= 5, null, { timeout: 15000 });
+  const B = await entra();   // outra pessoa/dispositivo, mesmo banco
+  const nB = await B.pg.evaluate(() => [NUM.tomar('pedido'), NUM.tomar('pedido')]);
+  ok(nB[0] >= 2606 && !nB.some(n => nA.includes(n)), 'a outra pessoa recebe um bloco depois do primeiro, sem repetir número: ' + nB.join());
+  const cA = await A.pg.evaluate(() => [novoIdCliente(), novoIdCliente()]), cB = await B.pg.evaluate(() => [novoIdCliente(), novoIdCliente()]);
+  ok(new Set([...cA, ...cB]).size === 4, 'ids de cliente também não se repetem entre as duas pessoas: ' + [...cA, ...cB].join());
+  await A.pg.reload(); await A.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  ok(await A.pg.evaluate(() => NUM.tomar('pedido')) === 2604, 'depois de recarregar, a pessoa continua do número que sobrou no bloco dela (sem pular)');
+  const livre = await A.pg.evaluate(() => { const a = NUM.ler('cliente')[0].a; S.clientes.push({ id: a, nome: 'Já existe' }); return [a, novoIdCliente()]; });
+  ok(livre[1] !== livre[0], 'se o número reservado já estiver em uso no cadastro, o app pula para o próximo (nunca sobrescreve um cliente)');
+  ok(b5.rpcs >= 5 && b5.rpcs < 12, 'poucas chamadas ao servidor (' + b5.rpcs + ')');
+  ok(A.erros.length === 0 && B.erros.length === 0, 'sem erros de JavaScript na página (' + A.erros.concat(B.erros).join(' | ') + ')');
+  await A.ctx.close(); await B.ctx.close();
 
   await br.close(); srv.close();
   console.log(falhas.length ? `\n${falhas.length} FALHA(S)` : '\nTUDO OK');

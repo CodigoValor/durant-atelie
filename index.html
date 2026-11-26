@@ -451,6 +451,38 @@ body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:h
 <script src="config.js"></script>
 <script src="adapter.js"></script>
 <script>
+/* Numeração sem repetição: o servidor reserva blocos (migration 0006); cada pessoa usa o seu bloco.
+   Fora do Supabase (sem window.SB.reservar) o app calcula como antes. */
+const NUM={blocos:{},busy:{},TAM:5,
+ ativo(){return !!(window.SB&&window.SB.reservar&&window.SB.empresa)},
+ chave(n){return 'durant.num.'+window.SB.empresa+'.'+(window.SB.uid||'')+'.'+n},
+ ler(n){
+  if(this.blocos[n])return this.blocos[n];
+  let b=[];try{b=JSON.parse(localStorage.getItem(this.chave(n))||'[]')}catch(e){}
+  return this.blocos[n]=(Array.isArray(b)?b:[]).filter(x=>x&&x.a<=x.f)
+ },
+ gravar(n){try{const b=this.blocos[n];b&&b.length?localStorage.setItem(this.chave(n),JSON.stringify(b)):localStorage.removeItem(this.chave(n))}catch(e){}},
+ sobra(n){return this.ler(n).reduce((t,x)=>t+x.f-x.a+1,0)},
+ async encher(n){
+  if(this.busy[n])return;this.busy[n]=true;
+  try{const a=await window.SB.reservar(n,this.TAM);this.ler(n).push({a,f:a+this.TAM-1});this.gravar(n)}
+  finally{this.busy[n]=false}
+ },
+ async preparar(){for(const n of ['pedido','cliente']){if(this.sobra(n)<=2){try{await this.encher(n)}catch(e){}}}},
+ tomar(n){
+  const bl=this.ler(n);
+  if(!bl.length){
+   this.encher(n).catch(()=>{});
+   try{toast('Reservando a numeração… tente de novo em alguns segundos.')}catch(e){}
+   throw new Error('Numeração ainda não reservada');
+  }
+  const num=bl[0].a++;if(bl[0].a>bl[0].f)bl.shift();
+  this.gravar(n);
+  if(this.sobra(n)<=2)this.encher(n).catch(()=>{});
+  return num;
+ }};
+const novoIdCliente=()=>NUM.ativo()?(()=>{let n;do{n=NUM.tomar('cliente')}while(S.clientes.some(c=>c.id===n));return n})():Math.max(0,...S.clientes.map(x=>x.id))+1;
+
 const VIEWS=[
  {id:'painel',label:'Painel',short:'Painel',icon:'i-home'},
  {id:'clientes',label:'Clientes e medidas',short:'Clientes',icon:'i-users'},
@@ -1314,7 +1346,7 @@ bind.clientes=()=>{
    document.getElementById('ind-new').onclick=()=>{
     const nome=nomeProprio(ind.value);if(nome.length<2)return;
     if(S.clientes.some(x=>x.nome.toLowerCase()===nome.toLowerCase())){achaInd();return}
-    const id=Math.max(0,...S.clientes.map(x=>x.id))+1;
+    const id=novoIdCliente();
     S.clientes.push({incompleto:true,id,nome,nasc:'',cpf:'',empresa:'',optin:false,origem:'',indicadoPor:null,indicNC:false,indicNome:'',eventos:[],interesses:'',pagto:'',historia:'',prof:'',cidade:'',tel:'',desde:String(TODAY().getFullYear()),club:false,total:0,pecas:0,post:'—'});
     const dl=document.getElementById('dl-clientes');if(dl)dl.insertAdjacentHTML('beforeend',`<option value="${esc(nome)}"></option>`);
     ind.value=nome;sug.hidden=false;sug.innerHTML=`<span class="pill ok">${esc(nome)} cadastrado</span><span class="hint" style="display:inline;margin-left:8px">Complete o cadastro dele depois, em Clientes.</span>`;
@@ -1350,7 +1382,7 @@ bind.clientes=()=>{
    if(first){document.getElementById(campos[first]).focus();return}
    const dados={prof:val('c-prof'),empresa:val('c-emp'),cidade:val('c-cid'),tel:tl,optin:document.getElementById('c-optin').checked,origem,indicadoPor:indId,indicNC:indNC,indicNome:indNome,eventos,pref:val('c-pref'),interesses:val('c-int'),pagto:val('c-pag'),historia:val('c-hist')};
    if(ui.cli==='novo'){
-    const id=Math.max(0,...S.clientes.map(x=>x.id))+1;
+    const id=novoIdCliente();
     S.clientes.unshift(Object.assign({id,nome,nasc,cpf:cp,desde:String(TODAY().getFullYear()),club:false,total:0,pecas:0,post:'—'},dados));
     ui.cli=id;ui.tab='corpo';ui.q='';ui._lockCli=id;ui._lockTab='corpo';ui.medEdit=true;render();toast('Cliente cadastrado. Lance as medidas.');
    } else {
@@ -1800,7 +1832,7 @@ S.lembAv=[{t:'Perguntar ao Felipe (WGT) a fórmula de metragem para camisa de ma
 ui.sec=ui.sec||{};
 const FORMAS=['Pix à vista','Cartão de crédito','Pix parcelado'];
 const PLUR={camisa:'camisas',paleto:'paletós',calca:'calças',colete:'coletes',shorts:'shorts'};
-const nextId=()=>{const n=Math.max((S.cfg&&S.cfg.ultimoPed)||2600,...S.pedidos.map(p=>{const v=+p.id.slice(2)||0;return v<100000?v:0}),...S.orcamentos.map(p=>+p.id.slice(2)||0))+1;if(S.cfg)S.cfg.ultimoPed=n;return 'P-'+n};
+const nextId=()=>{if(NUM.ativo()){let n;do{n=NUM.tomar('pedido')}while(S.pedidos.some(p=>p.id==='P-'+n)||S.orcamentos.some(p=>p.id==='P-'+n));if(S.cfg&&window.SB.papel!=='parceiro'&&n>(S.cfg.ultimoPed||0))S.cfg.ultimoPed=n;return 'P-'+n}const n=Math.max((S.cfg&&S.cfg.ultimoPed)||2600,...S.pedidos.map(p=>{const v=+p.id.slice(2)||0;return v<100000?v:0}),...S.orcamentos.map(p=>+p.id.slice(2)||0))+1;if(S.cfg)S.cfg.ultimoPed=n;return 'P-'+n};
 function resumo(pecas){
  const parts=[];const cont={};
  const ter=pecas.filter(p=>p.grupo==='Terno'&&p.tipo==='paleto').length,cos=pecas.filter(p=>p.grupo==='Costume'&&p.tipo==='paleto').length;
@@ -5047,6 +5079,7 @@ async function boot(){
   }
  }catch(e){P.ready=false;return gateErro(e)}
  P.ready=true;setState('ok');
+ if(NUM.ativo())await NUM.preparar();
  const sid=sess.get(),u=window.SB?S.cfg.usuarios.find(x=>x.ativo&&String(x.email||'').toLowerCase()===window.SB.email):(sid&&S.cfg.usuarios.find(x=>x.id==sid&&x.ativo));
  if(u)entrar(u);else if(window.SB)window.SB.semUsuario();else gateLogin();
 }

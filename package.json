@@ -8,7 +8,8 @@
     "test:e2e": "node tests/e2e.cjs",
     "test:rls": "node tests/rls.mjs",
     "test:ambientes": "node tests/ambientes.cjs",
-    "test:parceiro": "node tests/parceiro.mjs"
+    "test:parceiro": "node tests/parceiro.mjs",
+    "test:numeracao": "node tests/numeracao.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.6.0",

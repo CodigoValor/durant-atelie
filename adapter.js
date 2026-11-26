@@ -163,7 +163,7 @@
       if (lemb) esc1 = lista.filter(function (x) { return x.id === lemb; })[0] || null;   // só vale se ainda for vínculo real
       if (!esc1) esc1 = lista.length === 1 ? lista[0] : await telaEscolherEmpresa(lista);
       lembrada(uid, esc1.id);
-      SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz };
+      SB.uid = uid; SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz };
     })();
     entrando.catch(function () { entrando = null; });
     return entrando;
@@ -224,6 +224,13 @@
   SB.sair = async function () {
     try { await sb.auth.signOut(); } catch (e) {}
     location.reload();
+  };
+
+  /* ---------- numeração: o servidor reserva um bloco de números (ver migration 0006) ---------- */
+  SB.reservar = async function (nome, qtd) {
+    var r = await sb.rpc('reservar_numeros', { p_empresa: SB.empresa, p_nome: nome, p_qtd: qtd });
+    if (r.error) throw erro(r.error);
+    return Number(r.data);
   };
 
   /* ---------- o que o protótipo pede ao Claude ---------- */
