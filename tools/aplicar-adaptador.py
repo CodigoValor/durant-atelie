@@ -26,6 +26,11 @@ TROCAS = [
     # 6) ícones do site (favicon): gerados por tools/gerar-favicon.py a partir do emblema
     ("<meta name=\"robots\" content=\"noindex,nofollow\">",
      "<meta name=\"robots\" content=\"noindex,nofollow\">\n<link rel=\"icon\" href=\"favicon.ico?v=2\" sizes=\"any\">\n<link rel=\"icon\" type=\"image/png\" sizes=\"32x32\" href=\"favicon-32.png?v=2\">\n<link rel=\"apple-touch-icon\" href=\"apple-touch-icon.png?v=2\">\n<meta name=\"theme-color\" content=\"#243029\">"),
+    # 7) "Sua conta": mostra a empresa atual e, havendo mais de uma, o botão de trocar
+    ("<div class=\"full\"><button type=\"button\" class=\"btn ghost\" id=\"ac-out\">Sair do sistema</button></div>`,()=>{",
+     "${window.SB&&window.SB.empresaNome?`<div class=\"full\" style=\"font-size:14px;color:var(--ink-2)\">Empresa: <b>${esc(window.SB.empresaNome)}</b>${window.SB.empresas&&window.SB.empresas.length>1?` <button type=\"button\" class=\"btn ghost sm\" id=\"ac-troca\">Trocar de empresa</button>`:''}</div>`:''}\n <div class=\"full\"><button type=\"button\" class=\"btn ghost\" id=\"ac-out\">Sair do sistema</button></div>`,()=>{"),
+    ("document.getElementById('ac-out').onclick=sair;",
+     "document.getElementById('ac-out').onclick=sair;const trc=document.getElementById('ac-troca');if(trc)trc.onclick=()=>window.SB.trocarEmpresa();"),
 ]
 
 for antigo, novo in TROCAS:

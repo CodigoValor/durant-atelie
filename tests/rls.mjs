@@ -21,6 +21,10 @@ await db.exec(`insert into auth.users values
 await db.exec(fs.readFileSync(new URL('../supabase/migrations/0001_base.sql', import.meta.url), 'utf8'));
 await db.exec(fs.readFileSync(new URL('../supabase/migrations/0001_base.sql', import.meta.url), 'utf8')); // idempotente
 ok(true, '0001_base.sql roda sem erro (e roda duas vezes sem quebrar)');
+await db.exec(fs.readFileSync(new URL('../supabase/migrations/0004_perfil_empresa.sql', import.meta.url), 'utf8'));
+await db.exec(fs.readFileSync(new URL('../supabase/migrations/0004_perfil_empresa.sql', import.meta.url), 'utf8')); // idempotente
+const perf = (await db.query(`select vende_cliente_final v, produz p from public.empresas where nome='Durant Alfaiataria'`)).rows[0];
+ok(perf.v === true && perf.p === false, '0004_perfil_empresa.sql roda (duas vezes) e deixa o padrão: vende ao cliente final, não produz');
 
 // segunda empresa (dados da Maria) e vínculos
 await db.exec(`insert into public.empresas (nome) values ('Ateliê da Maria')`);

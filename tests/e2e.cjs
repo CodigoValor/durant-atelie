@@ -39,8 +39,9 @@ function novoBanco(cfg) {
     if (p === '/rest/v1/membros') {
       const email = st.emailLogado || (st.cfg.emailPadrao);
       if (st.cfg.semMembro) return json(route, 200, []);
-      return json(route, 200, [{ empresa_id: 'E1', papel: 'admin' }]);
+      return json(route, 200, st.cfg.membros || [{ empresa_id: 'E1', papel: 'admin' }]);
     }
+    if (p === '/rest/v1/empresas') return json(route, 200, st.cfg.empresas || [{ id: 'E1', nome: 'Durant Alfaiataria', vende_cliente_final: true, produz: false }]);
     if (p === '/rest/v1/reg') {
       const q = u.searchParams, eq = k => (q.get(k) || '').replace(/^eq\./, '');
       if (!req.headers()['authorization'] || !/Bearer .+\..+\..+/.test(req.headers()['authorization'])) return json(route, 401, { message: 'sem sessão' });
@@ -126,6 +127,39 @@ function novoBanco(cfg) {
   await pg.waitForSelector('#g-u'); await loginUi(pg, 'outro@exemplo.com', 'senhaCerta123');
   await pg.waitForFunction(() => document.body.innerText.includes('Usuário não cadastrado'), null, { timeout: 15000 });
   ok(true, 'e-mail fora da lista de usuários do sistema é barrado');
+  await ctx.close();
+
+  console.log('7) duas empresas: escolher, lembrar, trocar e manter os dados separados');
+  const b4 = novoBanco({
+    membros: [{ empresa_id: 'E1', papel: 'admin' }, { empresa_id: 'E2', papel: 'parceiro' }],
+    empresas: [{ id: 'E1', nome: 'Durant Alfaiataria', vende_cliente_final: true, produz: true }, { id: 'E2', nome: 'Ateliê da Maria', vende_cliente_final: false, produz: true }]
+  });
+  ({ pg, ctx, erros } = await abre(b4));
+  await pg.waitForSelector('#g-u'); await loginUi(pg, 'hd@henriquedurant.com', 'senhaCerta123');
+  await pg.waitForSelector('[data-emp]', { timeout: 15000 });
+  const nomes = await pg.$$eval('[data-emp]', bs => bs.map(b => b.textContent));
+  ok(nomes.length === 2 && nomes[0].includes('Durant Alfaiataria') && nomes[1].includes('Ateliê da Maria'), 'com 2 empresas, aparece a tela "Escolha a empresa" listando as duas');
+  ok(nomes[1].includes('parceiro') && nomes[0].includes('administrador'), 'cada empresa mostra o papel da pessoa nela');
+  ok(b4.reg.size === 0, 'nada é lido nem gravado antes de escolher a empresa');
+  await pg.click('[data-emp="1"]');
+  await pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  await pg.waitForFunction(() => P.state === 'ok', null, { timeout: 15000 });
+  ok(await pg.evaluate(() => window.SB.empresa === 'E2' && window.SB.empresaNome === 'Ateliê da Maria' && window.SB.papel === 'parceiro' && window.SB.perfil.produz === true && window.SB.perfil.vende === false), 'entrou na empresa escolhida, com papel e perfil de negócio corretos');
+  ok([...b4.reg.keys()].length > 0 && [...b4.reg.keys()].every(k => k.startsWith('E2|')), 'tudo que foi gravado leva o empresa_id da empresa escolhida (E2)');
+  await pg.evaluate(() => { S.clientes.push({ id: 9002, nome: 'Cliente da Maria' }); persistSoon(); });
+  await pg.waitForFunction(() => P.state === 'ok' && P.last.has('clientes~9002'), null, { timeout: 15000 });
+  await pg.reload(); await pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  ok(await pg.evaluate(() => window.SB.empresa === 'E2' && S.clientes.some(c => c.id === 9002)), 'depois de recarregar, lembra a empresa escolhida (sem perguntar de novo)');
+  await pg.click('#userchip');
+  await pg.waitForSelector('#ac-troca', { timeout: 5000 });
+  ok((await pg.textContent('.modal, #modal-root')).includes('Ateliê da Maria'), '"Sua conta" mostra a empresa atual e o botão de trocar');
+  await pg.click('#ac-troca'); await pg.waitForSelector('[data-emp]', { timeout: 15000 });
+  await pg.click('[data-emp="0"]');
+  await pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
+  await pg.waitForFunction(() => P.state === 'ok', null, { timeout: 15000 });
+  ok(await pg.evaluate(() => window.SB.empresa === 'E1' && window.SB.papel === 'admin'), 'depois de trocar, está na Durant como administrador');
+  ok(await pg.evaluate(() => !S.clientes.some(c => c.id === 9002)), 'os dados da Maria NÃO aparecem na Durant (isolamento)');
+  ok(erros.length === 0, 'sem erros de JavaScript na página (' + erros.join(' | ') + ')');
   await ctx.close();
 
   await br.close(); srv.close();

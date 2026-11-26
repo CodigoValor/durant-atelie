@@ -11,7 +11,10 @@
   var sb = window.supabase.createClient(cfg.url, cfg.key, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
-  var SB = (window.SB = { email: '', empresa: null, papel: null, client: sb });
+  var SB = (window.SB = { email: '', empresa: null, empresaNome: '', empresas: [], perfil: null, papel: null, client: sb });
+  SB.trocarEmpresa = function () {
+    sb.auth.getSession().then(function (r) { var u = r && r.data && r.data.session && r.data.session.user; if (u) lembrada(u.id, null); location.reload(); });
+  };
   var vemDeRecuperacao = /type=recovery/.test(location.hash);
 
   /* faixa fixa avisando que NÃO é o sistema real (impossível confundir homologação com produção) */
@@ -113,6 +116,27 @@
     document.getElementById('g-out').onclick = function () { SB.sair(); };
   }
 
+  function telaEscolherEmpresa(lista) {
+    return new Promise(function (resolve) {
+      var botoes = lista.map(function (x, i) {
+        var tipo = (x.vende ? 'vende ao cliente final' : '') + (x.vende && x.produz ? ' · ' : '') + (x.produz ? 'produz' : '');
+        return '<button class="gbtn" type="button" data-emp="' + i + '" style="display:block;width:100%;margin:0 0 10px;text-align:left">' +
+          esc(x.nome) + '<span style="display:block;font-size:12px;font-weight:400;opacity:.8">' + esc(x.papelTxt) + (tipo ? ' · ' + esc(tipo) : '') + '</span></button>';
+      }).join('');
+      mostra('<h1>Escolha a empresa</h1><p class="gmsg">Sua conta tem acesso a mais de uma empresa. Você pode trocar depois em "Sua conta".</p>' +
+        '<div class="gform">' + botoes + '</div><div class="gact"><button class="glink" type="button" id="g-out">Sair</button></div>');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-emp]'), function (b) {
+        b.onclick = function () { resolve(lista[+b.getAttribute('data-emp')]); };
+      });
+      document.getElementById('g-out').onclick = function () { SB.sair(); };
+    });
+  }
+  var PAPEL_TXT = { admin: 'administrador', usuario: 'usuário', parceiro: 'parceiro' };
+  function lembrada(uid, v) {
+    try { if (v === undefined) return localStorage.getItem('durant.empresa.' + uid); if (v === null) localStorage.removeItem('durant.empresa.' + uid); else localStorage.setItem('durant.empresa.' + uid, v); } catch (e) {}
+    return null;
+  }
+
   /* ---------- sessão e empresa ---------- */
   var entrando = null;
   function entrar() {
@@ -123,11 +147,23 @@
       while (!session) session = await telaLogin();
       if (vemDeRecuperacao) { await telaNovaSenha(); vemDeRecuperacao = false; }
       SB.email = String(session.user.email || '').toLowerCase();
-      var m = await sb.from('membros').select('empresa_id,papel').order('criado_em', { ascending: true }).limit(1);
+      var m = await sb.from('membros').select('empresa_id,papel').order('criado_em', { ascending: true });
       if (m.error) throw erro(m.error);
       if (!m.data || !m.data.length) { telaSemAcesso(SB.email); await new Promise(function () {}); }
-      SB.empresa = m.data[0].empresa_id;
-      SB.papel = m.data[0].papel;
+      var em = await sb.from('empresas').select('*');
+      if (em.error) throw erro(em.error);
+      var porId = {}; (em.data || []).forEach(function (e) { porId[e.id] = e; });
+      var lista = m.data.map(function (x) {
+        var e = porId[x.empresa_id] || {};
+        return { id: x.empresa_id, papel: x.papel, papelTxt: PAPEL_TXT[x.papel] || x.papel, nome: e.nome || 'Empresa',
+          vende: e.vende_cliente_final !== false, produz: e.produz === true };
+      });
+      SB.empresas = lista;
+      var uid = session.user.id, esc1 = null, lemb = lembrada(uid);
+      if (lemb) esc1 = lista.filter(function (x) { return x.id === lemb; })[0] || null;   // só vale se ainda for vínculo real
+      if (!esc1) esc1 = lista.length === 1 ? lista[0] : await telaEscolherEmpresa(lista);
+      lembrada(uid, esc1.id);
+      SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz };
     })();
     entrando.catch(function () { entrando = null; });
     return entrando;

@@ -5019,12 +5019,13 @@ function contaModal(){
  const u=P.user;if(!u)return;
  modal('Sua conta',`<div class="full"><b>${esc(u.nome)}</b><div class="d" style="color:var(--ink-2);font-size:14px">${esc(u.email||'')} · ${esc(u.grupo||'')}</div></div>
  <label class="full">Nova senha<input id="ac-p" type="password" class="ctl" autocomplete="new-password" placeholder="Deixe em branco para manter a atual"></label>
+ ${window.SB&&window.SB.empresaNome?`<div class="full" style="font-size:14px;color:var(--ink-2)">Empresa: <b>${esc(window.SB.empresaNome)}</b>${window.SB.empresas&&window.SB.empresas.length>1?` <button type="button" class="btn ghost sm" id="ac-troca">Trocar de empresa</button>`:''}</div>`:''}
  <div class="full"><button type="button" class="btn ghost" id="ac-out">Sair do sistema</button></div>`,()=>{
   const p=document.getElementById('ac-p').value;if(!p)return;
   const m=pwOk(p);if(m)return m;
   if(window.SB)window.SB.client.auth.updateUser({password:p}).then(r=>{toast(r.error?'Não consegui alterar a senha':'Senha alterada')});else setSenha(u,p).then(()=>{toast('Senha alterada');flush()});
  },'Salvar');
- document.getElementById('ac-out').onclick=sair;
+ document.getElementById('ac-out').onclick=sair;const trc=document.getElementById('ac-troca');if(trc)trc.onclick=()=>window.SB.trocarEmpresa();
 }
 async function boot(){
  gate(gBox('<p class="gmsg">Carregando seus dados…</p>'));
