@@ -444,6 +444,12 @@ function novoBanco(cfg) {
     document.getElementById('cm-meus').click(); r.meus = document.querySelectorAll('.citem[data-cli]').length === S.clientes.length - 1;
     ids.forEach(id => delete ORIGEM['clientes~' + id]); ui.cModo = 'meus'; return r; });
   ok(at.tabs && at.lista && at.ficha && at.editar && at.pedidos && at.clientes === 1 && at.medidas && at.meus, 'fábrica: aba Ateliês com lista, ficha (razão social, documento, responsável), barra fixa com "Convidar ateliê", clientes do ateliê e medidas ao lado; "Meus clientes" mostra só os próprios');
+  const vz = await r15.pg.evaluate(() => { const ant = window.SB.perfil, bak = Object.assign({}, ORIGEM); Object.keys(ORIGEM).forEach(k => delete ORIGEM[k]); window.SB.perfil = Object.assign({}, ant, { tipo: 'alfaiataria' });
+    ui.draft = null; ui.det = null; ui.cli = null; ui.cModo = 'atel'; ui.voltaAt = false; location.hash = 'clientes'; render();
+    const t = document.querySelector('main').textContent, tem = id => !!document.getElementById(id);
+    const r = { abas: tem('cm-meus') && tem('cm-atel'), vazio: t.includes('Nenhum ateliê parceiro ainda'), conv: tem('at-convidar') };
+    ui.cModo = 'meus'; window.SB.perfil = ant; Object.assign(ORIGEM, bak); return r; });
+  ok(vz.abas && vz.vazio && vz.conv, 'alfaiataria sem ateliê: as abas Meus clientes e Ateliês aparecem, com o estado vazio e o botão Convidar ateliê');
   const em = await r15.pg.evaluate(() => { window.SB.cadastro = { tipo: 'PJ', razao: 'Durant Alfaiataria Ltda.', doc: '12.345.678/0001-90' }; window.SB.perfil = { vende: true, produz: false, tipo: 'alfaiataria' };
     ui.draft = null; ui.det = null; ui.cfg = 'empresa'; location.hash = 'config'; render();
     const g = id => document.getElementById(id), menu = [...document.querySelectorAll('.cfgmenu *, nav *, main *')].some(e => e.textContent.trim() === 'Configurações da empresa');

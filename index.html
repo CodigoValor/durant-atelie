@@ -1295,9 +1295,12 @@ const ateliesLista=()=>{const m={};
  S.clientes.forEach(c=>{const n=ORIGEM['clientes~'+c.id];if(n)g(n).cli++});
  [...S.pedidos,...S.orcamentos].forEach(p=>{const n=origemDe(p.id);if(n){const a=g(n);a.ped++;const e=estadoParc(p);if(e==='recebido')a.aberto++;if(e==='aceito'&&!pedFin(p))a.prod++;const dt=p.dped||'';if(dt&&(!a.desde||dt<a.desde))a.desde=dt}});
  return Object.values(m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))};
-const modoClientesHTML=nAt=>{if(PARC()||!nAt)return '';const meus=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length,atel=ateliesLista().length,m=ui.cModo==='atel';
+const podeAteliesAba=()=>!PARC()&&(((window.SB||{}).perfil||{}).tipo==='alfaiataria'||ateliesLista().length>0);
+const aAceitarN=()=>ateliesLista().reduce((n,a)=>n+(a.aberto||0),0);
+const modoClientesHTML=nAt=>{if(!podeAteliesAba())return '';const meus=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length,atel=ateliesLista().length,m=ui.cModo==='atel';
  const b=(id,l,n,on)=>`<button type="button" id="${id}" class="btn ${on?'':'ghost'}" aria-pressed="${on}">${l} <span style="opacity:.7;margin-left:3px">${n}</span></button>`;
- return b('cm-meus','Meus clientes',meus,!m)+b('cm-atel','Ateliês',atel,m)};
+ const acN=aAceitarN(),selo=acN?`<span style="background:#F3E9D2;color:#8A5A00;font-size:11px;font-weight:600;border-radius:9px;padding:1px 7px;margin-left:6px">${acN} a aceitar</span>`:'';
+ return b('cm-meus','Meus clientes',meus,!m)+b('cm-atel','Ateliês',atel,m).replace('</button>',selo+'</button>')};
 const atelieDocFmt=a=>a.tipo==='PF'?'CPF':'CNPJ';
 const MED_CHAVE=[['colarinho','Pescoço'],['ombro_ombro','Ombro'],['torax','Tórax'],['cintura','Cintura'],['quadril','Quadril'],['manga_ei','Manga'],['comp_paleto','Comp. paletó'],['ca_comprimento','Comp. calça']];
 const temMedidas=c=>{const M=mc(c.id);return Object.values(M.corpo||{}).some(v=>v!=null&&v!=='')};
@@ -1309,6 +1312,7 @@ function medResumoHTML(c){const M=mc(c.id),h=(M.hist||[]).slice(-1)[0],tot=Objec
  <button type="button" class="btn ghost sm" id="at-med-hist" data-cli="${c.id}" style="align-self:flex-start">Ver todas as medidas, histórico e peças prontas</button>`}
 R.clientes=()=>{
  const ats=ateliesLista();
+ if(!PARC()&&!ats.length&&ui.cModo==='atel'&&podeAteliesAba()&&(location.hash||'')==='#clientes')return head('Cadastro','Clientes e medidas',modoClientesHTML(0))+`<div class="card" style="margin-top:8px"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:48px 20px;border:1px dashed #D8D2C6;border-radius:12px"><h2 style="margin:0;font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600">Nenhum ateliê parceiro ainda</h2><p style="margin:0;max-width:380px;font-size:14px;color:#525D57">Convide um ateliê para ele lançar pedidos de produção e acompanhar o andamento. Quando ele aceitar o convite, aparece aqui.</p><button type="button" id="at-convidar" style="margin-top:6px;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:10px 18px;font:500 14px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Convidar ateliê</button></div></div>`;
  if(PARC()||!ats.length||ui.cModo!=='atel'||(location.hash||'')!=='#clientes')return R.clientesMeus();
  const q=semAcento((ui.atQ||'').trim()),ft=ui.atTipo||'',dados=n=>(S.cfg.atelies||{})[n]||{};
  const L=ats.filter(a=>(!q||semAcento(a.nome+' '+(dados(a.nome).cidade||'')).includes(q))&&(!ft||(dados(a.nome).tipo||'PJ')===ft));
@@ -1343,7 +1347,7 @@ R.clientes=()=>{
  <div id="at-bar" style="position:sticky;top:0;z-index:20;background:#FFFFFF;border-bottom:1px solid #E6E1D8;box-shadow:0 2px 6px rgba(36,52,48,.06);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-sizing:border-box">
   <h1 style="margin:0;${SER};font-size:28px;line-height:1">Clientes e medidas</h1>
   <button type="button" id="cm-meus" style="background:#FFFFFF;color:#243430;border:1px solid #D8D2C6;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Meus clientes <span style="opacity:.6;margin-left:3px">${meusN}</span></button>
-  <button type="button" id="cm-atel" style="background:#243430;color:#FFFFFF;border:1px solid #243430;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Ateliês <span style="opacity:.7;margin-left:3px">${ats.length}</span></button>
+  <button type="button" id="cm-atel" style="background:#243430;color:#FFFFFF;border:1px solid #243430;border-radius:20px;padding:6px 16px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Ateliês <span style="opacity:.7;margin-left:3px">${ats.length}</span>${aAceitarN()?`<span style="background:#F3E9D2;color:#8A5A00;font-size:11px;font-weight:600;border-radius:9px;padding:1px 7px;margin-left:6px">${aAceitarN()} a aceitar</span>`:''}</button>
   <div style="flex:1 1 220px;max-width:300px;border:1px solid #D8D2C6;border-radius:10px;padding:0 12px;min-height:44px;display:flex;align-items:center;background:#fff"><input id="at-q" type="search" placeholder="Buscar ateliê por nome ou cidade" value="${esc(ui.atQ||'')}" aria-label="Buscar ateliê" style="border:0;outline:0;width:100%;font:13.5px 'Inter',sans-serif;color:#1F2A27;background:transparent"></div>
   ${pill('Todos',!ft,'data-attipo=""')}${pill('PJ',ft==='PJ','data-attipo="PJ"')}${pill('PF',ft==='PF','data-attipo="PF"')}
   <button type="button" id="at-convidar" style="margin-left:auto;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:8px 16px;font:500 13.5px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Convidar ateliê</button>
