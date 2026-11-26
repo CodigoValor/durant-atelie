@@ -19,7 +19,7 @@
 
   /* faixa fixa avisando que NÃO é o sistema real (impossível confundir homologação com produção) */
   if (cfg.ambiente === 'homologacao') {
-    document.title = '[HOMOLOGAÇÃO] ' + document.title;
+    document.title = '[HOMOLOGAÇÃO] ' + document.title; SB.prefixoTitulo = '[HOMOLOGAÇÃO] ';
     var faixa = document.createElement('div');
     faixa.textContent = 'HOMOLOGAÇÃO — ambiente de testes, não é o sistema real';
     faixa.setAttribute('style', 'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#b3261e;color:#fff;' +
@@ -37,6 +37,13 @@
     return x;
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* marca do produto (Alinhavo) + nome da empresa em uso */
+  function aplicaMarca() {
+    var nome = SB.empresaNome || '';
+    document.title = (SB.prefixoTitulo || '') + (nome ? nome + ' · Alinhavo' : 'Alinhavo');
+    [].forEach.call(document.querySelectorAll('[data-empresa]'), function (e) { e.textContent = (nome || 'GESTÃO DE ALFAIATARIAS').toUpperCase(); });
+  }
 
   /* ---------- telas (usam as classes de estilo que o sistema já tem) ---------- */
   function mostra(html) { gate(gBox(html)); }
@@ -164,6 +171,7 @@
       if (!esc1) esc1 = lista.length === 1 ? lista[0] : await telaEscolherEmpresa(lista);
       lembrada(uid, esc1.id);
       SB.uid = uid; SB.empresa = esc1.id; SB.papel = esc1.papel; SB.empresaNome = esc1.nome; SB.perfil = { vende: esc1.vende, produz: esc1.produz };
+      aplicaMarca();
     })();
     entrando.catch(function () { entrando = null; });
     return entrando;

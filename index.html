@@ -1,9 +1,9 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Durant Ateliê</title>
+<title>Alinhavo</title>
 <meta name="robots" content="noindex,nofollow">
-<link rel="icon" href="favicon.ico?v=2" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" href="favicon.ico?v=3" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=3">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
 <meta name="theme-color" content="#243029">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +34,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .mono{font-family:var(--f-mono);font-size:13px}
 
 .brand{display:flex;align-items:center;gap:12px}
+.brand .mark{width:26px;height:26px;flex:none;color:var(--amber)}
 .emblem{display:inline-block;flex:none;width:34px;height:40px;background:currentColor;color:var(--amber);-webkit-mask:var(--emblem) center/contain no-repeat;mask:var(--emblem) center/contain no-repeat}
 .emblem.mini{width:12px;height:14px;vertical-align:-2px;margin-left:4px;color:var(--gold)}
 .brand b{font-family:var(--f-wordmark);font-weight:700;font-size:21px;letter-spacing:.05em;line-height:1;display:block;color:var(--rail-ink)}
@@ -363,7 +364,7 @@ textarea.ctl{height:auto;padding:12px;line-height:1.5;resize:vertical;font-famil
 @media (max-width:900px){
   .nav{display:none}
   .top-in{padding-block:12px}
-  .top .brand .emblem{width:28px;height:32px}
+  .top .brand .emblem{width:28px;height:32px}.top .brand .mark{width:24px;height:24px}
   .top .brand b{font-size:18px}
   .top .brand small{display:none}
   .top-in{justify-content:space-between}
@@ -396,7 +397,7 @@ textarea.ctl{height:auto;padding:12px;line-height:1.5;resize:vertical;font-famil
 .gate{position:fixed;inset:0;z-index:200;background:#fff;overflow:auto}.gate[hidden]{display:none}
 body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:hidden}
 .gsplit{display:grid;grid-template-columns:47% minmax(0,1fr);min-height:100%}
-.gpanel{position:relative;min-height:100vh;overflow:hidden;color:#F1EEDD;background:radial-gradient(120% 90% at 0% 0%,#34463C 0,#243029 55%,#1B2621 100%);display:flex;flex-direction:column;justify-content:space-between;padding:44px 48px 40px}
+.gpanel{position:relative;min-height:100vh;overflow:hidden;color:#F1EEDD;background:linear-gradient(rgba(27,38,33,.42),rgba(27,38,33,.62)),url(assets/entrada.jpg) 64% center/cover no-repeat,radial-gradient(120% 90% at 0% 0%,#34463C 0,#243029 55%,#1B2621 100%);display:flex;flex-direction:column;justify-content:space-between;padding:44px 48px 40px}
 .gpanel::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(242,172,96,.055) 22px 23px);pointer-events:none}
 .gpanel>*{position:relative}
 .gp-brand,.gmbrand{display:flex;align-items:center;gap:11px;font-family:'Playfair Display',serif;font-weight:700;font-size:34px;line-height:1}
@@ -454,14 +455,14 @@ body.gated main,body.gated .top,body.gated .foot,body.gated #tabbar{visibility:h
 </svg>
 
 <header class="top"><div class="top-in">
-  <div class="brand"><span class="emblem" aria-hidden="true"></span><div><b>DURANT</b><small>ALFAIATARIA</small></div></div>
+  <div class="brand"><svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg><div><b>alinhavo</b><small data-empresa>GESTÃO DE ALFAIATARIAS</small></div></div>
   <nav class="nav" id="nav" aria-label="Módulos"></nav>
   <button class="userchip" id="userchip" type="button" hidden aria-label="Sua conta"></button>
 </div></header>
 <div id="gate" class="gate" hidden></div>
 <main id="main"></main>
 <footer class="foot"><div class="foot-in">
-  <div class="brand"><span class="emblem" aria-hidden="true"></span><div><b>DURANT</b><small>ALFAIATARIA</small></div></div>
+  <div class="brand"><svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg><div><b>alinhavo</b><small data-empresa>GESTÃO DE ALFAIATARIAS</small></div></div>
   <div class="foot-tag">O mundo trata melhor quem se veste bem.</div>
   <div class="foot-meta">Sistema interno</div>
 </div></footer>
