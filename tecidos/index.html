@@ -272,10 +272,19 @@ function resolverRef(texto, lojaId) {
   if (!k) return { cat: null, match: 'vazio' };
   var ativos = S.catalogo.filter(function (c) { return c.ativo; });
   function acha(lista) { return lista.find(function (c) { return chaveRef(c.referencia) === k || (c.apelidos || []).some(function (a) { return chaveRef(a) === k; }); }); }
-  var c = acha(ativos.filter(function (x) { return x.loja_id === lojaId; }));
+  var minha = ativos.filter(function (x) { return x.loja_id === lojaId; });
+  var c = acha(minha);
   if (c) return { cat: c, match: 'ok' };
   c = acha(ativos);
   if (c) return { cat: c, match: 'outra_loja' };
+  /* artigo/cor: "1009/6" = artigo 1009, cor 6 (o preço é do artigo, a cor é só o código dentro dele) */
+  var t = String(texto).trim().replace(/\s*([\/-])\s*/g, '$1');
+  for (var i = t.search(/[\/-][^\/-]*$/); i > 0; i = t.slice(0, i).search(/[\/-][^\/-]*$/)) {
+    var kk = chaveRef(t.slice(0, i)), cor = t.slice(i + 1);
+    function acha2(lista) { return lista.find(function (x) { return chaveRef(x.referencia) === kk || (x.apelidos || []).some(function (a) { return chaveRef(a) === kk; }); }); }
+    var a = acha2(minha); if (a) return { cat: a, match: 'ok', cor: cor };
+    a = acha2(ativos); if (a) return { cat: a, match: 'outra_loja', cor: cor };
+  }
   return { cat: null, match: 'desconhecido' };
 }
 function achaAncoras(linha, lojaId) {
@@ -342,7 +351,7 @@ function interpretar(texto, lojaId) {
     var assumido = false;
     if (!dest) { dest = globalDest || padrao; assumido = !!dest; }
     var r = resolverRef(c.anc.raw, lojaId);
-    return { referencia: r.cat ? r.cat.referencia : c.anc.raw.replace(/\s+/g, ''), catalogo_id: r.cat ? r.cat.id : null, match: r.match,
+    return { referencia: r.cat ? (r.cor ? r.cat.referencia + '/' + r.cor : r.cat.referencia) : c.anc.raw.replace(/\s+/g, ''), catalogo_id: r.cat ? r.cat.id : null, match: r.match,
       metragem: met, cliente_final: cli ? cli.replace(/[.,;:\s]+$/, '') : '', destino_id: dest ? dest.id : '', assumido: assumido };
   });
   if (!itens.length && String(texto || '').trim()) avisos.push('Não encontrei nenhum tecido no texto. Confira se a referência está escrita (ex.: 405/3) ou adicione o item manualmente.');

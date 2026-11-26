@@ -54,6 +54,9 @@ function servidor() {
   const T = (txt, loja) => page.evaluate(([t, l]) => { const e = window.__tec.estado(); return window.__tec.interpretar(t, l || e.lojas[0].id).itens.map(i => ({ r: i.referencia, m: i.metragem, c: i.cliente_final, d: (e.destinos.find(x => x.id === i.destino_id) || {}).nome || '', match: i.match })); }, [txt, loja]);
   let r = await T('fulano, eu quero o tecido 405/3, 1,80m dele, para o meu cliente, que é o João Paiva');
   ok(r.length === 1 && r[0].r === '405/3' && r[0].m === 1.8 && r[0].c === 'João Paiva', 'frase longa e solta (como no zap): tecido, metragem e "que é o João Paiva"');
+  const mbId = await page.evaluate(() => window.__tec.estado().lojas.find(l => l.nome === 'Mark Bel').id);
+  r = await T('1009/6 1,50m para o Victor Maruyama\n1009/14 1,70m cliente João Faé', mbId);
+  ok(r.length === 2 && r[0].r === '1009/6' && r[0].match === 'ok' && r[1].r === '1009/14' && r[1].match === 'ok', 'artigo/cor (1009/6, 1009/14) reconhece o artigo 1009 da Mark Bel');
   r = await T('405/3 1,80m João Paiva enviar pra mim, 405/7 2m Pedro Souza enviar pra Maria');
   ok(r.length === 2 && r[0].d === 'Ateliê' && r[1].d === 'Maria' && r[1].m === 2, 'dois pedidos na mesma linha são separados');
   r = await T('405/3 180cm para o Paulo Lemos');
