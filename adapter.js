@@ -129,7 +129,9 @@
     if (c === 'user_already_exists' || /already (registered|exists)/i.test(m)) return 'Este e-mail já tem conta. Use "Já tenho conta" para entrar.';
     if (c === 'weak_password' || /password/i.test(m)) return 'Escolha uma senha mais forte (8 caracteres ou mais).';
     if (e && (e.status === 429 || c === 'over_request_rate_limit')) return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
-    return 'Não consegui criar sua conta agora. Tente de novo em instantes.';
+    if (c === 'signup_disabled' || /signups? (not allowed|are disabled|disabled)/i.test(m)) return 'O cadastro de novos usuários está desligado no Supabase (Authentication, Sign In / Providers, "Allow new users to sign up").';
+    if (c === 'over_email_send_rate_limit' || /email rate limit/i.test(m)) return 'Limite de e-mails de confirmação do Supabase atingido. Aguarde uma hora ou desligue a confirmação de e-mail nos testes.';
+    return 'Não consegui criar sua conta agora. Tente de novo em instantes. (detalhe: ' + (c || (e && e.status) || 'erro') + (m ? ' / ' + m.slice(0, 120) : '') + ')';
   }
   function telaConviteInvalido() {
     return new Promise(function (resolve) {
