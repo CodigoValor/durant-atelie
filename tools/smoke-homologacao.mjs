@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
+
+const hosts = [
+  ['https://homolog.henriquedurant.com', 'adapter.js'],
+  ['https://painel-homolog.henriquedurant.com', 'painel.js'],
+];
+const project = 'https://azkvclwozhneyougtcbn.supabase.co';
+const expectedCommit = process.env.ALINHAVO_EXPECTED_COMMIT;
+const localConfig = readFileSync(new URL('../config.js', import.meta.url), 'utf8');
+if (expectedCommit && !/^[a-f0-9]{40}$/.test(expectedCommit)) {
+  throw new Error('SHA esperado inválido');
+}
+
+function get(origin, path) {
+  return fetch(new URL(path, origin), { redirect: 'error', signal: AbortSignal.timeout(12_000) });
+}
+
+async function check(origin, marker) {
+  const [page, config, asset, source, version] = await Promise.all([
+    get(origin, '/'),
+    get(origin, '/config.js'),
+    get(origin, '/' + marker),
+    get(origin, '/supabase/migrations/0026_convite_envio_email.sql'),
+    get(origin, '/versao.json'),
+  ]);
+  assert.equal(page.status, 200, `${origin} página inicial`);
+  assert.ok((await page.text()).includes(marker), `${origin} página incorreta`);
+  assert.equal(page.headers.get('x-content-type-options'), 'nosniff', `${origin} cabeçalhos`);
+  assert.equal(asset.status, 200, `${origin} JavaScript da página`);
+  assert.match(asset.headers.get('content-type') || '', /javascript/, `${origin} tipo do JavaScript`);
+  assert.equal(version.status, 200, `${origin} versão publicada`);
+  if (expectedCommit) {
+    assert.equal((await version.json()).commit, expectedCommit, `${origin} commit publicado`);
+  }
+  assert.equal(config.status, 200, `${origin} configuração`);
+  assert.ok((await config.text()) === localConfig, `${origin} configuração diferente da revisão verificada`);
+  const context = { window: {}, location: { hostname: new URL(origin).hostname } };
+  runInNewContext(localConfig, context, { timeout: 1000, filename: 'config.js' });
+  const selected = context.window.SUPABASE_CFG;
+  assert.equal(selected?.ambiente, 'homologacao', `${origin} ambiente ativo no navegador`);
+  assert.equal(selected?.url, project, `${origin} projeto ativo no navegador`);
+  assert.equal(source.status, 404, `${origin} arquivos internos fora do deploy`);
+  console.log(`${origin} OK`);
+}
+
+const checks = await Promise.allSettled(hosts.map(args => check(...args)));
+for (const result of checks) {
+  if (result.status === 'rejected') {
+    console.error(result.reason.message);
+    process.exitCode = 1;
+  }
+}
