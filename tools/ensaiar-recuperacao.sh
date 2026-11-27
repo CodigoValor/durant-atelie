@@ -73,6 +73,42 @@ insert into public.reg (empresa_id, id, k, i, n, j) values
   ('55000000-0000-0000-0000-000000000004', 'recuperacao-1', 'clientes', '1', 1, '{"origem":"B"}');
 SQL
 
+# Carga sintética adicional para o ensaio de capacidade e integridade.
+"${origem[@]}" -q <<'SQL'
+insert into public.reg (empresa_id, id, k, i, n, j)
+select e.id, 'lote-' || k.tipo || '-' || g.n, k.tipo, g.n::text, g.n,
+       jsonb_build_object('numero', g.n, 'tipo', k.tipo, 'sintetico', true)::text
+from public.empresas e cross join (values ('clientes'), ('pedidos')) k(tipo)
+cross join generate_series(2, 501) g(n);
+insert into public.tec_lojas (empresa_id,nome)
+select id,'Fornecedor sintético' from public.empresas;
+insert into public.tec_vendedores (empresa_id,loja_id,nome)
+select empresa_id,id,'Vendedor sintético' from public.tec_lojas;
+insert into public.tec_destinos (empresa_id,nome)
+select id,'Destino sintético' from public.empresas;
+insert into public.tec_catalogo (empresa_id,loja_id,referencia)
+select empresa_id,id,'REF-' || g.n from public.tec_lojas cross join generate_series(1,3) as g(n);
+insert into public.tec_pedidos (empresa_id,loja_id,texto_original)
+select empresa_id,id,'Pedido de ensaio ' || g.n from public.tec_lojas cross join generate_series(1,100) as g(n);
+insert into public.tec_pedido_itens (empresa_id,pedido_id,catalogo_id,referencia,metragem,destino_id)
+select p.empresa_id,p.id,c.id,c.referencia,1.5,d.id from public.tec_pedidos p
+join public.tec_catalogo c on c.empresa_id=p.empresa_id and c.loja_id=p.loja_id
+join public.tec_destinos d on d.empresa_id=p.empresa_id;
+insert into public.tec_mensagens (empresa_id,pedido_id,direcao,corpo)
+select empresa_id,id,'saida','Mensagem de ensaio' from public.tec_pedidos;
+insert into public.contadores (empresa_id,nome,ultimo)
+select id,'pedido',501 from public.empresas;
+insert into public.plataforma_admins (user_id)
+values ('55000000-0000-0000-0000-000000000001');
+insert into public.pessoas (user_id,cpf,nome)
+values ('55000000-0000-0000-0000-000000000005','00000000000','Pessoa sintética');
+insert into public.tec_loja_clientes (loja_empresa_id,cliente_empresa_id,user_id,tipo,nome,documento)
+values ('55000000-0000-0000-0000-000000000004','55000000-0000-0000-0000-000000000002',
+        '55000000-0000-0000-0000-000000000001','pf','Cliente sintético','52998224725');
+insert into public.convites (empresa_id,email,papel,token_hash)
+select id,'novo-' || id::text || '@example.test','usuario',sha256(convert_to(id::text,'utf8'))::text from public.empresas;
+SQL
+
 "$PG_BIN/pg_dump" --schema=auth --schema=public --format=custom --file="$work/backup.dump" origem
 export ALINHAVO_DRILL_PASSPHRASE
 ALINHAVO_DRILL_PASSPHRASE=$(openssl rand -hex 32)
@@ -107,6 +143,19 @@ nomes=("${tabelas[@]#--table=}")
   gzip -dc "$work/operacional-restaurado.sql.gz"
   for tabela in "${nomes[@]}"; do printf 'alter table %s enable trigger user;\n' "$tabela"; done
 } | "${operacional[@]}" -q --single-transaction -f -
+
+# Compara o conteúdo de cada tabela, além das verificações de RLS por papel.
+verificadas=("${nomes[@]}" auth.users)
+for tabela in "${verificadas[@]}"; do
+  consulta="select count(*) || ':' || encode(sha256(convert_to(coalesce(string_agg(row_data, '' order by row_data),''),'UTF8')),'hex') from (select row_to_json(t)::text row_data from $tabela t) linhas"
+  assinatura=$("${origem[@]}" -Atc "$consulta")
+  if [[ "$assinatura" != "$("${destino[@]}" -Atc "$consulta")" ||
+        "$assinatura" != "$("${operacional[@]}" -Atc "$consulta")" ]]; then
+    echo "Conteúdo divergente após restauração em $tabela" >&2
+    exit 1
+  fi
+  echo "$tabela: $assinatura"
+done
 
 for banco in origem recuperacao operacional; do
   "$PG_BIN/psql" -X -v ON_ERROR_STOP=1 -q -d "$banco" -f "$root/tools/verificar-isolamento-recuperacao.sql"
