@@ -516,7 +516,8 @@ const NUM={blocos:{},busy:{},TAM:5,
 /* Origem dos documentos: na empresa produtora, quem lançou o pedido (nome da EMPRESA do parceiro). Só leitura, nunca vai para os dados. */
 let ORIGEM={};
 const origemDe=id=>ORIGEM['pedidos~'+id]||ORIGEM['orcamentos~'+id]||'';
-const origTag=id=>{const n=origemDe(id);return n?`<span class="pill" style="background:#EFE7D6;color:#6B4E16" title="Pedido lançado por este parceiro">${esc(n)}</span>`:''};
+const nomeAtelie=chave=>S.cfg.atelies?.[chave]?.fantasia||chave;
+const origTag=id=>{const n=origemDe(id);return n?`<span class="pill" style="background:#EFE7D6;color:#6B4E16" title="Pedido lançado por este parceiro">${esc(nomeAtelie(n))}</span>`:''};
 async function carregarOrigens(){
  if(!window.SB||!window.SB.client||!window.SB.empresa||window.SB.papel==='parceiro')return;
  try{
@@ -1245,7 +1246,7 @@ R.painel=()=>{
  const abertosAll=S.pedidos.filter(aberto),atrasadosAll=abertosAll.filter(p=>{const ent=prazoPedido(p);return ent&&daysTo(ent)<0});
  const prodTempos=[];S.pedidos.forEach(p=>{if(!p.pecas)return;const base=p.aprov||p.dped;if(!base)return;p.pecas.forEach(pc=>{const dEnt=datF(p,pc,'entregue');if(dEnt){const dias=Math.round((d(dEnt)-d(base))/864e5);if(dias>=0)prodTempos.push(dias)}})});
  const tempoMedio=prodTempos.length?Math.round(prodTempos.reduce((a,b)=>a+b,0)/prodTempos.length):null;
- return head(TODAY().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,c=>c.toUpperCase()),`${saudacao()}, ${P.user?P.user.nome.split(' ')[0]:'Luiz'}.`,`<a class="btn" href="#clientes">${ic('i-plus')}Gerar pedido</a>`)+
+ return head(TODAY().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}).replace(/^./,c=>c.toUpperCase()),`${saudacao()}, ${P.user?esc(nomeDaConta().split(/\s+/)[0]):'Luiz'}.`,`<a class="btn" href="#clientes">${ic('i-plus')}Gerar pedido</a>`)+
  `${nudgeBackup()}<div class="sec-h"><h2>Vendas</h2><div class="seg" role="group" aria-label="Mês das vendas"><button data-pm="atual" aria-pressed="${ui.pm!=='ant'}">${nomeM(mAtual)[0].toUpperCase()+nomeM(mAtual).slice(1)}</button><button data-pm="ant" aria-pressed="${ui.pm==='ant'}">${nomeM(mAnt)[0].toUpperCase()+nomeM(mAnt).slice(1)}</button></div></div>
  <div class="grid g-kpi">
   <div class="card kpi"><span class="l">Vendas fechadas</span><span class="v">${T.n}</span>${delta(T.n,C&&C.n)||'<span class="s">pedidos aprovados no mês</span>'}</div>
@@ -1290,12 +1291,12 @@ R.painel=()=>{
 };
 
 /* ===== Fábrica: aba "Ateliês" (lista de ateliês, ficha e clientes do ateliê com as medidas ao lado) ===== */
-const ateliesLista=()=>{const m={};
+const ateliesLista=()=>{const m=Object.create(null);
  const g=n=>(m[n]=m[n]||{nome:n,cli:0,ped:0,aberto:0,prod:0,desde:''});
  Object.keys((S.cfg&&S.cfg.atelies)||{}).forEach(n=>g(n));
  S.clientes.forEach(c=>{const n=ORIGEM['clientes~'+c.id];if(n)g(n).cli++});
  [...S.pedidos,...S.orcamentos].forEach(p=>{const n=origemDe(p.id);if(n){const a=g(n);a.ped++;const e=estadoParc(p);if(e==='recebido')a.aberto++;if(e==='aceito'&&!pedFin(p))a.prod++;const dt=p.dped||'';if(dt&&(!a.desde||dt<a.desde))a.desde=dt}});
- return Object.values(m).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'))};
+ return Object.values(m).sort((a,b)=>nomeAtelie(a.nome).localeCompare(nomeAtelie(b.nome),'pt-BR'))};
 const podeAteliesAba=()=>!PARC()&&(((window.SB||{}).perfil||{}).tipo==='alfaiataria'||ateliesLista().length>0);
 const aAceitarN=()=>ateliesLista().reduce((n,a)=>n+(a.aberto||0),0);
 const tabsLista=modo=>{if(!podeAteliesAba())return '';const meus=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length,atel=ateliesLista().length,ac=aAceitarN();
@@ -1322,9 +1323,9 @@ R.clientes=()=>{
  if(!PARC()&&!ats.length&&ui.cModo==='atel'&&podeAteliesAba()&&(location.hash||'')==='#clientes')return `<div id="at-wrap" style="margin:-28px calc(50% - 50vw) -48px;background:#FBFAF7;min-height:80vh;font-family:'Inter',system-ui,sans-serif;color:#1F2A27"><div id="at-bar" style="position:sticky;top:0;z-index:20;background:#FFFFFF;border-bottom:1px solid #E6E1D8;box-shadow:0 2px 6px rgba(36,52,48,.06);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-sizing:border-box"><h1 style="margin:0;font-family:'Cormorant Garamond',serif;font-weight:600;font-size:28px;line-height:1">Clientes e medidas</h1>${btnNovoCli}</div><div style="padding:24px"><div style="max-width:300px;margin-bottom:14px">${tabsLista('atel')}</div><div style="background:#fff;border:1px solid #E6E1D8;border-radius:14px;padding:28px"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:48px 20px;border:1px dashed #D8D2C6;border-radius:12px"><h2 style="margin:0;font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600">Nenhum ateliê parceiro ainda</h2><p style="margin:0;max-width:380px;font-size:14px;color:#525D57">Cadastre um ateliê para ele lançar pedidos de produção e acompanhar o andamento. Ele recebe um convite e, quando aceitar, passa a aparecer aqui.</p><button type="button" id="at-convidar2" style="margin-top:6px;background:#B8893A;color:#FFFFFF;border:0;border-radius:10px;padding:10px 18px;font:500 14px 'Inter',sans-serif;min-height:44px;cursor:pointer">+ Cadastrar ateliê</button></div></div></div></div>`;
  if(PARC()||!ats.length||ui.cModo!=='atel'||(location.hash||'')!=='#clientes')return R.clientesMeus();
  const q=semAcento((ui.atQ||'').trim()),ft=ui.atTipo||'',dados=n=>(S.cfg.atelies||{})[n]||{};
- const L=ats.filter(a=>(!q||semAcento(a.nome+' '+(dados(a.nome).cidade||'')).includes(q))&&(!ft||(dados(a.nome).tipo||'PJ')===ft));
+ const L=ats.filter(a=>(!q||semAcento([nomeAtelie(a.nome),dados(a.nome).razao,dados(a.nome).cidade].filter(Boolean).join(' ')).includes(q))&&(!ft||(dados(a.nome).tipo||'PJ')===ft));
  if(!ui.atSel||!ats.some(a=>a.nome===ui.atSel))ui.atSel=(L[0]||ats[0]).nome;
- const nome=ui.atSel,d=dados(nome),a1=ats.find(a=>a.nome===nome),meusN=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length;
+ const nome=ui.atSel,d=dados(nome),titulo=d.razao||nomeAtelie(nome),a1=ats.find(a=>a.nome===nome),meusN=S.clientes.filter(c=>!ORIGEM['clientes~'+c.id]).length;
  const cs=S.clientes.filter(c=>ORIGEM['clientes~'+c.id]===nome).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR',{sensitivity:'base'}));
  const semN=cs.filter(c=>!temMedidas(c)).length,qc=semAcento((ui.atQc||'').trim());
  let csf=cs.filter(c=>(!qc||semAcento(c.nome).includes(qc))&&(ui.atFiltro!=='sem'||!temMedidas(c)));
@@ -1335,13 +1336,13 @@ R.clientes=()=>{
  const SER="font-family:'Cormorant Garamond',serif;font-weight:600";
  const av=(t,on,sz,fs)=>`<span style="width:${sz}px;height:${sz}px;border-radius:50%;background:${on?'#243430':'#E9E4D8'};color:${on?'#FFFFFF':'#243430'};display:flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:600;flex:none">${esc(initials(t))}</span>`;
  const tp=t=>t==='PF'?'<span style="background:#EEEEEA;color:#555555;font-size:10px;font-weight:600;border-radius:8px;padding:1px 6px;flex:none">PF</span>':'<span style="background:#E6ECF2;color:#34506B;font-size:10px;font-weight:600;border-radius:8px;padding:1px 6px;flex:none">PJ</span>';
- const cp=(r,v,span)=>`<div style="grid-column:span ${span||1}"><div style="font-size:11.5px;color:#5C6760">${r}</div><div style="font-size:13.5px">${v?esc(v):'<span style="color:#5C6760">—</span>'}</div></div>`;
+ const cp=(r,v,span)=>`<div style="grid-column:span ${span||1};overflow-wrap:anywhere"><div style="font-size:11.5px;color:#5C6760">${r}</div><div style="font-size:13.5px">${v?esc(v):'<span style="color:#5C6760">—</span>'}</div></div>`;
  const pill=(l,on,at)=>`<button type="button" ${at} aria-pressed="${on}" style="${on?'background:#243430;color:#FFFFFF;border:1px solid #243430':'background:#FFFFFF;color:#1F2A27;border:1px solid #D8D2C6'};border-radius:16px;padding:6px 12px;font:${on?600:400} 12.5px 'Inter',sans-serif;cursor:pointer">${l}</button>`;
  const pill2=(l,on,at)=>`<button type="button" ${at} aria-pressed="${on}" style="${on?'background:#243430;color:#FFFFFF;border:1px solid #243430;font-weight:500':'background:#FFFFFF;color:#1F2A27;border:1px solid #D8D2C6'};border-radius:14px;padding:4px 10px;font:${on?500:400} 12px 'Inter',sans-serif;cursor:pointer">${l}</button>`;
- const esq=L.map(a=>{const sel=a.nome===nome,dd=dados(a.nome);
-  return `<button type="button" data-atsel="${esc(a.nome)}" aria-selected="${sel}" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid ${sel?'#D9C9A3':'#EFEBE2'};border-radius:10px;background:${sel?'#F4EFE4':'#FFFFFF'};text-align:left;cursor:pointer;width:100%;font-family:inherit;color:inherit">${av(a.nome,sel,32,11.5)}<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(a.nome)}</span>${tp(dd.tipo)}</div><div style="font-size:12px;color:#525D57">${dd.cidade?esc(dd.cidade)+' · ':''}${a.cli} ${a.cli===1?'cliente':'clientes'} · ${a.prod} em prod.</div></div>${a.aberto?`<span style="background:#F3E9D2;color:#8A5A00;font-size:10.5px;font-weight:600;border-radius:8px;padding:1px 7px;flex:none">${a.aberto} a aceitar</span>`:''}</button>`}).join('');
+ const esq=L.map(a=>{const sel=a.nome===nome,dd=dados(a.nome),fantasia=nomeAtelie(a.nome);
+  return `<button type="button" data-atsel="${esc(a.nome)}" aria-selected="${sel}" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid ${sel?'#D9C9A3':'#EFEBE2'};border-radius:10px;background:${sel?'#F4EFE4':'#FFFFFF'};text-align:left;cursor:pointer;width:100%;font-family:inherit;color:inherit">${av(fantasia,sel,32,11.5)}<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(fantasia)}</span>${tp(dd.tipo)}</div><div style="font-size:12px;color:#525D57">${dd.cidade?esc(dd.cidade)+' · ':''}${a.cli} ${a.cli===1?'cliente':'clientes'} · ${a.prod} em prod.</div></div>${a.aberto?`<span style="background:#F3E9D2;color:#8A5A00;font-size:10.5px;font-weight:600;border-radius:8px;padding:1px 7px;flex:none">${a.aberto} a aceitar</span>`:''}</button>`}).join('');
  const desde=a1.desde?`parceiro desde ${fdFull(a1.desde)}`:'';
- const sub=[dados(nome).cidade,desde,`${a1.prod} ${a1.prod===1?'pedido':'pedidos'} em produção`].filter(Boolean).join(' · ');
+ const sub=[nomeAtelie(nome)!==titulo?nomeAtelie(nome):'',dados(nome).cidade,desde,`${a1.prod} ${a1.prod===1?'pedido':'pedidos'} em produção`].filter(Boolean).join(' · ');
  const cli=mostra.map(c=>{const on=c.id===ui.atCli,tm=temMedidas(c);
   return `<button type="button" data-atcli="${c.id}" aria-selected="${on}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid ${on?'#D9C9A3':'#EFEBE2'};border-radius:10px;background:${on?'#F4EFE4':'#FFFFFF'};text-align:left;cursor:pointer;width:100%;font-family:inherit;color:inherit">${av(c.nome,on,30,11)}<span style="flex:1;font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.nome)}</span><span style="background:${tm?'#E1EFE4':'#F3E9D2'};color:${tm?'#2F6B3F':'#8A5A00'};font-size:10.5px;font-weight:600;border-radius:8px;padding:2px 8px;flex:none">${tm?'com medidas':'sem medidas'}</span></button>`}).join('');
  const mp=csel?(()=>{const M=mc(csel.id),h=(M.hist||[]).slice(-1)[0],tot=temMedidas(csel);
@@ -1359,12 +1360,13 @@ R.clientes=()=>{
   <div style="flex:0 0 300px;max-width:100%;display:flex;flex-direction:column;gap:8px">${tabsLista('atel')}${buscaL('at-q','Buscar ateliê por nome ou cidade',ui.atQ)}<div style="display:flex;gap:6px;flex-wrap:wrap">${pillL('Todos',!ft,'data-attipo=""')}${pillL('PJ',ft==='PJ','data-attipo="PJ"')}${pillL('PF',ft==='PF','data-attipo="PF"')}</div>${esq||'<p style="font-size:13px;color:#525D57">Nenhum ateliê com esse filtro.</p>'}<p style="margin:4px 2px 0;font-size:12px;color:#525D57">Ateliê novo: use + Novo cliente. Ele entra por convite e aparece aqui.</p></div>
   <div style="flex:1 1 560px;display:flex;flex-direction:column;gap:14px;min-width:0">
    <div style="background:#FFFFFF;border:1px solid #E6E1D8;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:14px">
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">${av(nome,true,48,16)}
-     <div style="flex:1 1 240px"><div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0;${SER};font-size:28px;line-height:1.1">${esc(nome)}</h2><span style="background:${d.tipo==='PF'?'#EEEEEA':'#E6ECF2'};color:${d.tipo==='PF'?'#555555':'#34506B'};font-size:10.5px;font-weight:600;border-radius:8px;padding:1px 7px">${d.tipo==='PF'?'PF':'PJ'}</span>${a1.aberto?`<span style="background:#F3E9D2;color:#8A5A00;font-size:10.5px;font-weight:600;border-radius:8px;padding:1px 7px">${a1.aberto} a aceitar</span>`:''}</div><div style="font-size:12.5px;color:#525D57">${esc(sub)}</div></div>
-     <button type="button" id="at-edit" style="background:#FFFFFF;color:#243430;border:1px solid #D8D2C6;border-radius:10px;padding:8px 14px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Editar dados</button>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">${av(titulo,true,48,16)}
+     <div style="flex:1 1 240px"><div style="display:flex;align-items:center;gap:8px"><h2 style="margin:0;${SER};font-size:28px;line-height:1.1">${esc(titulo)}</h2><span style="background:${d.tipo==='PF'?'#EEEEEA':'#E6ECF2'};color:${d.tipo==='PF'?'#555555':'#34506B'};font-size:10.5px;font-weight:600;border-radius:8px;padding:1px 7px">${d.tipo==='PF'?'PF':'PJ'}</span>${a1.aberto?`<span style="background:#F3E9D2;color:#8A5A00;font-size:10.5px;font-weight:600;border-radius:8px;padding:1px 7px">${a1.aberto} a aceitar</span>`:''}</div><div style="font-size:12.5px;color:#525D57">${esc(sub)}</div></div>
+     <button type="button" id="at-edit" style="background:#FFFFFF;color:#243430;border:1px solid #D8D2C6;border-radius:10px;padding:8px 14px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Editar cadastro</button>
      <button type="button" id="at-pedidos" style="background:#243430;color:#FFFFFF;border:0;border-radius:10px;padding:8px 14px;font:500 13px 'Inter',sans-serif;min-height:44px;cursor:pointer">Ver pedidos do ateliê</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 20px">${cp('Razão social',d.razao)}${cp(d.tipo==='PF'?'CPF':'CNPJ',d.doc)}${cp('Responsável',d.resp)}${cp('WhatsApp',d.tel)}${cp('E-mail',d.email)}${cp('Cidade',d.cidade)}${cp('Endereço de entrega',d.end,2)}${cp('Observações',d.obs)}</div>
+    <div>${syncHTML()}</div>
    </div>
    <div style="background:#FFFFFF;border:1px solid #E6E1D8;border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0;${SER};font-size:23px;text-transform:none;letter-spacing:0;color:#1F2A27">Clientes do ateliê</h3><span style="background:#EEEEEA;color:#555555;font-size:11px;font-weight:600;border-radius:9px;padding:1px 8px">${cs.length}</span><span style="font-size:12px;color:#5C6760;flex:1 1 280px">Só nome e medidas, para consulta. Contato e documentos ficam com o ateliê.</span></div>
@@ -1391,6 +1393,20 @@ function novoClienteEscolha(){
   const v=document.querySelector('input[name="nc-tipo"]:checked').value;
   if(v==='atel'){setTimeout(atelieNovo,0);return ''}
   ui.cModo='meus';ui.voltaAt=false;ui.cli='novo';ui.tab='cadastro';setTimeout(()=>document.getElementById('c-nome')?.focus(),30);return ''},'Continuar')}
+const UFS='AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ');
+function camposLocalidade(id,valor='',bloqueado=false){
+ const m=String(valor||'').match(/^(.+?)(?:\s*[·/–—]\s*|\s+-\s+|,\s*)([a-z]{2})$/i);
+ const uf=m&&UFS.includes(m[2].toUpperCase())?m[2].toUpperCase():'';
+ const cliente=id==='c',cidadeId=cliente?'c-cid':id+'-cidade',classe=cliente?' class="tf"':'';
+ return `<label${classe}>${cliente?'Cidade ou bairro':'Cidade'}<input class="ctl" id="${cidadeId}" value="${esc(uf?m[1].trim():valor)}" maxlength="60" autocomplete="address-level2" placeholder="Ex.: Campinas" ${bloqueado?'readonly':''}></label>
+ <label${classe}>UF<select class="ctl" id="${id}-uf" autocomplete="address-level1" ${bloqueado?'disabled':''}><option value="">Selecione</option>${UFS.map(x=>`<option ${x===uf?'selected':''}>${x}</option>`).join('')}</select></label>`;
+}
+const localidadeCadastro=(cidade,uf)=>[nomeProprio(cidade),uf].filter(Boolean).join(' · ');
+const telAtelieValido=v=>!v||[10,11].includes(v.replace(/\D/g,'').length);
+function ligarTelefoneAtelie(id){
+ const el=document.getElementById(id);
+ el.oninput=()=>{el.value=telMask(el.value)};
+}
 function atelieNovo(){
  modal('Novo ateliê',`<p class="full" style="margin:0;color:var(--ink-2);font-size:13px">Comece pelo documento. O botão carrega os dados da empresa (a busca automática entra numa etapa futura). Depois, o convite vai para o e-mail do ateliê.</p>
  <label class="full">CNPJ ou CPF<input class="ctl" id="an-doc" maxlength="18" inputmode="numeric" autocomplete="off" placeholder="00.000.000/0001-00"></label>
@@ -1398,43 +1414,59 @@ function atelieNovo(){
  <label class="full">Razão social ou nome do ateliê<input class="ctl" id="an-razao" maxlength="100" autocomplete="off"></label>
  <label class="full">Nome fantasia<input class="ctl" id="an-fant" maxlength="80" autocomplete="off"></label>
  <label class="full">Responsável<input class="ctl" id="an-resp" maxlength="80" autocomplete="off"></label>
- <label class="full">WhatsApp<input class="ctl" id="an-tel" maxlength="20" inputmode="tel" autocomplete="off"></label>
- <label class="full">Cidade · UF<input class="ctl" id="an-cidade" maxlength="60" autocomplete="off" placeholder="São Paulo · SP"></label>
+ <label class="full">WhatsApp<input class="ctl" id="an-tel" type="tel" maxlength="15" placeholder="(19) 99999-0000" autocomplete="tel-national"></label>
+ ${camposLocalidade('an')}
  <label class="full">E-mail que receberá o convite<input class="ctl" id="an-email" type="email" maxlength="80" autocomplete="off"></label>`,()=>{
   const v=id=>document.getElementById(id).value.trim(),em=v('an-email'),dg=v('an-doc').replace(/\D/g,''),fant=v('an-fant')||v('an-razao');
   if(dg.length!==11&&dg.length!==14)return 'Informe o CNPJ (14 números) ou o CPF (11 números).';
   if(fant.length<2)return 'Informe o nome fantasia ou a razão social.';
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return 'Informe um e-mail válido para enviar o convite.';
+  if(!telAtelieValido(v('an-tel')))return 'Informe o DDD e o número do WhatsApp.';
+  if(v('an-uf')&&!v('an-cidade'))return 'Informe a cidade.';
   S.cfg.atelies=S.cfg.atelies||{};
-  if(S.cfg.atelies[fant])return 'Já existe um ateliê com esse nome.';
-  S.cfg.atelies[fant]={tipo:dg.length===11?'PF':'PJ',razao:v('an-razao'),doc:v('an-doc'),resp:v('an-resp'),tel:v('an-tel'),email:em,cidade:v('an-cidade'),end:'',obs:''};
-  persistSoon();ui.cModo='atel';ui.atSel=fant;ui.atCli=null;
+  if(ateliesLista().some(a=>nomeAtelie(a.nome)===fant||a.nome===fant))return 'Já existe um ateliê com esse nome.';
+  S.cfg.atelies={...S.cfg.atelies,[fant]:{tipo:dg.length===11?'PF':'PJ',razao:v('an-razao'),doc:v('an-doc'),resp:v('an-resp'),tel:v('an-tel'),email:em,cidade:localidadeCadastro(v('an-cidade'),v('an-uf')),end:'',obs:''}};
+  ui.cModo='atel';ui.atSel=fant;ui.atCli=null;ui.atQ='';ui.atTipo='';
   if(window.SB&&window.SB.client&&window.SB.empresa){
    window.SB.client.rpc('criar_convite',{p_empresa:window.SB.empresa,p_email:em,p_papel:'parceiro',p_nome_parceiro:fant}).then(r=>{
     if(r.error){toast('Ateliê salvo, mas o convite falhou: '+String(r.error.message||'tente de novo em Configurações > Acessos'));return}
     const l=linkConvite(r.data);
-    modal('Convite criado',`<p class="full" style="margin:0;color:var(--ink-2);font-size:14px">Envie este link para ${esc(em)} (WhatsApp ou e-mail). Vale 7 dias, serve só para esse e-mail e só funciona uma vez. Ele não será mostrado de novo.</p><input class="ctl full" id="an-link" readonly value="${esc(l)}"><div class="full"><button type="button" class="btn" id="an-copia">Copiar link</button></div>`,null);
+    modal('Convite criado',`<p class="full" style="margin:0;color:var(--ink-2);font-size:14px">Copie o link se precisar compartilhar o convite com ${esc(em)} pelo WhatsApp. Vale 7 dias e só funciona uma vez, com esse e-mail.</p><input class="ctl full" id="an-link" readonly value="${esc(l)}"><div class="full"><button type="button" class="btn" id="an-copia">Copiar link</button></div>`,null);
+    enviarConviteEmail(r.data,em);
     const li=document.getElementById('an-link');if(li)li.select();
     const cp=document.getElementById('an-copia');if(cp)cp.onclick=()=>{li.select();try{navigator.clipboard.writeText(li.value)}catch(e){document.execCommand('copy')}toast('Link copiado')}});
   }else toast('Ateliê cadastrado');
   return ''},'Enviar convite');
  const dc=document.getElementById('an-doc');if(dc)dc.oninput=()=>{const d=dc.value.replace(/\D/g,'').slice(0,14);dc.value=d.length>11?d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/,'$1.$2.$3/$4-$5').replace(/[-/.]+$/,''):cpfMask(d)};
+ ligarTelefoneAtelie('an-tel');
  const ca=document.getElementById('an-carregar');if(ca)ca.onclick=()=>toast('Em breve: a busca automática pelo documento entra numa próxima etapa.')}
-function atelieEditar(nome){const a=((S.cfg.atelies||{})[nome])||{};
- modal('Dados do ateliê · '+nome,`<label class="full">Tipo<select class="ctl" id="at-tipo"><option value="PJ" ${a.tipo!=='PF'?'selected':''}>Pessoa jurídica (CNPJ)</option><option value="PF" ${a.tipo==='PF'?'selected':''}>Pessoa física (CPF)</option></select></label>
+function atelieEditar(nome){
+ if(PARC()||!ateliesLista().some(a=>a.nome===nome))return;
+ const a=S.cfg.atelies?.[nome]||{};
+ modal('Editar cadastro · '+nomeAtelie(nome),`<label class="full">Tipo<select class="ctl" id="at-tipo"><option value="PJ" ${a.tipo!=='PF'?'selected':''}>Pessoa jurídica (CNPJ)</option><option value="PF" ${a.tipo==='PF'?'selected':''}>Pessoa física (CPF)</option></select></label>
  <label class="full">Razão social<input class="ctl" id="at-razao" value="${esc(a.razao||'')}" maxlength="100" autocomplete="off"></label>
+ <label class="full">Nome fantasia<input class="ctl" id="at-fant" value="${esc(nomeAtelie(nome))}" maxlength="100"></label>
  <label class="full">CNPJ ou CPF<input class="ctl" id="at-doc" value="${esc(a.doc||'')}" maxlength="18" inputmode="numeric" autocomplete="off"></label>
  <label class="full">Responsável<input class="ctl" id="at-resp" value="${esc(a.resp||'')}" maxlength="80" autocomplete="off"></label>
- <label class="full">WhatsApp<input class="ctl" id="at-tel" value="${esc(a.tel||'')}" maxlength="20" inputmode="tel" autocomplete="off"></label>
+ <label class="full">WhatsApp<input class="ctl" id="at-tel" value="${esc(a.tel||'')}" type="tel" maxlength="20" autocomplete="tel-national" placeholder="(19) 99999-0000"></label>
  <label class="full">E-mail<input class="ctl" id="at-email" type="email" value="${esc(a.email||'')}" maxlength="80" autocomplete="off"></label>
- <label class="full">Cidade · UF<input class="ctl" id="at-cidade" value="${esc(a.cidade||'')}" maxlength="60" autocomplete="off" placeholder="São Paulo · SP"></label>
+ ${camposLocalidade('at',a.cidade||'')}
  <label class="full">Endereço de entrega<input class="ctl" id="at-end" value="${esc(a.end||'')}" maxlength="160" autocomplete="off"></label>
  <label class="full">Observações<input class="ctl" id="at-obs" value="${esc(a.obs||'')}" maxlength="200" autocomplete="off"></label>`,()=>{
   const v=id=>document.getElementById(id).value.trim(),e=v('at-email');
   if(e&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))return 'E-mail inválido.';
   const dg=v('at-doc').replace(/\D/g,'');if(dg&&dg.length!==11&&dg.length!==14)return 'CPF tem 11 números e CNPJ tem 14.';
-  S.cfg.atelies=S.cfg.atelies||{};S.cfg.atelies[nome]={tipo:v('at-tipo'),razao:v('at-razao'),doc:v('at-doc'),resp:v('at-resp'),tel:v('at-tel'),email:e,cidade:v('at-cidade'),end:v('at-end'),obs:v('at-obs')};
-  persistSoon();toast('Dados do ateliê salvos');return ''},'Salvar')}
+  const fantasia=v('at-fant')||v('at-razao')||nome;
+  if(fantasia.length<2)return 'Informe o nome fantasia ou a razão social.';
+  if(ateliesLista().some(a=>a.nome!==nome&&(nomeAtelie(a.nome)===fantasia||a.nome===fantasia)))return 'Já existe um ateliê com esse nome.';
+  if(v('at-tel')!==String(a.tel||'').trim()&&!telAtelieValido(v('at-tel')))return 'Informe o DDD e o número do WhatsApp.';
+  if(v('at-uf')&&!v('at-cidade'))return 'Informe a cidade.';
+  S.cfg.atelies=S.cfg.atelies||{};
+  S.cfg.atelies[nome]={...a,tipo:v('at-tipo'),razao:v('at-razao'),fantasia,doc:v('at-doc'),resp:v('at-resp'),tel:v('at-tel'),email:e,cidade:localidadeCadastro(v('at-cidade'),v('at-uf')),end:v('at-end'),obs:v('at-obs')};
+  ui.atQ='';ui.atTipo='';
+  return ''},'Salvar');
+ ligarTelefoneAtelie('at-tel');
+}
 R.clientesMeus=()=>{
  const q=semAcento(ui.q.trim()),qd=q.replace(/\D/g,'');
  const nRev=S.clientes.filter(c=>c.revisar).length;
@@ -1450,7 +1482,7 @@ R.clientesMeus=()=>{
  if(c)ui.cli=c.id;
  if(novo)ui.tab='cadastro';
  if(ui._lockCli!==ui.cli||ui._lockTab!==ui.tab){ui.cadEdit=false;ui.medEdit=false;ui._medSnap=null;ui._lockCli=ui.cli;ui._lockTab=ui.tab}
- const sub=x=>cliOculto(x)?'Cliente de '+esc(ORIGEM['clientes~'+x.id]):x.nasc?`${fdFull(x.nasc)} · ${idade(x.nasc)} anos`:'Sem data de nascimento';
+ const sub=x=>cliOculto(x)?'Cliente de '+esc(nomeAtelie(ORIGEM['clientes~'+x.id])):x.nasc?`${fdFull(x.nasc)} · ${idade(x.nasc)} anos`:'Sem data de nascimento';
  const fld=(id,label,val,data,tags)=>`<div class="fld ${val!=null?'filled':''}"><label class="l" for="${id}">${label}</label><div class="in"><input id="${id}" inputmode="decimal" autocomplete="off" value="${fmtN(val)}" ${data} ${ui.medEdit?'':'disabled'}><span class="u">cm</span><div class="stp">${ui.medEdit?`<button type="button" class="stpb" data-stp="up" tabindex="-1" aria-label="Aumentar 0,5 cm">▲</button><button type="button" class="stpb" data-stp="down" tabindex="-1" aria-label="Diminuir 0,5 cm">▼</button>`:''}</div></div>${tags||''}</div>`;
  const medBar=`<span class="saved" id="saved" role="status" aria-live="polite"></span>`;
  const SERm="font-family:'Cormorant Garamond',serif;font-weight:600";
@@ -1475,7 +1507,7 @@ R.clientesMeus=()=>{
    ?(ui.medEdit?`<button type="button" class="btn ghost" id="med-cancelar">Cancelar</button><button type="button" class="btn" id="med-salvar">Salvar alterações</button>`:`<button type="button" class="btn" id="med-editar">Editar</button>`)
    :'';
   let body;
-  if(ui.tab==='cadastro') body=`<div class="stack" style="margin-top:18px">${cliOculto(c)?`<div class="note">Este cliente é de <b>${esc(ORIGEM['clientes~'+c.id])}</b>. Os dados de contato e documentos ficam só com o ateliê. Você vê o nome e as medidas para produzir.</div>`:''}${cadForm(c,!ui.cadEdit)}</div>`;
+  if(ui.tab==='cadastro') body=`<div class="stack" style="margin-top:18px">${cliOculto(c)?`<div class="note">Este cliente é de <b>${esc(nomeAtelie(ORIGEM['clientes~'+c.id]))}</b>. Os dados de contato e documentos ficam só com o ateliê. Você vê o nome e as medidas para produzir.</div>`:''}${cadForm(c,!ui.cadEdit)}</div>`;
   else if(ui.tab==='pedidos') body=`<div class="stack" style="margin-top:18px">${histHTML(c)}${osCliHTML(c)}</div>`;
   else if(ui.tab==='corpo'){
    body=`<div class="stack" style="margin-top:18px">
@@ -1540,7 +1572,7 @@ function cadForm(c,locked){
    <label class="chk"><input type="checkbox" id="c-optin" ${v.optin?'checked':''} ${dis}>Autorizou receber mensagens e campanhas</label></div>
   <label class="tf" for="c-prof">Profissão<input id="c-prof" autocomplete="off" placeholder="Ex.: Advogado tributarista" value="${esc(g('prof'))}" ${ro}></label>
   <label class="tf" for="c-emp">Empresa<input id="c-emp" autocomplete="off" value="${esc(vv(v.empresa))}" ${ro}></label>
-  <label class="tf" for="c-cid">Cidade ou bairro<input id="c-cid" autocomplete="off" value="${esc(g('cidade'))}" ${ro}></label>
+  ${camposLocalidade('c',g('cidade'),locked)}
  </div>
  <h3 class="sec">Como chegou</h3>
  <div class="cad">
@@ -1835,7 +1867,8 @@ bind.clientes=()=>{
    Object.keys(campos).forEach(k=>{const el=document.getElementById('e-'+k),inp=document.getElementById(campos[k]);const m=err[k];el.hidden=!m;el.textContent=m||'';if(k!=='ev'&&inp)inp.setAttribute('aria-invalid',m?'true':'false')});
    const first=Object.keys(campos).find(k=>err[k]);
    if(first){document.getElementById(campos[first]).focus();return}
-   const dados={prof:val('c-prof'),empresa:val('c-emp'),cidade:val('c-cid'),tel:tl,optin:document.getElementById('c-optin').checked,origem,indicadoPor:indId,indicNC:indNC,indicNome:indNome,eventos,pref:val('c-pref'),interesses:val('c-int'),pagto:val('c-pag'),historia:val('c-hist')};
+   if(val('c-uf')&&!val('c-cid')){document.getElementById('c-cid').focus();toast('Informe a cidade ou o bairro.');return}
+   const dados={prof:val('c-prof'),empresa:val('c-emp'),cidade:localidadeCadastro(val('c-cid'),val('c-uf')),tel:tl,optin:document.getElementById('c-optin').checked,origem,indicadoPor:indId,indicNC:indNC,indicNome:indNome,eventos,pref:val('c-pref'),interesses:val('c-int'),pagto:val('c-pag'),historia:val('c-hist')};
    if(ui.cli==='novo'){
     const id=novoIdCliente();
     S.clientes.unshift(Object.assign({id,nome,nasc,cpf:cp,desde:String(TODAY().getFullYear()),club:false,total:0,pecas:0,post:'—'},dados));
@@ -4178,7 +4211,7 @@ function detalheHTML(){
  const acoes=va?'':orc?(p.recusado?`<button class="btn" id="o-reativar">Reativar orçamento</button>`:`<button class="btn ghost" id="o-pdf">PDF do orçamento</button><button class="btn ghost" data-zap2="orcamento">WhatsApp: enviar orçamento</button><button class="btn ghost" id="o-recusar">Recusar orçamento</button><button class="btn" id="o-aprovar">Aprovar orçamento</button>`):(p.finOk===false?`<button class="btn" id="o-aprovped">Aprovar pedido</button>`:(!p.pagto&&numBR(p.valor)>0)?`<button class="btn" id="o-pag">Confirmar pagamento</button>`:`<button class="btn ghost" data-zap2="confirma">WhatsApp ao cliente</button>`);
  const stP=s=>s==='pago'?'<span class="pill ok">Pago</span>':s==='atrasado'?'<span class="pill crit">Atrasado</span>':'<span class="pill">Em aberto</span>';
  const itemOf=itemNums(p.pecas);
- return head(`${orc?'Orçamento':'Pedido'} ${p.id}${origemDe(p.id)?' · pedido de '+esc(origemDe(p.id)):''}`,esc(c.nome),`<button class="btn ghost" id="o-voltar">Pedidos</button><button class="btn ghost" id="o-cliente">${ic('i-users')}Ver cadastro do cliente</button><button class="btn ghost" id="o-editar-top">Editar ${orc?'orçamento':'pedido'}</button>${acoes}`,'sticky')+`<div class="stack">
+ return head(`${orc?'Orçamento':'Pedido'} ${p.id}${origemDe(p.id)?' · pedido de '+esc(nomeAtelie(origemDe(p.id))):''}`,esc(c.nome),`<button class="btn ghost" id="o-voltar">Pedidos</button><button class="btn ghost" id="o-cliente">${ic('i-users')}Ver cadastro do cliente</button><button class="btn ghost" id="o-editar-top">Editar ${orc?'orçamento':'pedido'}</button>${acoes}`,'sticky')+`<div class="stack">
  ${aceiteCard(p)}${andamCard(p)}${destinoCard(p)}${!PARC()&&p.altAposAceite?`<div class="note"><b>O ateliê alterou este pedido depois do aceite</b> (${fdFull(p.altAposAceite.slice(0,10))}). Confira as peças antes de produzir.</div>`:''}${medPedCard(p)}
  <section class="card"><div class="card-h"><h2>${esc(p.item)}</h2>${stBadge(p)}${incompletoPill(p)}</div>
  ${p.incompleto?`<p class="hint" style="margin:0 0 4px;color:var(--warn,#8a6300)">Preenchimento incompleto — falta: ${esc(faltantesPedido(p).join(', '))}.</p>`:''}
@@ -4240,7 +4273,7 @@ R.pedidos=()=>{
 function fechamentoHTML(parc,mes){
  const L=S.pedidos.filter(p=>origemDe(p.id)===parc&&estadoParc(p)==='aceito'&&String((aceiteDe(p.id)||{}).em||p.aprov||p.dped||'').slice(0,7)===mes).sort((a,b)=>String(a.aprov||a.dped).localeCompare(String(b.aprov||b.dped)));
  const tot=L.reduce((a,p)=>a+(p.valorFab||0),0),sem=L.filter(p=>p.valorFab==null).length;
- return `<div id="fech-doc"><h3 style="margin:0 0 4px">Fechamento · ${esc(parc)}</h3><div class="d" style="color:var(--ink-2);margin-bottom:10px">${mes.slice(5)}/${mes.slice(0,4)} · ${esc(SB_NOME())}</div>
+ return `<div id="fech-doc"><h3 style="margin:0 0 4px">Fechamento · ${esc(nomeAtelie(parc))}</h3><div class="d" style="color:var(--ink-2);margin-bottom:10px">${mes.slice(5)}/${mes.slice(0,4)} · ${esc(SB_NOME())}</div>
  ${L.length?`<table style="width:100%;border-collapse:collapse;font-size:13.5px"><thead><tr><th align="left">Pedido</th><th align="left">Cliente</th><th align="left">Peças</th><th align="right">Valor</th></tr></thead><tbody>${L.map(p=>`<tr style="border-top:1px solid #ddd"><td>${esc(p.id)}</td><td>${esc((cli(p.cli)||{}).nome||'—')}</td><td>${esc(p.item||'')}</td><td align="right">${p.valorFab!=null?brl2(p.valorFab):'a definir'}</td></tr>`).join('')}</tbody><tfoot><tr style="border-top:2px solid #333"><td colspan="3"><b>Total</b></td><td align="right"><b>${brl2(tot)}</b></td></tr></tfoot></table>${sem?`<p class="d" style="color:#8A5A00;margin:8px 0 0">${sem} pedido(s) sem valor definido ficam de fora do total.</p>`:''}`:'<p class="d">Nenhum pedido aceito neste mês para este ateliê.</p>'}</div>`}
 const SB_NOME=()=>(window.SB&&window.SB.empresaNome)||'Fábrica';
 R.prodparc=()=>{
@@ -4253,7 +4286,7 @@ R.prodparc=()=>{
   return `<div class="row"><div class="grow"><div class="t">${esc(c?c.nome:'—')} <span class="mono" style="color:var(--ink-3)">${pid}</span> ${origTag(p.id)}</div><div class="d">${esc(p.item||'')} · ${p.aprov?'lançado em '+fd(p.aprov):'sem data'} ${e==='recusado'&&a.motivo?' · motivo: '+esc(a.motivo):''}</div></div>${estPill(e)}<button class="btn ghost sm" data-ppo="${pid}">Ver pedido</button>${e==='recebido'?`<button class="btn sm" data-ac="aceitar" data-pid="${pid}">Aceitar</button><button class="btn ghost sm danger" data-ac="recusar" data-pid="${pid}">Recusar</button>`:e==='recusado'?`<button class="btn ghost sm" data-ac="reabrir" data-pid="${pid}">Reabrir</button>`:''}</div>`};
  return head('Produção','Pedidos de produção','')+
  `<div class="card"><div class="card-h"><h2>Pedidos dos ateliês</h2><span class="pill ${n('recebido')?'warn':'plain'}">${n('recebido')} ${n('recebido')===1?'recebido':'recebidos'}</span></div>
-  <div class="docrow" style="gap:10px;flex-wrap:wrap;margin:0 0 10px"><select class="ctl" id="pp-parc" aria-label="Ateliê"><option value="">Todos os ateliês</option>${parcs.map(x=>`<option value="${esc(x)}" ${x===fp?'selected':''}>${esc(x)}</option>`).join('')}</select>
+  <div class="docrow" style="gap:10px;flex-wrap:wrap;margin:0 0 10px"><select class="ctl" id="pp-parc" aria-label="Ateliê"><option value="">Todos os ateliês</option>${parcs.map(x=>`<option value="${esc(x)}" ${x===fp?'selected':''}>${esc(nomeAtelie(x))}</option>`).join('')}</select>
   <select class="ctl" id="pp-est" aria-label="Estado"><option value="">Todos os estados</option><option value="recebido" ${fe==='recebido'?'selected':''}>Recebidos (${n('recebido')})</option><option value="aceito" ${fe==='aceito'?'selected':''}>Aceitos (${n('aceito')})</option><option value="recusado" ${fe==='recusado'?'selected':''}>Recusados (${n('recusado')})</option></select></div>
   ${todos.length?`<div class="docrow" style="margin:0 0 10px"><button type="button" class="btn ghost sm" id="pp-fech">Fechamento do mês</button></div>`:''}
   ${L.length?`<div class="list">${L.map(linha).join('')}</div>`:`<p class="d" style="color:var(--ink-2);margin:0">${todos.length?'Nenhum pedido com esse filtro.':'Nenhum pedido de ateliê ainda. Quando um ateliê lançar um pedido, ele aparece aqui como "recebido".'}</p>`}</div>`;
@@ -5642,9 +5675,10 @@ function entrar(u,semSessao){
  P.user=u;if(!semSessao)sess.set(u.id);
  gate(null);chipUser();render();window.scrollTo(0,0);
 }
+const nomeDaConta=()=>window.SB?.pessoaNome||P.user?.nome||'';
 function chipUser(){
  const b=document.getElementById('userchip');if(!b)return;
- b.hidden=!P.user;if(P.user)b.innerHTML=`<span class="ua" aria-hidden="true">${esc(initials(P.user.nome))}</span><span class="un">${esc(P.user.nome.split(' ')[0])}</span>${papelEmpresaTag()}`;
+ b.hidden=!P.user;if(P.user)b.innerHTML=`<span class="ua" aria-hidden="true">${esc(initials(nomeDaConta()))}</span><span class="un">${esc(nomeDaConta().split(/\s+/)[0])}</span>${papelEmpresaTag()}`;
 }
 /* Deixa claro de que lado a pessoa está: ateliê parceiro ou fábrica (dona que recebe pedidos de ateliês) */
 function papelEmpresaTag(){const w=window.SB;if(!w||!w.empresa)return '';const t=PARC()?'Ateliê':(typeof ateliesLista==='function'&&ateliesLista().length?'Fábrica':'');return t?`<span style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;background:#D9A441;color:#243430;border-radius:8px;padding:1px 6px;margin-left:6px;font-weight:700">${t}</span>`:''}
@@ -5663,7 +5697,7 @@ function menuUsuario(ev){
  const lista=emps.length>1?`<div style="height:1px;background:#E6E1D8;margin:4px 0"></div><div style="padding:8px 12px 4px;font-size:11px;letter-spacing:.8px;color:#8a6a26;font-weight:600">ALTERNAR PARA</div>${emps.map((x,i)=>{const at=x.id===SBx.empresa;return `<button type="button" data-alt="${i}" ${at?'aria-current="true"':''} style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:10px;background:${at?'#F4EFE4':'transparent'};text-align:left;font:inherit;color:inherit;cursor:${at?'default':'pointer'}">${lad(x.nome)}<span style="flex:1;min-width:0"><span style="display:block;font-size:14px;font-weight:600">${esc(x.nome)}</span><span style="display:block;font-size:12px;color:#6b726f">${esc(rot(x))}</span></span>${at?'<span style="font-size:12px;color:#8a6a26;font-weight:600">Atual</span>':''}</button>`}).join('')}`:'';
  const m=document.createElement('div');m.id='umenu';m.setAttribute('role','menu');
  m.style.cssText='position:fixed;top:66px;right:16px;width:min(320px,calc(100vw - 24px));background:#fff;color:#243430;border:1px solid #E6E1D8;border-radius:14px;box-shadow:0 12px 30px rgba(36,52,48,.14);padding:8px;box-sizing:border-box;z-index:2000;font-family:Inter,system-ui,sans-serif';
- m.innerHTML=`<div style="padding:10px 12px 8px"><div style="font-weight:600;font-size:14px">${esc(u.nome||'')}</div><div style="font-size:12.5px;color:#6b726f">${esc(SBx.email||u.email||'')}</div></div>${lista}<div style="height:1px;background:#E6E1D8;margin:4px 0"></div><button type="button" id="um-conta" style="display:block;width:100%;padding:10px 12px;border:0;background:none;text-align:left;font:inherit;font-size:14px;cursor:pointer;border-radius:10px">Minha conta</button><button type="button" id="um-sair" style="display:block;width:100%;padding:10px 12px;border:0;background:none;text-align:left;font:inherit;font-size:14px;color:#9b3d2e;cursor:pointer;border-radius:10px">Sair</button>`;
+ m.innerHTML=`<div style="padding:10px 12px 8px"><div style="font-weight:600;font-size:14px">${esc(nomeDaConta())}</div><div style="font-size:12.5px;color:#6b726f">${esc(SBx.email||u.email||'')}</div></div>${lista}<div style="height:1px;background:#E6E1D8;margin:4px 0"></div><button type="button" id="um-conta" style="display:block;width:100%;padding:10px 12px;border:0;background:none;text-align:left;font:inherit;font-size:14px;cursor:pointer;border-radius:10px">Minha conta</button><button type="button" id="um-sair" style="display:block;width:100%;padding:10px 12px;border:0;background:none;text-align:left;font:inherit;font-size:14px;color:#9b3d2e;cursor:pointer;border-radius:10px">Sair</button>`;
  document.body.appendChild(m);
  const fecha=()=>{m.remove();document.removeEventListener('click',fora,true);document.removeEventListener('keydown',tecla)};
  const fora=e=>{if(!m.contains(e.target)&&e.target.id!=='userchip'&&!e.target.closest('#userchip'))fecha()};
@@ -5675,7 +5709,7 @@ function menuUsuario(ev){
 }
 function contaModal(){
  const u=P.user;if(!u)return;
- modal('Sua conta',`<div class="full"><b>${esc(u.nome)}</b><div class="d" style="color:var(--ink-2);font-size:14px">${esc(u.email||'')} · ${esc(u.grupo||'')}</div></div>
+ modal('Sua conta',`<div class="full"><b>${esc(nomeDaConta())}</b><div class="d" style="color:var(--ink-2);font-size:14px">${esc(u.email||'')} · ${esc(u.grupo||'')}</div></div>
  <label class="full">Nova senha<input id="ac-p" type="password" class="ctl" autocomplete="new-password" placeholder="Deixe em branco para manter a atual"></label>
  ${window.SB&&window.SB.empresaNome?`<div class="full" style="font-size:14px;color:var(--ink-2)">Empresa: <b>${esc(window.SB.empresaNome)}</b></div>`:''}
  <div class="full"><button type="button" class="btn ghost" id="ac-out">Sair do sistema</button></div>`,()=>{
