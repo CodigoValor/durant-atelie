@@ -236,7 +236,11 @@
   async function pedirCpf() {
     var r;
     try { r = await sb.rpc('minha_pessoa'); } catch (e) { return; }
-    if (!r || r.error || (r.data && r.data.length)) return;   // sem a função (ambiente antigo) ou já cadastrado
+    if (!r || r.error) return;
+    if (r.data && r.data.length) {
+      SB.pessoaNome = String(r.data[0].nome || '').trim();
+      return;
+    }
     await new Promise(function (resolve) {
       mostra('<p class="geyebrow">SEU CADASTRO</p><h1>Informe seu CPF</h1><p class="gmsg">Ele identifica você em todas as empresas e permite entrar usando só o CPF e a senha. Cada CPF vale para uma única conta.</p>' +
         '<form id="g-f" class="gform"><label>CPF<input id="g-cpf" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00"></label><label>Como quer ser chamado (opcional)<input id="g-nome" autocomplete="given-name" maxlength="60" placeholder="Ex.: Luiz"></label>' +
@@ -247,8 +251,10 @@
       document.getElementById('g-f').onsubmit = function (ev) {
         ev.preventDefault();
         if (!cpfValido(cp.value)) { er.textContent = 'CPF inválido. Confira os números.'; er.hidden = false; return; }
-        sb.rpc('salvar_minha_pessoa', { p_cpf: cp.value, p_nome: document.getElementById('g-nome').value.trim() || null }).then(function (x) {
+        var nome = document.getElementById('g-nome').value.trim();
+        sb.rpc('salvar_minha_pessoa', { p_cpf: cp.value, p_nome: nome || null }).then(function (x) {
           if (x.error) { er.textContent = /já está cadastrado/.test(x.error.message || '') ? 'Este CPF já está cadastrado em outra conta.' : 'Não consegui salvar agora. Tente de novo.'; er.hidden = false; return; }
+          SB.pessoaNome = nome;
           resolve();
         }, function () { er.textContent = 'Não consegui salvar agora. Tente de novo.'; er.hidden = false; });
       };

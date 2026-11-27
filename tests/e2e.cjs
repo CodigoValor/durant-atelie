@@ -44,10 +44,14 @@ function novoBanco(cfg) {
       st.emailLogado = 'hd@henriquedurant.com'; const exp = Math.floor(Date.now() / 1000) + 3600;
       return json(route, 200, { access_token: jwt('hd@henriquedurant.com'), refresh_token: 'r1', expires_at: exp });
     }
-    if (p === '/rest/v1/rpc/minha_pessoa') return json(route, 200, st.cfg.semCpf ? [] : [{ cpf: '52998224725', nome: null }]);
+    if (p === '/rest/v1/rpc/minha_pessoa') return json(route, 200, st.cfg.semCpf ? [] : [{ cpf: '52998224725', nome: st.nomePessoa || null }]);
     if (p === '/rest/v1/rpc/salvar_minha_pessoa') {
       const b = JSON.parse(req.postData() || '{}'); if (String(b.p_cpf).replace(/\D/g, '') === '11144477735') return json(route, 400, { message: 'este CPF já está cadastrado em outra conta' });
-      st.cpfSalvo = b.p_cpf; st.cfg.semCpf = false; return json(route, 204, null);
+      st.cpfSalvo = b.p_cpf; st.nomePessoa = b.p_nome; st.cfg.semCpf = false; return json(route, 204, null);
+    }
+    if (p === '/functions/v1/enviar-convite') {
+      st.enviosConvite = (st.enviosConvite || []).concat(JSON.parse(req.postData() || '{}').token);
+      return json(route, 200, { ok: true });
     }
     if (p === '/rest/v1/membros') {
       const email = st.emailLogado || (st.cfg.emailPadrao);
@@ -161,8 +165,14 @@ function novoBanco(cfg) {
     await r.pg.fill('#g-cpf', '111.444.777-35'); await r.pg.click('#g-f button[type=submit]'); await r.pg.waitForTimeout(150);
     ok(/já está cadastrado/.test(await r.pg.textContent('#g-e')), 'CPF de outra conta é recusado');
     await r.pg.fill('#g-cpf', '52998224725'); ok((await r.pg.inputValue('#g-cpf')) === '529.982.247-25', 'CPF com máscara');
+    await r.pg.fill('#g-nome', 'Marta Exemplo');
     await r.pg.click('#g-f button[type=submit]'); await r.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 });
-    ok(bc.cpfSalvo === '529.982.247-25', 'CPF salvo e a pessoa entra no sistema'); await r.ctx.close();
+    ok(bc.cpfSalvo === '529.982.247-25', 'CPF salvo e a pessoa entra no sistema');
+    ok((await r.pg.textContent('#userchip .un')) === 'Marta' && (await r.pg.textContent('#main h1')).includes('Marta'), 'nome informado no primeiro acesso aparece na conta e na saudação');
+    await r.pg.reload();
+    await r.pg.waitForSelector('#userchip:not([hidden])');
+    ok((await r.pg.textContent('#userchip .un')) === 'Marta' && (await r.pg.textContent('header [data-empresa]')) === 'DURANT ALFAIATARIA', 'nome pessoal permanece após recarregar e a empresa continua identificada');
+    await r.ctx.close();
     const b2 = novoBanco({ semCpf: true }); const r2 = await abre(b2); await r2.pg.waitForSelector('#g-u'); await loginUi(r2.pg, 'hd@henriquedurant.com', 'senhaCerta123'); await r2.pg.waitForSelector('#g-agora');
     await r2.pg.click('#g-agora'); await r2.pg.waitForSelector('#userchip:not([hidden])', { timeout: 15000 }); ok(!b2.cpfSalvo, '"Agora não" deixa entrar sem salvar'); await r2.ctx.close();
     const b3 = novoBanco({}); const r3 = await abre(b3); await r3.pg.waitForSelector('#g-u');
@@ -502,12 +512,40 @@ function novoBanco(cfg) {
     return new Promise(res => setTimeout(() => { r.form = !!document.getElementById('an-doc') && !!document.getElementById('an-carregar') && document.getElementById('mdl').textContent.includes('Enviar convite');
       document.getElementById('an-doc').value = '12345678000190'; document.getElementById('an-fant').value = 'Ateliê Novo'; document.getElementById('an-razao').value = 'Novo Ltda'; document.getElementById('an-email').value = 'novo@exemplo';
       document.getElementById('mform').requestSubmit(); r.emailInvalido = document.getElementById('merr').textContent.includes('e-mail');
+      const tel = document.getElementById('an-tel');
+      tel.value = '19988887777'; tel.dispatchEvent(new Event('input'));
+      document.getElementById('an-cidade').value = 'são paulo';
+      document.getElementById('an-uf').value = 'SP';
       document.getElementById('an-email').value = 'novo@exemplo.com'; document.getElementById('mform').requestSubmit();
+      const cad = S.cfg.atelies['Ateliê Novo'];
+      r.localidade = cad && cad.cidade === 'São Paulo · SP' && cad.tel === '(19) 98888-7777';
       r.salvo = !!(S.cfg.atelies || {})['Ateliê Novo'] && S.cfg.atelies['Ateliê Novo'].tipo === 'PJ' && ateliesLista().some(a => a.nome === 'Ateliê Novo');
       delete S.cfg.atelies['Ateliê Novo']; window.SB.perfil = ant; ui.cModo = 'meus'; ui.cli = null; res(r); }, 80)); });
   ok(pv.barraLimpa && pv.topoLista, 'Clientes e medidas: cabeçalho só com título e + Novo cliente; abas, busca e filtros no topo da lista');
   ok(pv.popup && pv.consumidor, '+ Novo cliente abre o pop-up Consumidor/Ateliê e Consumidor abre o cadastro');
   ok(pv.form && pv.emailInvalido && pv.salvo, 'Ateliê: formulário começa pelo documento, valida o e-mail e cadastra o ateliê (aparece na lista)');
+  ok(pv.localidade, 'ateliê novo grava o telefone formatado e a cidade com UF');
+  await r15.pg.waitForFunction(() =>
+    document.getElementById('an-link')?.value.includes('?convite=') &&
+    document.querySelector('.toast')?.textContent.includes('E-mail enviado'));
+  ok(b15.enviosConvite?.length === 1, 'cadastro de ateliê aciona o envio simulado do convite e mantém o link');
+  await r15.pg.click('#mcancel');
+  await r15.pg.click('#cm-atel');
+  await r15.pg.click('[data-atsel="Durant Alfaiataria"]');
+  await r15.pg.click('#at-edit');
+  await r15.pg.fill('#at-razao', 'Oficina Exemplo Ltda.');
+  await r15.pg.fill('#at-fant', 'Oficina Exemplo');
+  await r15.pg.fill('#at-cidade', 'campinas');
+  await r15.pg.selectOption('#at-uf', 'SP');
+  await r15.pg.fill('#at-tel', '1933334444');
+  await r15.pg.click('#mform button[type=submit]');
+  ok((await r15.pg.textContent('#at-wrap h2')) === 'Oficina Exemplo Ltda.' && (await r15.pg.textContent('[data-atsel="Durant Alfaiataria"]')).includes('Oficina Exemplo'), 'edição atualiza o cabeçalho e o nome da lista, preservando a chave de origem');
+  const cfgGravada = () => JSON.parse(b15.reg.get('E7|sing~cfg')?.j || '{}').atelies?.['Durant Alfaiataria'];
+  await r15.pg.waitForFunction(() => P.state === 'ok' && JSON.parse(P.last.get('sing~cfg')?.j || '{}').atelies?.['Durant Alfaiataria']?.fantasia === 'Oficina Exemplo');
+  ok(cfgGravada()?.cidade === 'Campinas · SP' && cfgGravada()?.tel === '(19) 3333-4444' && cfgGravada()?.razao === 'Oficina Exemplo Ltda.', 'alterações são gravadas no cadastro da mesma empresa');
+  await r15.pg.click('#at-pedidos');
+  await r15.pg.waitForSelector('#pp-parc');
+  ok((await r15.pg.inputValue('#pp-parc')) === 'Durant Alfaiataria' && (await r15.pg.textContent('#main')).includes('P-26188'), 'pedido anterior permanece vinculado após mudar o nome fantasia');
   const em = await r15.pg.evaluate(() => { window.SB.cadastro = { tipo: 'PJ', razao: 'Durant Alfaiataria Ltda.', doc: '12.345.678/0001-90' }; window.SB.perfil = { vende: true, produz: false, tipo: 'alfaiataria' };
     ui.draft = null; ui.det = null; ui.cfg = 'empresa'; location.hash = 'config'; render();
     const g = id => document.getElementById(id), menu = [...document.querySelectorAll('.cfgmenu *, nav *, main *')].some(e => e.textContent.trim() === 'Configurações da empresa');
